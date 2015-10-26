@@ -1,0 +1,24 @@
+The video games industry is an ever growing sector with sales surpassing 20 billion dollars in 2014 \cite{game_sales_esa}. Video games are not only built for entertainment purposes, but they are also used for Edutainment, Higher Education, Health Care, Corporate, Military, Research, and other \cite{CMP_Media_2004,serious_games}. These so-called \textit{serious games} usually do not enjoy the budgets available in the entertainment industry \cite{stapleton2004serious}. Therefore, developers of serious games are interested in tools capable of overcoming the coding difficulties associated with the complexity of games, and reducing the long development times.
+
+Video games are composed of several inter-operating components, which accomplish different and coordinated tasks, such as drawing game objects, running the physics simulation of bodies, and moving non-playable characters using artificial intelligence. These components are periodically activated in turn to update the game state and draw the scene. When game complexity increases, this leads to an increase in size and complexity of components, which, in turn, leads to an increase in the complexity of developing and maintaining them, and thus an increase of development costs.
+
+%As the components increases their complexity and size the difficulty to develop and maintain them increases as well\footnote{Because of the nature of games O-O languages lend themselves to easily define games\cite{neubauer2002object}}. This leads to higher complexity, thus to higher amount of costs.
+
+A possible approach to reduce development costs is to use game development tools (e.g., GameMaker, Unity3D, or UnrealEngine \cite{petridis2010engine}), but these tend to produce simple games in a specific genre, that are hard to customize. Therefore, most game developers rely on a general-purpose language (GPL) to create games \cite{lewis2002game}. Such languages, however, lack the domain-specific abstractions and optimizations of games \cite{Rocki:2014:FAP:2554850.2555029,sujeeth2014delite}, leading to highly complex code that is expensive to maintain.
+
+Software development techniques have been studied in the past years to improve software maintainability and tackle software complexity. Encapsulation, which is a software development technique that consists of isolating a set of data and operations on those data within a module and providing precise specifications for the module \cite{citeulike:10949855}, is a typical technique used to increase code readability and maintainability \cite{collar2006role}.
+
+
+
+Games feature many small entities that interact with each other. Encapsulation forces those entities to interact through specific interfaces. Therefore, when calling methods of the interfaces, overhead is added due to dynamic dispatching. Such overhead ultimately affects the performance of games at runtime negatively. Performance is of high importance for games, since it is strictly connected to game smoothness, i.e., to the game's framerate, where a frame consists of a complete update of all the entities present in the game. Smoothness strongly influences the perceived quality of a game \cite{claypool2009perspectives}.
+
+Our goal is to develop techniques for taming the complexity of games by means of encapsulation, increasing code readability and maintainability, without losing performance.
+%\vspace{0.5cm}
+%\noindent
+In this paper we present a solution to the loss of performance in encapsulated programs. We will show a domain specific language for games, named ``Casanova 2'', which allows developers to write high quality games at reduced development costs. Our solution allows developers to write encapsulated code which, through extensive automated optimization, turns source code into high-performance executable code.
+
+%\vspace{0.5cm}
+%\noindent
+
+%\subsection{Structure of the paper}
+We start with a discussion of encapsulation and typical optimizations (which break encapsulation) and their complexity, by introducing a case study. We use the case study to identify issues in using both encapsulation and faster implementation for games (Section \ref{sec:the_problem}). We introduce our idea for dealing with encapsulation without losing performance (Section \ref{sec:idea}). We propose a specific implementation, with corresponding semantics, within the Casanova 2 language (Section \ref{sec:details}). We then evaluate the effectiveness of our approach in terms of performance and compactness (Section \ref{sec:evaluation}), and round off with conclusions (Section \ref{sec:conclusions_and_future_works}). 

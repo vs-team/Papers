@@ -1,0 +1,75 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{enumitem}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{listings}
+
+\setlist[itemize]{noitemsep, nolistsep, topsep=0pt}
+\author{}
+\date{}
+\title{Making RTS games in Casanova}
+
+\lstset{
+basicstyle=\ttfamily\footnotesize,
+mathescape=true,
+showspaces = false,
+frame=single,
+showstringspaces = false,
+breaklines=true}
+
+\usepackage[utf8]{inputenc}
+\usepackage{color}
+\newcommand{\red}[1]{
+\textcolor{red}{#1}
+}
+
+\renewcommand{\texttt}[1]{%
+	\begingroup
+	\ttfamily
+	\begingroup\lccode`~=`/\lowercase{\endgroup\def~}{/\discretionary{}{}{}}%
+	\begingroup\lccode`~=`[\lowercase{\endgroup\def~}{[\discretionary{}{}{}}%
+	\begingroup\lccode`~=`.\lowercase{\endgroup\def~}{.\discretionary{}{}{}}%
+	\catcode`/=\active\catcode`[=\active\catcode`.=\active
+	\scantokens{#1\noexpand}%
+	\endgroup
+}
+
+
+\begin{document}
+\maketitle
+\section{Introduction}
+\input{Sections/introduction}
+
+\section{PROBLEM - An analysis of RTS's}
+\input{Sections/problem}
+
+
+\section{``Galaxy Wars" case study}
+\input{Sections/case_study}
+
+
+
+\section{SOLUTION - Our idea}
+\input{Sections/idea}
+
+
+
+\section{DETAILS - Abstraction}
+\input{Sections/abstraction}
+
+\section{Evaluation}
+CNV vs C\# vs Python\\
+
+\section{Conclusions}
+
+
+\bibliography{references}
+\bibliographystyle{plain}
+
+
+\end{document}

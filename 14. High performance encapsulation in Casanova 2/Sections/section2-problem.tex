@@ -1,0 +1,75 @@
+In this section we introduce a short example to explain the problem of encapsulation in games. We then discuss the advantages and disadvantages of using encapsulation when designing a game.
+
+\begin{comment}
+\paragraph*{Common issues}
+In the panorama of game development the two main approaches to game development are through the use of tools, or through the use of languages \cite{maggiore2013casanova}.
+
+\textbf{Tools} are environments where developers are assisted in the creation of games through visual instruments and built-in features (such as physics).
+Tools generally are focused on specific genres. A typical aspect of these tools is that they offer developers predefined functionalities (such as path finding, collision detection, and rendering), which would take a lot of time to develop and debug. These functionalities are often available in the shape of menu objects in the developing environment. The goal of tools, in general, is to allow developers to quickly prototype and deploy games, while relieving them from common tasks in game development. Typical tools, such as GameMaker, Corona, Unity3D, and RPGmaker, provide an easy-to-use interface and shortcuts for dealing with entity behavior. As long as the developer limits himself to using the components provided, the tools produce performant game code, because of their specific application in the domain of games. For behaviors that are not covered by the tool components, they often support scripting languages that allow developers to define new behaviors. However, they thereby lose the advantages of using the tool components. Moreover, the scripting languages used by tools are usually interpreted (like LUA and JavaScript), which considerably affects performance. Therefore, by using tools, developers are left with the choice of either building simple performant games that do not feature complex or new behaviors, or build more complex games by expanding the tools, which requires not only considerable development investments but also tends to lose performance.
+
+General purpose \textbf{languages} (GPL) are suitable for any kind of computational task, including the development of games. This is due to the high expressive power deriving from the the availability of different GPLs for different kinds of abstractions. Every abstraction is built around specific problems, which introduces levels of difficulty in using such abstractions. C\#, Python, and Objective-C are typical examples \cite{languages_for_games1} of languages used for game development. A typical limitation in using GPLs is in expressing performance patterns, since the languages' focus is on the expressiveness. Optimizations that are significant in particular contexts (e.g., the context of game development) are not well expressed by GPLs (with the exception of SQL \cite{sql_indices} indexes). Complex code may require highly complex optimizations, depending on the context. Since such optimizations cannot be supported by a GPL, developers must implement them by hand. In game development, where optimizations of performance are a necessity, they increase the costs of development considerably. Unless the developers have access to large financial resources, the use of a GPL for game development is not a good choice, unless the game remains very small or does not need high performance. Some languages have been developed taking this into account for specific kinds of games. For instance, with CDML \cite{callahan2004cascade} developers are supposed to design their game around the producer-consumer design pattern in order to get the best support from the compilation process. With Inform, Ren'Py and Zillions of Games \cite{languages_for_games2} developers are limited to developing games within particular genres, such as storytelling or board games.
+\end{comment}
+
+\paragraph*{Running example}
+
+%recall encapsulation again, and why games would benefit from it?
+
+To illustrate the discussions hereafter, we now present a game that contains typical elements that are often encountered in game development. The game consists of a set of planets linked together by routes. A player can move fleets from his planets to attack and conquer enemy planets. Fleets reach other planets by using the provided routes. Whenever a fleet gets close enough to an enemy planet it starts fighting the defending fleets orbiting the planet. The game can be considered the basis for a typical \emph{Planet Wars} strategy game (such as Galcon \cite{wiki:galcon}). We define a \textit{frame} to be a single update cycle of all the game's data structures.
+
+In our running example, we assume that a \texttt{Route} is represented by a data structure containing (\textit{i}) the start and end point as references to \texttt{Planets}, and (\textit{ii}) a list of \texttt{Fleets} traveling via such route. \texttt{Planet} is a data structure containing (\textit{i}) a list of defending \texttt{Fleets}, (\textit{ii}) a list of attacking \texttt{Fleets}, and (\textit{iii}) an \texttt{Owner}. Each fleet has an owner as well. Each data structure contains a method called \texttt{Update} which updates the state of its associated object at every frame. Furthermore, we assume that all the game objects have direct access to the global game state which contains the list of all routes in the game scenario.
+
+
+
+According to the definition of encapsulation, data and operations on them must be isolated within a module and a precise interface must be provided. Moreover, each entity is responsible for updating its own fields in such a way that it maintains its own invariant.
+
+\paragraph*{Design techniques and operations}
+
+In our running example the modules are the \texttt{Planet} and \texttt{Route} classes defined above, \textit{data} are their fields.
+
+To support \emph{encapsulation}, in the following implementation each entity is responsible for updating its fields with respect to the world dynamics. The \textit{operations} for each entity are the following:
+\begin{inparaenum}[i)]
+    \item \textbf{Planet}: Takes the enemy fleets traveling along its incoming routes which are close to the planet, and moves them into the attacking fleets list;
+    \item \textbf{Route}: Removes the traveling fleets which have been placed in the attacking fleets of the destination planet from the list of traveling fleets.
+\end{inparaenum}
+\begin{lstlisting}
+class Route
+    Planet Start, Planet End,
+    List<Fleet> TravellingFleets,
+    Player Owner
+    void Update()
+      foreach fleet in TravellingFleets
+        if End.AttackingFleets.Contains(fleet)
+          this.TravellingFleets.Remove(fleet)
+class Planet
+    List<Fleet> DefendingFleets,
+    List<Fleet> AttackingFleets
+    void Update()
+      foreach route in GetState().Routes
+        if route.End = this then
+          foreach fleet in route.TravellingFleets
+            if distance(fleet.Position, this.Position) < min_dist && fleet.Owner != this.Owner then
+              this.AttackingFleets.Add(fleet)
+\end{lstlisting}
+
+
+An alternative design, which does not use encapsulation, allows the route to move the fleets close to the destination planet directly into the attacking fleets by writing into the planet fields. In this scenario the route is modifying data related to the planet and the route is writing into a reference to a planet.
+\begin{lstlisting}
+class Route
+    Planet Start, Planet End,
+    List<Fleet> TravellingFleets
+    void Update()
+      foreach fleet in this.TravellingFleets
+        if distance(fleet.Position, this.Position) < min_dist && fleet.Owner != End.Owner then
+            this.TravellingFleets.Remove(fleet)
+            End.AttackingFleets.Add(fleet)
+\end{lstlisting}
+\paragraph*{Discussion}
+In our running example a programmer is left with the choice of (\textit{i}) either using the paradigm of encapsulation which improves the understandability of programs and eases their modification \cite{ENCAPSULATION_AND_INHERITANCE_IN_OOP}, or (\textit{ii}) breaking encapsulation by writing directly into the planet fields from an external class, which, as we will show below, is more efficient but potentially dangerous \cite{eder1994coupling}.
+
+As far as \emph{performance} is concerned, in the encapsulated version, the planet queries the game state to obtain all routes which endpoints are the planet itself, and for every route selects the enemy traveling fleets that are close enough to the planet. At the same time, a \texttt{Route} checks the list of attacking fleets of its endpoints and removes the fleets which are contained in both lists from the traveling fleets. If we consider a scenario containing $m$ planets, $n$ routes, and at most $k$ traveling fleets per route, each planet should check the distance condition for $O(nk)$ ships, thus the overall complexity is $O(mnk)$. The non-encapsulated version checks for each route the distance for a maximum of $k$ ships and then directly moves those close to the planet, for which the overall complexity is $O(nk)$. Therefore, the performance on the non-encapsulated version is better.
+
+As far as \emph{maintainability} is concerned, in a game containing planets, many entities might need to interact with each planet (such as fleets, upgrades, and special weapons). Assume that a special action freezes all the activities of a planet. We have to propagate this behavior into the code of all the entities in the game that may interact with a planet, disabling such interactions when the planet is frozen. In the encapsulated version of the code, such behavior needs only be implemented in one place, namely in the planet. In the non-encapsulated version, it must be implemented in each and every entity that may interact with a planet. Moreover, if the developer forgets to make this change even in just one of the entities, the game no longer functions correctly; i.e., bugs associated with planets might actually find their cause in other entities. It is clear that the maintainability of the encapsulated version of the code is much better than the maintainability of the non-encapsulated version.
+
+The main advantage of using encapsulation is related to the maintainability of code, because encapsulated operations that alter the state of an entity are strictly defined within the entity definition. This helps to reduce the amount of code to maintain in case the entity changes the \textit{normal} behavior of an entity. In our scenario all the activities that alter the planet are inside the planet, so if we remove (or disable) a planet then all its operations are suspended.
+
+What we desire to achieve is the maintainability of encapsulated game code, combined with the performance of non-encapsulated code. In the following sections, we show how this can be achieved with Casanova. 

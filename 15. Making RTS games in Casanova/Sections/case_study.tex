@@ -1,0 +1,8 @@
+Galaxy wars (GW) is an RTS game published in 2012 inspired by the popular board game Risk. The gameplay revolves around your strategic choices, where timing, battles, and resource management are key elements to prevail against the opponents.
+
+The map field is a connected graph where nodes represent planets and links are the physical connection between planets. Planets produce fleets that are controllable by the players. A fleet can either defend its containing planet or move battle against other planets. Fleets move only through links. To every player global statistics are assigned. Global statistics influence fleets attack/defence capabilities as well as fleets speed and planets production. Few special planets feature special ability to update the global statistics of their owners.
+
+\subsection{Galaxy Wars with REA}
+We show an informal idea of implementation of Galaxy Wars with the REA pattern. The elements of Galaxy Wars that follow the REA pattern are: \textit{fleet}, \textit{planet}, \textit{statistic}, and \textit{link}. Resources are \textit{statistics}, the entities are \textit{fleets}, \textit{planets}, and \textit{links}. The possible actions are movement, fight, and upgrade. In GW most of the entities are static. The only entity that can be created and deleted are fleets. A fleet is spawned after a player decides to send some units to a planet. A fleet is disposed after either it has reached its destination, or it has lost a battle. Moreover, the fleet entity is the only entity which might change its strategy/behavior during its lifetime (a fleet can either travel along a link or fight in a battle).
+
+In the next section we show how to implement the REA pattern for Galaxy Wars in Casanova 2.

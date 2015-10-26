@@ -1,0 +1,22 @@
+Implementing an RTS requires writing code for all of the game common elements such as: units, battles, movement, production, resources gathering, statistics, etc.
+
+We identify the common game elements of an RTS by mean of a taxonomy \cite{abbadi2014resource}. In this paper the authors introduce a design pattern called \textit{REA} (resource, entity, action) for representing RTS's. In particular the design effectively describes any RTS game in terms of:
+\begin{itemize}[noitemsep,nolistsep]
+\item \textit{Resource}, which is any kind of game statistic. A statistic might represent a numerical value of a battle, or the cost to deploy a facility, etc.
+\item \textit{Entity}, which is any kind of game element that contains resources. We distinguish different entities by mean of their interaction.
+\item \textit{Action}, which describes an interaction, is used to specialize an entity. Precisely it describes the flow of resources among entities.
+\end{itemize}
+
+
+Whereas the definition of action given above covers generic type of interaction (like the attack of a ship, or the percentage of construction, etc) a special attention should be given to some kind of actions that are common to all RTS's. We identified these special actions in terms of: \textit{creation}, \textit{deletion}, and \textit{strategy update}.
+
+\subsection*{Creation}
+An entity is crated after some conditions in the game world are met. A condition could be for example the player who decides to create a fleet to attack an enemy player; an automated spawner that after a certain amount of time creates a unit, etc. Furthermore, the creation of an entity typically consumes some game resources of the player. If the resources are not enough then the creation will be postponed or not allowed at all. 
+
+\subsection*{Deletion}
+Analogously to creation, an entity is deleted after some conditions in the game are met. A condition could be for example during a battle the life of the entity is lower or equal to zero. Entities removed from the game world are not able to interact with other entities.
+
+\subsection*{Strategy update}
+During the life time of an entity often happens in an RTS that the entity changes its behavior. For example a resource gatherer unity mainly collects resources from all around the world, but if necessary it can also attack; a fleet moving around the world might eventually end up in the local fleets of a planet or take part of a battle. All the just mentioned actions differ from each other, indeed their logics affect different set of resources.
+
+Next, we discuss how the just described model effectively describes an RTS. 
