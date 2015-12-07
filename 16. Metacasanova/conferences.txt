@@ -1,0 +1,4 @@
+- FDG conference (Foundation of Digital Games).
+- SLE conference (Software Language Engineering).
+- Dynamic Languages Symposium (DLS).
+- Dynamic Languages Conference.

@@ -1,0 +1,158 @@
+%-----------------------------------------------------------------------------
+%
+%               Template for sigplanconf LaTeX Class
+%
+% Name:         sigplanconf-template.tex
+%
+% Purpose:      A template for sigplanconf.cls, which is a LaTeX 2e class
+%               file for SIGPLAN conference proceedings.
+%
+% Guide:        Refer to "Author's Guide to the ACM SIGPLAN Class,"
+%               sigplanconf-guide.pdf
+%
+% Author:       Paul C. Anagnostopoulos
+%               Windfall Software
+%               978 371-2316
+%               paul@windfall.com
+%
+% Created:      15 February 2005
+%
+%-----------------------------------------------------------------------------
+
+
+\documentclass{sigplanconf}
+
+% The following \documentclass options may be useful:
+
+% preprint      Remove this option only once the paper is in final form.
+% 10pt          To set in 10-point type instead of 9-point.
+% 11pt          To set in 11-point type instead of 9-point.
+% authoryear    To obtain author/year citation style instead of numeric.
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{pifont}
+\usepackage{url}
+\lstset
+{
+	basicstyle = \ttfamily\tiny,
+	breaklines = true,
+	frame = single
+}
+
+
+\begin{document}
+
+\special{papersize=8.5in,11in}
+\setlength{\pdfpageheight}{\paperheight}
+\setlength{\pdfpagewidth}{\paperwidth}
+
+\conferenceinfo{25th International Conference on Compiler Construction (CC 2016)}{March 17--18, 2016, Barcelona, Spain} 
+\copyrightyear{2016} 
+\copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
+\doi{nnnnnnn.nnnnnnn}
+
+% Uncomment one of the following two, if you are not going for the 
+% traditional copyright transfer agreement.
+
+%\exclusivelicense                % ACM gets exclusive license to publish, 
+                                  % you retain copyright
+
+%\permissiontopublish             % ACM gets nonexclusive license to publish
+                                  % (paid open-access papers, 
+                                  % short abstracts)
+
+\titlebanner{banner above paper title}        % These are ignored unless
+\preprintfooter{short description of paper}   % 'preprint' option specified.
+
+\title{Building game scripting DSL's with the Metacasanova metacompiler}
+\subtitle{}
+
+\authorinfo{Francesco Di Giacomo \and Agostino Cortesi \and Mohamed Abbadi}
+           {Universita' Ca' Foscari, Venezia}
+           {francesco.digiacomo@unive.it \\ cortesi@unive.it \\
+           	mohamed.abbadi@unive.it}
+\authorinfo{Pieter Spronck}
+           {Tilburg University}
+           {p.spronck@uvt.nl}
+\authorinfo{Giuseppe Maggiore}
+		   {Hogeschool Rotterdam}
+		   {maggg@hr.nl}
+
+\maketitle
+
+\begin{abstract}
+Many video games rely on a Domain Specific Language (DSL) to implement
+particular features such as artificial intelligence or time and
+synchronization primitives.
+Building a compiler for a DSL is a time-consuming task, and adding new
+features to a DSL is hard  due to the low flexibility of the
+implementation choice.
+In this paper, we introduce an alternative to hand-made
+implementations of compilers for DSLs  for game development: the
+Metacasanova metacompiler.
+We show the advantages of this metacomplier  in terms of simplicity of
+designing and coding requirements, and in terms of  performance of the
+resulting code, whose efficiency is comparable with hand-made
+implementations in commercial general purpose languages.
+\end{abstract}
+
+\category{D.3.4}{Programming languages}{Processors}[Translator writing systems and compiler generators]
+
+% general terms are not compulsory anymore, 
+% you may leave them out
+%\terms
+%term1, term2
+
+\keywords
+metacompiler, compiler generator, Domain specific language, game development
+
+\section{Introduction}
+\label{sec:introduction}
+\input{Sections/introduction}
+
+
+\section{The challenges of building a game DSL}
+\label{sec:problem_statement}
+\input{Sections/problem_statement}
+
+
+
+\section{The Metacasanova metacompiler}
+\label{sec:formal_description}
+\input{Sections/desiderius}
+
+
+\section{Case study: Casanova 2.5, a language for game development}
+\label{sec:casanova3}
+\input{Sections/casanova3}
+
+
+\section{Evaluation}
+\label{sec:evaluation}
+\input{Sections/evaluation}
+
+
+\section{Conclusion and future work}
+\label{sec:future_works}
+\input{Sections/conclusion}
+
+\bibliography{bibliography}
+\bibliographystyle{abbrvnat}
+
+
+
+\end{document}
+
+%                       Revision History
+%                       -------- -------
+%  Date         Person  Ver.    Change
+%  ----         ------  ----    ------
+
+%  2013.06.29   TU      0.1--4  comments on permission/copyright notices
+
