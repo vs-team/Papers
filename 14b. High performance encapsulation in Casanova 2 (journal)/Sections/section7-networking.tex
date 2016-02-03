@@ -1,0 +1,36 @@
+\subsection*{Introduction}
+
+\subsection*{Motivation}
+
+\subsection*{Networking in Casanova}
+In this section we present a work in progress extension of Casanova to provide a DSL to define multiplayer games with automatic code generation for the networking layer.
+
+\subsubsection{Chosen architecture}
+We choose to implement the networking layer in Casanova 2 by using a peer-to-peer architecture for the following reasons:
+
+\begin{itemize}
+	\item Server-client architectures are more reliable but suitable only for specific genres of games (mostly Shooter games), while other genres, such as Real-time strategy games or Online Role Playing Games use p2p architecture.
+	\item We do not have to write a separate logic for an authoritative game server which has to validate the actions of clients.
+\end{itemize}
+
+Casanova will provide a generic tracking server, which is run separately from the main program. The tracking server will be defined by an IP address and a ``room'' name, which defines the game. The tracking server will simply broadcast the messages to the other clients without handling them. The message handling is dealt with by the clients.
+
+Each client controls a part of the game state. A client can update directly only the part of the game state he is controlling. The system must be able to synchronize the state of entities which are not directly controlled by the client, and at the same time manage the updates of the entities controlled by the other clients. Thus, the game logic must be able to handle :
+\begin{enumerate}
+	\item \textit{a new client connecting to the game}: in multiplayer games usually a player creates a new instance of the game and the other players join the match. This can be done even after the game start, depending on the game genre (usually shooter games or role playing games allow this behaviour, while strategy games do not allow join in progress). When a player starts the game, usually he has a series of game entities under his control (for example in a racing game a player controls the car he is driving but not those of the other players). These entities are instantiated when the player connects to the game. The other players do not have the information for these entities yet, which must be synchronized and created in the remote instances of the game of the other players. At the same time the connecting player must receive the existing game entities from the other players. This exchange of messages must be reliable, since it must be done exactly once and we must be sure that everyone receives the information about the entity instances.
+	\item \textit{local updates of game entities}: the language syntax must be able to specify what part of the logic is run on entities owned by the player. For example, if a player controls a car, we want to run the logic which detects the input and changes the direction only on the entities that are owned by the current player, so that he is not able to drive other players' cars.
+	\item \textit{synchronize remote entities}: the language syntax must be able to specify what part of the logic is run on entities owned remotely by other players. Usually in this part we receive updates from the other players. Remote entity updates are sent in unreliable mode (UDP)
+\end{enumerate}
+
+\subsubsection{Language extension}
+Casanova 2 must be extended to include primitives to manage the connection, the local entities, and the remote entities. In addition to this we must include primitives to send and receive messages in reliable and unreliable way (TCP and UDP).
+
+\begin{itemize}
+	\item Connection.
+	\item Master.
+	\item Slave.
+\end{itemize}
+
+\subsubsection{Running example}
+
+\subsection{Results and future work}
