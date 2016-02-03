@@ -1,0 +1,123 @@
+\documentclass[a4paper,landscape]{article}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{pdflscape}
+\usepackage{afterpage}
+\usepackage{capt-of}% or use the larger `caption` package
+\usepackage[a4paper]{geometry}
+
+\usepackage{layouts}
+
+\newgeometry{left=0.1cm,top=0.1cm}
+
+\setlength\leftmargini{0.2cm}
+
+%descriptions
+\def\introduction_description{We start with an introduction of games and video games. We introduce terminologies that will be used later on in the thesis. We discuss the opportunities that video games offer and underline the difference between two main subjects in the field of video games: \textit{games for entertainment} and \textit{serious games}. We discuss the importance of serious games and their impact in our society. We discuss what are the difficulties that serious games developers incur while developing games. We discuss possibilities to reduce such difficulties. We introduce then the Casanova language and briefly discuss why do we need a new language and how this would leverage costs and difficulties for making serious games. We conclude by introducing the content of the thesis.}
+
+\def\related_work_description{In this chapter we introduce the state of the art in game development. We disambiguate between \textit{systems} (or tools) and \textit{languages} for making games by mean of examples and definitions. Generally a system is an environment that provides already made components for making a game. Alteration of the already existing components of a system require developers to implement them by hand (usually by mean of general purpose languages). A language instead requires more handiwork with the advantage but that developers are left with more freedom, more expressiveness, and malleable tools compared to systems.}
+
+\def\game_languages_requirements_description{In this chapter we introduce our requirements table for languages for games. The table gets back the difficulties introduced in the Introduction chapter and tries to present a requirement for each of them. A language for games (from now on game domain language, GDL) is considered suitable for game development if it satisfies all the requirements present in the table. We believe that by satisfying all the requirements the process of making games should present less difficulties, all to the advantage of those developers with limited resources.}
+
+\def\casanova_proposal_description{In this chapter we present our proposal of a domain language for general game development. The design of Casanova is meant so to support developers in typical processes of game development. Among the possible processes we present one which is fundamental in game development and difficult to deal with by mean of traditional tools: the management of concurrent components that depend on the flow of time. Managing the flow of time and the coordination of multiple components in games (and other highly interactive applications) is a challenging task. Therefore game development requires a lot of effort, even for (apparently) simple scenarios. 
+
+The the chapter follows the following structure: we introduce the main features of Casanova and match them with the requirements introduced in the previous chapter. Then we introduce a formal description of our language and discuss the syntax choices.}
+\def\implementation_description{...}
+\def\usability_description{...}
+\def\applications_descrpition{...}
+
+%content
+\def\i_content{\small{
+\begin{itemize}[noitemsep,nolistsep]
+\item Games and video games
+\item Taxonomy of games and examples
+\begin{itemize}[noitemsep,nolistsep]
+\item Games for entertainment
+\item Serious games
+\end{itemize}
+\item Society impact of serious games
+\item Games and their complexity
+\item Problem statement
+\begin{itemize}[noitemsep,nolistsep]
+\item Research question
+\item Positive consequences
+\end{itemize}
+\item The Casanova language
+\item Thesis structure
+\end{itemize}}}
+
+
+\def\r_content{\small{
+\begin{itemize}[noitemsep,nolistsep]
+\item Game development evolution
+\begin{itemize}[noitemsep,nolistsep]
+\item Hardware
+\item Multimedia API
+\item Engines
+\item Editors
+\item Visual and GPL
+\end{itemize}
+\item What is system for games?
+\item What is a language for games?
+\item Systems vs languages
+\end{itemize}
+}}
+
+
+\def\rq_content{\small{
+\begin{itemize}[noitemsep,nolistsep]
+\item Introduction
+\item Requirements table
+\item Discussion
+\end{itemize}
+}}
+
+
+\def\p_content{\small{
+\begin{itemize}[noitemsep,nolistsep]
+\item Introduction
+\item Casanova Features
+\item Formal system description
+\item Syntactic choices
+\end{itemize}
+}}
+
+
+
+\setlength{\footskip}{60pt}
+
+\begin{document}
+
+\begin{table}[]
+\centering
+\begin{tabular}{|m{4.5cm}|m{4.5cm}|m{4.5cm}|m{12.4cm}|}
+\hline
+\rowcolor[HTML]{9B9B9B} 
+\multicolumn{1}{|c|}{\cellcolor[HTML]{9B9B9B}{\bf Chapter Title}} & \multicolumn{1}{c|}{\cellcolor[HTML]{9B9B9B}{\bf Table of Content}} & \multicolumn{1}{c|}{\cellcolor[HTML]{9B9B9B}{\bf What we got so far?}} & \multicolumn{1}{c|}{\cellcolor[HTML]{9B9B9B}{\bf Description}} \\ \hline
+Introduction & \vspace{0.2cm} \i_content & \center{\textbf{SKELETON}} & \introduction_description \\ \hline
+Related Work & \vspace{0.2cm} \r_content  & \center{\textbf{SKELETON}}  & \related_work_description \\ \hline
+Requirements for general game development languages &  \rq_content &  \center{\textbf{Table}} & \game_languages_requirements_description \\ \hline
+Our Proposal: The Casanova language & \p_content & \center{\textbf{Paper: Casanova: A simple, high-performance language for game development}}  & \casanova_proposal_description \\ \hline
+\end{tabular}
+\caption{The table indexes the subjects that will be touched by my PhD thesis. An estimation about times and \textit{approximate} deadlines is missing. We could discuss about it next time we meet at Tilburg.}
+\end{table}
+
+
+\begin{table}[]
+\centering
+\begin{tabular}{|m{4.5cm}|m{4.5cm}|m{4.5cm}|m{12.4cm}|}
+\hline
+\rowcolor[HTML]{9B9B9B} 
+\multicolumn{1}{|c|}{\cellcolor[HTML]{9B9B9B}{\bf Chapter Title}} & \multicolumn{1}{c|}{\cellcolor[HTML]{9B9B9B}{\bf Table of Content}} & \multicolumn{1}{c|}{\cellcolor[HTML]{9B9B9B}{\bf What we got so far?}} & \multicolumn{1}{c|}{\cellcolor[HTML]{9B9B9B}{\bf Description}} \\ \hline
+Language implementation and evaluation &  &  & \implementation_description \\ \hline
+Language usability and evaluation &  &  & \usability_description \\ \hline
+Applications &  &  & \applications_descrpition \\ \hline
+Future Works and Conclusions &  &  &  \\ \hline
+\end{tabular}
+\caption{The table indexes the subjects that will be touched by my PhD thesis. An estimation about times and \textit{approximate} deadlines is missing. We could discuss about it next time we meet at Tilburg.}
+\end{table}
+        
+
+
+\end{document}

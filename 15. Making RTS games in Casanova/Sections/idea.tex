@@ -1,6 +1,7 @@
-Casanova 2 is an iteration of Casanova, a DSL for game development. A Casanova program is a tree of data structures called \textit{entities}. The root of the tree is called \textit{world}. Each entity contains a set of \textit{rules} which modifies the fields and describe continuous dynamics. Discrete dynamics (the dynamics of the game that require timing or synchronization conditions) are expressed by coroutines implemented with a variation of the state monad. Casanova 2 eliminates this separation by allowing rule to be interruptible, thus describing both continuous and discrete dynamics. The rule body is looped continuously, which means that once the evaluation reaches the end, the rule is re-started from the first statement. Writing entity fields is allowed only by using rules. A rule can write an entity field by using a dedicated \texttt{yield} statement. Each rule declares a subset of fields called \textit{domain} on which it is allowed to write. Besides each rule has an implicit reference to the world (variable \texttt{world}), the current entity (variable \texttt{this}), and the time difference between the current frame and the previous (variable \texttt{dt}). Casanova 2 supports interruptible control structures and queries, so it natively supports REA.
+%Casanova 2 is an iteration of Casanova, a DSL for game development. A Casanova program is a tree of data structures called \textit{entities}. The root of the tree is called \textit{world}. Each entity contains a set of \textit{rules} which modifies the fields and describe continuous dynamics. Discrete dynamics (the dynamics of the game that require timing or synchronization conditions) are expressed by coroutines implemented with a variation of the state monad. 
+Casanova 2 eliminates this separation by allowing rule to be interruptible, thus describing both continuous and discrete dynamics. The rule body is looped continuously, which means that once the evaluation reaches the end, the rule is re-started from the first statement. Writing entity fields is allowed only by using rules. A rule can write an entity field by using a dedicated \texttt{yield} statement. Each rule declares a subset of fields called \textit{domain} on which it is allowed to write. Besides each rule has an implicit reference to the world (variable \texttt{world}), the current entity (variable \texttt{this}), and the time difference between the current frame and the previous (variable \texttt{dt}). Casanova 2 supports interruptible control structures and queries, so it natively supports REA.
 
-\section{REACDM Galaxy Wars in Casanova 2}
+\section{Galaxy Wars in Casanova 2}
 We now show that Casanova 2 is able to express the design of Galaxy Wars in terms of REA. In what follows the type $[T]$ denotes a list of objects of type $T$, according to Casanova 2 syntax. We begin by defining the structure of the world entity. The world contains the collection of \texttt{Planets} in the map, the collection of \texttt{Links} connecting the planets, the collection of \texttt{Players}, and a \texttt{Controller} that manages the input controller and provides facilities like: the current selected planet, whether a mouse button is down, etc.
 
 \begin{lstlisting}
@@ -8,7 +9,7 @@ worldEntity GalaxyWars =
   Planets    : [Planet]
   Links      : [Link]
   Players    : [Player]
-  Controller : Controller 
+  Controller : Controller
   
   //rules
 \end{lstlisting}
@@ -18,17 +19,16 @@ worldEntity GalaxyWars =
 \subsection{Resources}
 The resources are all those elements that influence the game dynamics. In Galaxy Wars the resources are: 
 
-
 \begin{itemize}[noitemsep]
-\item amount of fleets in a Planet
-\item the player statistics (attack, defence, production, research)
-\item planet and the ships statistics
-\item the amount of travelling ships in a link
+\item the players statistics (attack, defense, production, research)
+\item the planets statistics
+\item the fleets statistics
+\item the fleets stationed in a planet
+\item the fleets moving around the map
 \end{itemize}
 
 \noindent
-We use the following properties to model the statistics of the entities: player, planet, and fleet.
-
+We use the below properties to model the statistics of the entities: player, planet, and fleet. We use these statistics to amplify or reduce the amount of resources to transfer, thus to alter the impact of the effects of the entity container.
 \begin{lstlisting}
 entity GameStatistics =
   Attack               : float32
@@ -40,191 +40,217 @@ entity GameStatistics =
 
 
 \subsection{Entities}
-Entities represent the resource containers in Galaxy Wars. The entities in Galaxy Wars are: \texttt{Planets}, \texttt{Fleets}, \texttt{Players}, and \texttt{Links}. A player represents the commander managing all the elements of the RTS. It contains starting statistics that define a faction (a player might start with more production but less research). During the game statistics can be increased with upgrades.
-
-\begin{lstlisting}
-entity Player =
-  Statistics          : GameStatistics
-  Name                : string
-\end{lstlisting}
+\noindent
+Entities represent the resource containers in Galaxy Wars. The entities in Galaxy Wars are: 
 
 \noindent
-A planet represents the container of stationed ships. Each planet has its own statistics. The attack capabilities of a fleet can be increased depending on the attack value of the source planet. Research affects the velocity of the outgoing fleet. Defense and production affects the ship construction speed and defence capabilities (used when a planet is attacked). We use inbound fleets to select the incoming fleets from a link that is targeting the current planet. \texttt{Owner} is an option because not all planets are controlled by a player (in the beginning every player owns at most one planet and the other are neutral).
+\newline
+\textbf{Planet}, which represents the container of stationed fleets. Each planet has its own statistics. Statistics that affect: the attack and velocity of outgoing fleets; the local production of fleets; and the defense capabilities
 
+\noindent
+\newline
+\textbf{Link}, which is a directed connection between two planets. Links are used by fleets to move around the map	
+
+\noindent
+\newline
+\textbf{Fleet}, which represents the armies of a player. A fleet is made up by ships, and to every fleet statistics are assigned. A fleet might behave differently depending on its current task. Reason why we distinguish different kind of fleet entity, each of which inherits a fleet and is able to accomplish a specific task. The kind of fleets that we identified are:
+		\begin{itemize}[noitemsep]
+			\item \textbf{AttackingFleet}, which is a fleet capable to carry out fighting tasks
+			\item \textbf{AttackingFleetToMerge}, which represents a special attacking fleet which has just conquered a planet and thus has to be added to the planet stationary fleets (together with the other allied attacking fleets who that attacking the planet)
+			\item \textbf{TravelingFleet}, which represents a fleet traveling along a link
+			\item \textbf{LandingFleet}, which represents a special traveling fleet which is about to land on the destination planet
+		\end{itemize}
+		
+\noindent
+\newline
+\textbf{Battle}, which carries out the fighting task on a planet 
+
+\noindent
+\newline
+\textbf{Player}, which is the owner of entities in game. Every player belongs to a faction. Factions differ among each other based on their statistics. During the game statistics of a player can be changed by means of upgrades.
+
+
+\subsection{Fields}
+In addition to the resources defined above, additional data fields are used in every entity to support the internal logic of each entity. In what follows we go through each entity and for each entity a code listing the fields and brief description is provided.
+
+\paragraph{Planet}
+Each planet got: its own statistics, the amount of stationed fleets, the incoming fleets, an owner, a link to a possible battle, and the landing fleets.
 \begin{lstlisting}
 entity Planet =
-  Statistics          : GameStatistics
-  LocalFleets         : int
-  InboundFleets       : [Fleet]
-  ref Owner           : Option<Player>
-  Battle              : Option<Battle>
-  
-  
-  //rules
+  Statistics    : GameStatistic
+  LocalFleets   : int
+  InboundFleets : [Fleet]
+  ref Owner     : Option<Player>
+  Battle        : Option<Battle>
+  LandingFleets : [LandingFleet] 
 \end{lstlisting}
-
-\noindent
-A \texttt{Fleet} is defined by an \texttt{Owner}, the amount of ships, and its own statistics. Attack and defence are used in combat. A fleet has no production (it is always set to 0), while the research defines its speed.
-
+\paragraph{Link}
+Besides its source and destination, a link made up of a collection of traveling fleets.
+\begin{lstlisting}
+entity Link =
+  ref Source        : Planet
+  ref Destination   : Planet
+  TravellingFleets  : [TravellingFleet]
+\end{lstlisting}
+\paragraph{Fleet}
+A \texttt{Fleet} is made of: statistics, the amount of ships, a ref to the link on which its is traveling, an owner, a destroyed flag, and the position.
 \begin{lstlisting}
 entity Fleet =
-  Statistics          : GameStatistics
-  Ships               : int
-  ref Owner           : Player
-  
-  //rules
+  Statistics  : GameStatistic
+  Ships       : int
+  ref Link    : Link
+  ref Owner   : Player
+  Destroyed   : bool
+  Position    : Vector3
+\end{lstlisting}
+\subparagraph{AttackingFleet}
+An attacking fleet is a specialized fleet that contains: a ref to the actual fleet and a reference to its battle.
+\begin{lstlisting}
+entity AttackingFleet =
+  ref MyFleet : Fleet
+  ref MyBattle : Battle
 \end{lstlisting}
 
+\subparagraph{AttackingFleetToMerge}
+An attacking fleet to merge is a specialized fleet that contains: a ref to the actual fleet and a reference to the attacking fleet with which it has to join.
+\begin{lstlisting}
+entity AttackingFleetToMerge =
+  ref MyFleet : Fleet
+  ref FleetToMergeWith : AttackingFleet
+\end{lstlisting}
 
-\noindent
-Battles in GalaxyWars are carried out by mean of entities of type \texttt{Battle}. A battle is made up by:
-\begin{itemize}
-	\item \texttt{MySource} the planet where the battle is hosted, 	
-	\item \texttt{AttackingFleets} the fleets that are waiting to attack \texttt{MySource},
-	\item \texttt{SelectedAttackingFleet} the fleet that is attacking \texttt{MySource},
-	\item \texttt{DefenceLost} the amount of fleets lost after a match by \texttt{MySource}, and
-	\item \texttt{AttackLost} the amount of fleets lost after a match by \texttt{SelectedAttackingFleet}.
-\end{itemize}
+\subparagraph{TravelingFleet}
+Is a specialized fleet that contains: a reference to the actual fleet, the destination planet, and the velocity.
+\begin{lstlisting}
+entity TravelingFleet =
+  MyFleet : Fleet
+  ref Destination : Planet
+  Velocity : Vector3
+\end{lstlisting}
+
+\subparagraph{LandingFleet}
+Contains the reference to the actual fleet.
+\begin{lstlisting}
+entity LandingFleet =
+  MyFleet : Fleet
+\end{lstlisting}
+
+\paragraph{Battle}
+A battle is made up of:the planet where the battle is hosted, a collection of attacking fleets, the possible amount of losses of the hosting planet, the possible amount of losses of the attacking fleets, the just destroyed attacking fleets, and the just arrived attacking fleets that have to be grouped into the attacking fleets.
+
 
 \begin{lstlisting}
 entity Battle =
   ref MySource    : Planet
-  AttackingFleets : [AttackingFleet] 
-  SelectedAttackingFleet : Option<AttackingFleets>
-  DefenceLost   : Option<int>
-  AttackLost    : Option<int>
-  
-  //rules  
+  AttackingFleets : [AttackingFleet]
+  DefenceLost     : Option<int>
+  AttackLost      : Option<int>
+  FleetsToDestroyNextTurn  : [AttackingFleet]
+  FleetsToMerge   : [AttackingFleetToMerge]
 \end{lstlisting}
 
-\noindent
-A link is a directed connection between two planets. Besides its \texttt{Source} and \texttt{Destination}, a link also contains \texttt{TravellingFleets} that is collection of ships that are currently traveling along the link. 
-
+\paragraph{Player}
+A player is made of the statistics of its faction and the its name.
 \begin{lstlisting}
-entity Link =
-  ref Source             : Planet
-  ref Destination        : Planet
-  TravellingFleets   : [TravelingFleet]
-  
-  //rules
-\end{lstlisting}
-
-Eventually, we introduce two entities \texttt{TravelingFleet} and \texttt{AttackingFleet}. The former represent a fleet that is able to move around the map; the latter represents a ship able to carry out fighting tasks. A traveling fleet and an attacking fleet inherit the same \texttt{Fleet} entity. The reason is because an attacking ship is a traveling ship (same model, same position, same amount of fleets, etc.) that implements different set of behaviors. Furthermore, an attacking fleet contains also a reference its battle.
-
-\begin{lstlisting}
-entity AttackingFleet =
-  inherit Fleet
-  ref MyBattle : Battle
-  //rules
-  
-entity TravelingFleet =
-  inherit Fleet
-  ref Destination : Planet
-  //rules
+entity Player =
+  Statistics : GameStatistic
+  Name : string
 \end{lstlisting}
 
 \subsection{Actions}
-Actions are the only way, according to REA, to exchange resources like the amount of attacks in a battle, the amount of fleets to produce, etc. In Galaxy Wars we identified three kind of actions: battle, production, and upgrade. Input actions are left out of our explanation, because the transfer behavior is not completely under the control of Casanova (input rely on external facilities/libraries). However, capturing user input in Casanova 2 is possible; some examples can be found on \url{https://github.com/vs-team/casanova-mk2/wiki/Casanova-Samples-and-Demos-Tutorials}. 
+Actions are the only way, according to REA, to exchange resources like the amount of attacks in a battle, the amount of fleets to produce, etc. In Galaxy Wars we identified three kind of actions: battle, production, and upgrade.
 \\\\
 \noindent
-A \textbf{Battle} action involves a planet \texttt{MySource} and a series of \texttt{AttackingFleets}. In the following code The rule carries the attacking fleet selection. Every random time an entity among \texttt{AttackingFleets} is selected and stored into \texttt{SelectedAttackingFleet}. If in the mean time the battles ends we stop the selection and wait the battle to get disposed. If the selected ship is destroyed and there are \texttt{AttakingShips} available then we select an other attacking fleet among the \texttt{AttakingShips}.
+\subsubsection{Battle}
+\noindent
+A Battle action involves a planet \texttt{MySource} and a series of \texttt{AttackingFleets}.
+\paragraph{Attack} In this design only one selected attacking fleet at a time can attack \texttt{MySource}, precisely the fleet which is in the head of the \texttt{AttackingFleets} collection. Every random time an amount of damage is computed and stored in the \texttt{Battle} entity. Before computing the amount of damage, we check that there are still fleets in the \texttt{AttackingFleets} collection.
 
 \begin{lstlisting}
 entity Battle =
-  //fields
-  
-  rule SelectedAttackingFleet, AttackingFleets =
-    .| SelectedAttackingFleet.Fleet.Destroyed && AttackingFleets = [] ->
-       yield None, []
-    .| SelectedAttackingFleet.Fleet.Destroyed ->
-       let new_selected_fleet = AttackingFleets.[random(0, AttackingFleets.Count - 1)]
-       yield new_selected_fleet, new_attacking_fleets - new_selected_fleet
-    .| _ -> 
-       wait random
-       let new_selected_fleet = AttackingFleets.[random(0, AttackingFleets.Count - 1)]
-       yield new_selected_fleet, new_attacking_fleets + SelectedAttackingFleet
   ...
-\end{lstlisting}
-
-\noindent
-An other rule computes the amount of damage to apply every random amount of time to both \texttt{SelectedAttackingFleet} and \texttt{MySource}. 
-\begin{lstlisting}
-  ...
-  rule DefenceLost, AttackLost =
+  rule AttackLost, DefenceLost =
     yield None, None
-    wait random
-    //code that computes the damage to apply to both
-    //the attacker and defender based on their attack/defence
-    //stats and on the mount of attacking fleets
+    wait 1.0f
+    if AttackingFleets.Count > 0 then
+        yield // amount of looses based on the  
+              // statistics of both the attacking 
+              // fleet and the planet	   
 \end{lstlisting}
 
-\noindent
-Every instance of \texttt{AttackingFleet} and \texttt{Planet} involved in a battle keep updating their amount of fleets, so to carry our their internal logic.
+The amount of damage represents the damage that has be applied to both: the selected attacking fleet and the defending planet. This damage will always be applied since every instance of \texttt{AttackingFleet} and \texttt{Planet} involved in a battle keep updating their amount of fleets.
+
+
 \begin{lstlisting}
 entity AttackingFleet =
-  //fields
-  
-  rule Destroyed =  wait Ships = 0; yield True
-  rule Ships =
-    wait MyBattle.AttackLost.IsSome && MyBattle.SelectedAttackingFleet = this
-    yield Ships - MyBattle.AttackLost.Value
-     
+  ...
+  rule MyFleet.Ships =
+    wait MyBattle.AttackLost.IsSome && MyBattle.AttackingFleets.Head = this
+    yield MyFleet.Ships - MyBattle.AttackLost
+    
 entity Planet =
-  //fields and rules
-  
-  rule LocalFleets = 
-    wait Battle.DefenceLost.IsSome
+  ...
+  rule LocalFleets =
+    wait Battle.IsSome && Battle.DefenceLost.IsSome
     yield LocalFleets - Battle.DefenceLost.Value
 \end{lstlisting}
 
-\noindent
-We change the owner of a planet only in two possible ways: (\textit{i}) after the end of a battle and the attacker still got some armies alive, first rule (we set the current owner to \texttt{None}, after the victory of an attacking fleet, in order to reset the internal logics of the planet associated to the previous owner), and (\textit{ii}) when the planet is neutral and there are fleets that are inbounding, second rule. In the last case case the first fleet in \texttt{InboundFleets} gets the ownership.
-
+\paragraph{Attacking fleet selection}
+A random circularly selection based on random time is used to allow all attacking fleets to attack the planet.
 \begin{lstlisting}
-entity Planet =
-  //fields and rules
-  
-  rule Owner = 
-    wait Battle.IsSome && LocalFleets = 0 && 
-    Battle.SelectedAttackingFleet.IsSome &&
-    Battle.SelectedAttackingFleet.Value.Ships > 0
-    yield None
-    yield SelectedAttackingFleet.Value
-    
-  rule Owner, InboundFleets, LocalFleets = 
-    wait Owner.IsNone && Battle.IsNone &&
-         InboundFleets.Count > 0
-    let selected_fleet = InboundFleets.Head
-    yield selected_fleet.Owner,
-          InboundFleets - selected_fleet 
-          selected_fleet.Fleets
+entity Battle =
+  ...
+  rule AttackingFleets =
+    .| AttackingFleets.Count <= 1 => yield AttackingFleets
+    .| _ =>
+      wait Random.Range(1.0f, 2.0f)
+      yield AttackingFleets.Tail @ [AttackingFleets.Head]
 \end{lstlisting}
 
-\noindent
-A \textbf{production} action involves a \texttt{Planet} entity and the owner production statistics. The action is performed by a rule that waits an amount of time, which depends on the production statistics of both planet and owner, and then it adds a fleet to \texttt{LocalFleets}. If the planet changes owner (for a frame \texttt{Owner} is \texttt{None}) we reset the rule behavior and set \texttt{LocalFleets} to \texttt{0}.
+\paragraph{Ownership}
+We change the owner of a planet when at the end of a battle the attacker list is not empty. When we change the owner we also update the amount of \texttt{LocalFleet}, by summing all the fleets that share the same new owner and that are attacking the planet.
 \begin{lstlisting}
 entity Planet =
-  //other field and rules
+  ...
+  rule Owner, LocalFleets =
+    if Battle.IsSome &&
+       LocalFleets = 0 &&
+       Battle.AttackingFleets.Count > 0 then
+    let new_owner = Battle.AttackingFleets.Head.MyFleet.Owner
+    let fleets_to_add =
+	  Battle.AttackingFleets
+	  .Where(f => f.MyFleet.Owner = new_owner && f.MyFleet.Ships > 0)
+	  .sum(f => f.MyFleet.Ships)
+    yield Some new_owner, fleets_to_add 
+\end{lstlisting}
 
-  rules LocalFleets =
-    .| Owner.IsNone -> yield 0
-    .| _ ->
-      wait Statistics.Production * Owner.Value.Production
+
+\subsubsection{Production}
+The spawning of a new fleet follows the following schema: if a battle is ongoing on a planet then the production is interrupted and the planet keeps polling the battle in order to update its local fleets; if the planet is neutral (it is not possessed by any player) then production is interrupted; eventually if the planet is not neutral and the is not an ongoing battle then we wait some time, which depends on the production statistics of both the player and the planet, and then we add a new fleet to the local fleets.
+\begin{lstlisting}
+entity Planet =
+  ...
+  rule Owner, LocalFleets =
+    .| Battle.IsSome => yield LocalFleets
+    .| Owner.IsNone => yield 0
+    .| _ =>
+      wait //time depending on the owner
+           //and the planet production
       yield LocalFleets + 1
 \end{lstlisting}
 
-\textbf{Upgrading} the stats of a planet is performed by waiting the planet to get selected. When the planet is selected and a key associated to an upgrade is down we: (\textit{i}) wait an amount of time (which depends from the owner and the planet research statistics), then (\textit{ii}) we upgrade the selected statistic. If the planet is \texttt{Owner} less then its statistics are, by default, set to \texttt{1}.
+
+\subsubsection{Upgrade} When the planet is selected and a key associated to an upgrade is down we: (\textit{i}) wait an amount of time (which depends from the owner and the planet research statistics), and then (\textit{ii}) we upgrade the selected statistic. If the planet is neutral less then its statistics are, by default, set to \texttt{1}.
 
 \begin{lstlisting}
 entity Planet = 
-  //other field and rules
-
+  ...
   rule Statistics.STAT =
     .| Owner.IsNone -> yield 1
     .| _ ->
-      wait world.SelectedPlanet = this &&
-           KeyPressed(STAT_KEY)
-      wait Owner.Value.Research * Statistics.Research
+      wait IsSelected && KeyPressed(STAT_KEY)
+      wait //time depending on the owner
+           //and the planet research
       yield max(MAX_STAT, Statistics.STAT + 1)
 \end{lstlisting}
 
@@ -232,153 +258,191 @@ entity Planet =
 \subsubsection{Creation}
 In Galaxy Wars we create entities when: (\textit{i}) a battle is about to start, and (\textit{ii}) when a fleet is spawned.
 
-\noindent
-Given a planet \texttt{P}, a battle is created created if there are no other battles in progress in \texttt{P}, \texttt{P} is owned by a player, and \texttt{InboundFleets} contains at least an enemy fleet. A battle is disposed when the planet has lost its owner (\texttt{wait Owner.IsNone}) or when there are no \texttt{AttackingFleets} left.
+\paragraph{Battle} On a planet a battle is created either when either the planet is neutral and a fleet is approaching the planet; or the planet is not neutral, there are no battles ongoing on the planet, and an enemy fleet is approaching the planet.
 \begin{lstlisting}
 entity Planet =
-  //fields and rules  
-
+  ...
   rule Battle =
-    wait Battle.IsNone && 
-         Owner.IsSome &&
-         InboundFleets.Contains(f => f.Owner <> Owner.Value)
-    yield new Battle(this)
-    wait Owner.IsNone
+	let exits_an_enemy_fleet = 
+	  LandingFleets.Count = InboundFleets.Count |> not
+    if (Owner.IsNone && Battle.IsNone && exits_an_enemy_fleet) ||
+       (Owner.IsSome && exits_an_enemy_fleet) then
+      yield Some (new Battle(this))
+      wait Battle.AttackingFleets.Count <= 0
     yield None
 \end{lstlisting}
 
 
-\noindent
-A fleet is sent though a link only if the source planet contains enough local fleets and there are no battles in progress. The local fleets of the selected planet are set to \texttt{0} when the user decides to send fleets through a link.
+\paragraph{Fleet}
+We consume all local fleets of a planet and move them through the link when the source planet is selected (and its fleets are greater than 0) and the destination planet is selected as well. The selection logic of planets is in the planet entity and it is not covered in this presentation.
 
 \begin{lstlisting}
 entity Link =
-  //fields and rules
-
+  ...
   rule TravellingFleets, Source.LocalFleets = 
-    wait world.SelectedPlanet = Source &&
-         world.DestinationSelectedPlanet = Destination &&
-         world.Battle.IsNone
-         world.Source.LocalFleets > 0
-    new TravelingFleet(new Fleet(Source, world.Source.LocalFleets)) @
-        TravellingFleets, 0
+    wait Source.Selected && Destination.RightSelected &&
+         Source.Owner.IsSome && Source.Battle.IsNone &&
+         Source.LocalFleets > 0		
+    yield new TravellingFleet(Destination) :: TravellingFleets, 0
 \end{lstlisting}
 
 \subsection{Deletion}
+\noindent
 Analogously to creation, in GW the entities which might be disposed during a game are battles and fleets. 
 
 
-The logic of the deletion of a battle is tightly related to the logic of its creation. In the code above a battle is disposed only when the \texttt{Owner} is \texttt{None}. This means that the planet owner has lost its owner, hence the battle is over.
+\paragraph{Battle}
+The logic of the deletion of a battle is tightly related to the logic of its creation. In the previous subsection a battle is disposed only when the amount of \texttt{AttackingFleets} is equals to \texttt{0}.
 
-The logic of the deletion of a fleet depends on whether the fleet is fighting or traveling. When fighting a fleet is destroyed when its life is below or equal to zero. When the life is below or equal to zero the fleet field \texttt{Destroyed} is set to \texttt{true}.
+\paragraph{Fleet}
+The general logic of the deletion of a fleet follows the following criteria: if the fleet got no ships then it has to be destroyed. In code, a fleet destroys itself when the amount of its \texttt{Ships} is less or equals to zero.
 \begin{lstlisting}
-entity AttackingFleet =
-  inherit Fleet
-  ref MyBattle : Battle
-  rule Destroyed =
-    wait Life <= 0.0f
+entity Fleet =
+  ...
+  rule Destroyed = 
+    wait Ships <= 0
     yield true
 \end{lstlisting}
 
-This is necessary in order to notify other entities that the fleet has been destroyed and to allow the battle to remove it from its \texttt{AttakingFleets}.
-\begin{lstlisting}
-entity Battle =  
-  //fields and rules
+\noindent
+Special attention goes to when the ship is: fighting or about to land or traveling.
 
-  AttackingFleets : [Fleet]
+\subparagraph{Fighting} If during a battle the attacker manages to conquer the planet then all the attacking fleets that share the same owner of the just conquered planet have to be destroyed. 
+\begin{lstlisting}
+entity AttackingFleet =
+  ...
+  rule MyFleet.Destroyed =
+    wait (MyBattle.MySource.Owner.IsSome && 
+          MyFleet.Owner = MyBattle.MySource.Owner)
+    yield true
+\end{lstlisting}
+And filtered from the attacking fleets collection and moved into. We move such fleets to destroy in a different collection so their logic will not affect the logic of the battle. Entities in such collection last for one frame.
+\begin{lstlisting}
+entity Battle =
+  ...
+  rule FleetsToDestroyNextTurn =
+    yield
+      [for f in AttackingFleets do       
+       where (MySource.Owner.IsSome && f.MyFleet.Owner = MySource.Owner))
+       select f]
+\end{lstlisting}
+Fleets that have not managed to conquer the planet, but which have been destroyed are filtered from the attacking list collection.
+\begin{lstlisting}
+entity Battle =
+  ...
   rule AttackingFleets =
-    yield [for fleet in AttackingFleets do
-           where not fleet.Destroyed
-           select fleet]
+    yield 
+      [for f in AttackingFleets do       
+       where (not f.MyFleet.Destroyed) &&
+             not FleetsToDestroyNextTurn.Contains(f)
+       select f]
 \end{lstlisting}
 
-When traveling, a fleet is destroyed upon it has reached its destination. In this case, when the fleet is among the \texttt{InboundFleets} of its \texttt{Destination} the field \texttt{Destroyed} of the fleet is set to \texttt{true}. An additional check is added before destroying the fleet. If the owner has changed or there is a battle running on the planet then the fleet should not be destroyed, since the fleet will turn into an attacking fleet. 
+
+\subparagraph{Landing}
+A landing fleet is a traveling fleet, which is about to land and whose owner is the same as its destination planet. In order to not to add twice the ships of the landing fleet among the local fleets of the destination planet, a landing fleet lasts one frame in the game (we destroy it at the first frame).
 \begin{lstlisting}
-entity TravelingFleet =
-  inherit Fleet
-  ref Destination : Planet
-  rule Destroyed =
-    wait self in Destination.InboundFleets &&
-         Destination.Battle.IsNone         
-    yield True
+entity LandingFleet
+  ...
+  rule MyFleet.Destroyed = yield true
 \end{lstlisting}
 
+New landing fleets are continuously added to the local fleets.
+\begin{lstlisting}
+entity Planet
+  ...
+  rule LocalFleets =
+    yield LandingFleets.Sum(f => f.MyFleet.Ships) +
+          LocalFleets
+\end{lstlisting}
+
+\subparagraph{Traveling}
 When a traveling fleet has reached its destination, the fleet is automatically filtered by the link. 
 \begin{lstlisting}
 entity Link =
-  //fields
+  ...
   rule TravellingFleets =
-    yield [for f in TravellingFleets do
-           where Vector3.Distance(f.Position, Destination.Position) > MIN_DIST
-           select f]
+  yield 
+    [for f in TravellingFleets do
+     where Vector3.Distance(f.MyFleet.Destroyed |> not &&
+                            f.MyFleet.Position, Destination.Position) > Destination.MinApproachingDist
+     select f]
 \end{lstlisting}
 
-\subsubsection{Change of strategy}
-An entity during its life cycle might change its behavior based on its state. An example of this kind of behavior in GalaxWars could be identified with the fleet entity. For example an attacking fleets behaves differently than a moving fleet. In Casanova we distinguish these two cases by mean of two different entities that share some common properties, but implement different rules.
+\subsection{Behavior update}
+An entity during its life cycle might change its behavior based on its state. An example of this kind of behavior in GalaxWars could be identified in the fleet entity. For example an attacking fleet behaves differently than a moving fleet. In Casanova we distinguish these two cases by mean of two different entities that share some common properties, but implement different rules.
 
-When a traveling fleet is approaching the planet at the end of the link, the planet has to choose whether to: (\textit{i}) add the fleet in the planet local fleets, (\textit{ii}) add the fleet to a battle, (\textit{iii}) or forward the fleet to an other link. To implement the just described scenario we start with the definition of a buffer to place in the \texttt{Planet} entity called \texttt{InboundFleets}. The \texttt{InboundFleets} of a planet \texttt{X} represents all fleets that are approaching at a specific moment the planet \texttt{X}. 
+\paragraph{InboundFleet}
+When a fleet, traveling along a link, is approaching the destination, the planet has to choose whether to: (\textit{i}) add the fleet to the planet local fleets (see production of a planet above), or (\textit{ii}) add the fleet to a battle. To implement the just described scenario we start with the definition of a buffer to place in the \texttt{Planet} entity called \texttt{InboundFleets}. The \texttt{InboundFleets} of a planet represents all fleets that are approaching at a specific time the planet. 
 
 \begin{lstlisting}
-entity Planet =  
-  InboundFleets       : [Fleet]
-  
-  ..//other fields and rules
-  
+entity Planet =    
+  ...  
   rule InboundFleets =
-    yield [for l in world.Links do           
-           where l.Target = this &&
-           for f in l.Fleets do
-           where Vector3.Distance(f.Position, this.Position) < MIN_DIST
-           select f.]
-
+    yield [for l in world.Links do     
+           where (l.Destination = this)
+           for f in l.TravellingFleets do
+           where (Vector3.Distance(f.MyFleet.Position, Position) <= MinApproachingDist)
+           select f.MyFleet]
 \end{lstlisting}
 
-\texttt{InboundFleets} acts like a dispatcher. Entities are notified about change state of a fleet the moment it enters enters the \texttt{InboudFleets}. When a fleet enters the \texttt{InboundFleets} collection, other entities are able to consume it for their internal logics. To avoid entities to consume twice the same fleet, fleets in \texttt{InboundFleets} last for one frame before being disposed. When an entity consumes an inbound fleets it decides how to change the fleet behavior. 
+\texttt{InboundFleets} acts like a dispatcher. When a fleet enters the \texttt{InboundFleets} collection, other entities are able to consume it for their internal logics. To avoid entities to consume twice the same fleet, fleets in \texttt{InboundFleets} last for one frame before being disposed. When an entity consumes an inbound fleet it decides what behaviors to apply to the selected fleet. This is done by assigning the fleet to an other instance, of different type, which contains the fleet but provides new rules.
 
-\noindent
-A battle entity every frame selects the enemy fleets from the inbound fleets of its \texttt{MySource} field and adds them to its \texttt{AttackingFleets}. Before adding the inbounding enemy fleets to the \texttt{AttackingFleets} collection, every inbound enemy fleet is converted to an attacking fleet.
 
+\paragraph{Attacking fleets to merge}
+Fleets that come from the same link and that share the same owner have to e joined. To do so, every enemy inbound fleet that share the same source link of a fleet stored in \texttt{AttackingFleets} is selected and converted into an \texttt{AttackingFleetToMerge}. Eventually all the fleets of type \texttt{AttackingFleetToMerge} are stored into \texttt{FleetsToMerge} for the duration of one frame.
 \begin{lstlisting}
 entity Battle =
-  AttackingFleets : [AttackingFleet]
-  rule AttackingFleets = 
-    if MySource.Owner.IsSome then
-      yield [for f in MySource.InboundFleets do
-             where f.Owner <> MySource.Owner.Value
-             select new AttackingFleet(f)] @ AttackingFleets
+  ...
+  rule FleetsToMerge =
+    yield
+      [for i_f in MySource.InboundFleets do
+       for a_f in AttackingFleets do
+       where (not a_f.MyFleet.Destroyed &&
+              i_f.Link = a_f.MyFleet.Link)
+       select (new AttackingFleetToMerge (i_f, a_f))]
+\end{lstlisting}
+
+When we create an attacking fleet to merge the reference to the actual attacking fleet is stored in the \texttt{FleetToMergeWith} of the attacking fleet to merge. An attacking fleet every frame iterates through all the attacking fleets of its battle and selects those fleets to merge whose \texttt{FleetToMergeWith} is the attacking fleet. After the selection, the amount of ships of the selected attacking fleets to merger is sum and added to the local fleets of the attacking fleet.
+\begin{lstlisting}
+entity AttackingFleet =
+  ...
+  rule MyFleet.Ships =      
+    yield MyBattle.FleetsToMerge
+           .Where(f => f.FleetToMergeWith = this)
+           .sum(f.MyFleet.Ships) 
+          + MyFleet.Ships
+\end{lstlisting}
+
+
+\paragraph{Attacking fleet}
+A battle entity every frame selects the enemy fleets from the inbound fleets of its \texttt{MySource} field and adds them to its \texttt{AttackingFleets}, as long as the selected fleets are not in \texttt{FleetsToMerge}. Before adding the inbounding attacking fleets, every inbound enemy fleet is converted to an attacking fleet.
+\begin{lstlisting}
+entity Battle =
+  ...
+  rule AttackingFleets =
+    yield
+      [for f in MySource.InboundFleets do
+       let is_ship_to_merge = FleetsToMerge.Contains(f)
+       where is_ship_to_merge &&
+             (MySource.Owner.IsNone || 
+              not (f.Owner = MySource.Owner))
+       select new AttackingFleet(f, this)]
 \end{lstlisting}
 
 \noindent
-A link forwards a fleet \texttt{F} to its own link when \texttt{F} is inside \texttt{Source.InboundFleets} and \texttt{F.NextTarget} is the link \texttt{Destination}.
+The moment a fleet becomes an attacking fleet and it is added to the \texttt{AttackingFleet} collection the new logic (the one of the attacking) can be run.
+
+\paragraph{Landing fleet}
+A planet every frame selects all allied fleets among its inbound fleets and adds them to the \texttt{LandingFleet} collection, so the planet later can add those fleets to its local fleets. Before adding the inbound allied fleets, every fleets is converted to an inbound fleet.
 \begin{lstlisting}
-entity Link =
-  ref Source             : Planet
-  ref Destination        : Planet
-  ref TravellingFleets   : [TravelingFleet]
-  //... other rules
-  rule TravelingFleets =
-    wait Source.Battle.IsNone
-    yield [for f in Source.InboundFleets do
-           where f.NextTarget = Destination &&
-           select new TravelingFleet(f)] @ TravellingFleets  
-\end{lstlisting} 
-
-
-\noindent
-Eventually, a fleet is added to the local fleets of a planet if the fleet is in the \texttt{InboundFleets} collection and it shares the same owner of the planet.
-
-\begin{lstlisting}
-entity Planet = 
-  LocalFleets   : int
-  ref Owner     : Option<Player>
-  InboundFleets : [InboundFleet]
-  ...//other field and rules
-
-  rules LocalFleets =
-    wait Owner.IsSome
-    yield LocalFleets + 
-          [for f in InboundFleets do
-           where Owner.Value = f.Owner
-           select f
-           sum]
+entity Planet
+  ...
+  rule LandingFleets =
+    if Owner.IsSome then
+      yield
+        [for inbound_fleet in InboundFleets do
+         where (inbound_fleet.Owner = Owner)
+         select (new LandingFleet(inbound_fleet))]
+    else yield []
 \end{lstlisting}
