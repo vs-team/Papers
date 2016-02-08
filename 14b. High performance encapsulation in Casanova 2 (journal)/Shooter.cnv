@@ -1,0 +1,116 @@
+module Prototype
+
+open @"C:\Users\Francesco\Documents\GitHub\casanova-mk2\Unity\MonoGame\Prototype\Test\bin\Windows\Release\MonoGame.Framework.dll"
+open Microsoft.Xna.Framework
+open Microsoft.Xna.Framework.Input
+
+worldEntity World = {
+
+  Input: KeyboardState
+  Ships : [Ship]
+
+  rule Input = Keyboard.GetState()
+  
+  rule master Ships =
+    let! ships = receive_many()
+    yield Ships @ ships
+
+  rule connecting Ships, Connected =
+    send_reliable Ships
+    yield Ships, true
+
+  rule connected Ships =
+    send_reliable Ships
+    yield Ships
+
+  Create() =
+  {
+    Input = Keyboard.GetState()
+    Ships = [new Ship(new Vector2(0.0f,0.0f))]
+  }
+
+}
+
+entity Ship = {
+
+  Position: Vector2
+  Projectiles : [Projectile]
+  Score : int
+  Color : Color
+
+  rule master Position =
+    wait world.Input.IsKeyDown(Keys.W)
+    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * 300.0f
+    let p = Position + vp * dt
+    send p
+    yield p
+
+  rule master Position =
+    wait world.Input.IsKeyDown(Keys.S)
+    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * -300.0f
+    let p = (Position + vp * dt)
+    send p
+    yield p
+
+  rule master Rotation =
+    wait world.Input.IsKeyDown(Keys.A)
+    let r = Rotation + Math.PI / 4.0f * dt
+    send r
+    yield r
+
+  rule master Rotation =
+    wait world.Input.IsKeyDown(Keys.D)
+    let r = Rotation - Math.PI / 4.0f * dt
+    send r
+    yield r
+
+  rule master Projectiles =
+    wait world.Input.IsKeyDown(Keys.Space)
+    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * 500.0f
+    let projs = (new Projectile(Position, vp)) :: Projectiles
+    send_reliable projs
+    yield projs
+    wait not world.Input.IsKeyDown(Keys.Space)
+
+  rule master Projectiles, Score =
+    let collidingProjs =
+      [for p in Projectiles do
+       let ships =
+           [for s in Ships do
+            where s <> this and Vector2.Distance(p.Position,s.Position) < 100.0f
+            select s]
+       where ships.Count > 0
+       select p]
+    let newProjectiles = Projectiles - collidingProjs
+    send_reliable newProjectiles
+    yield newProjectiles, Score + collidingProjs.Count
+
+  rule slave Position = yield receive()
+
+  rule slave Rotation = yield receive()
+
+  rule slave Projectiles =
+    let! projs = receive_many()
+    yield projs @ Projectiles
+
+  Create(p : Vector2) =
+  {
+    Position = p
+    Color = new Color(0,0,155)
+    Projectiles = []
+  }
+}
+
+entity Projectile = {
+  Position    : Vector2
+  Velocity    : Vector2
+
+  rule master Position = yield Positon + Velocity * dt
+
+  rule slave Position = yield receive()
+
+  Create(p : Vector2, v : Vector2) = {
+    Position = p
+    Velocity = v
+  }
+}
