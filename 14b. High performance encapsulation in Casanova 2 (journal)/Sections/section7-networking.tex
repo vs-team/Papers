@@ -6,9 +6,16 @@ Adding multi-player support to games is a highly desirable feature. By letting p
 \paragraph*{Challenges}
 Multi-player support in games is a very expensive piece of software to build. Multiplayer games are under strong pressure to have very good \textit{performance}. Performance is both in terms of CPU time, and in bandwidth used. Also, games need to be very \textit{robust} with respect to transmission delays, packets lost, or even clients disconnected. To make matters worse, players often behave erratically. It is widespread practice among players to leave a competitive game as soon as their defeat is apparent (a phenomenon so common to even have its own name: ``rage quitting''), or to try to abuse the game and its technical flaws to gain advantages or to disrupt the experience of others.
 
-Networking code reuse is quite low across titles and projects. This comes from the fact that the requirements of every game vary significantly: from turn-based games that only need to synchronize the game world every few seconds, and where latency is not a big issue, to first-person-shooter games where prediction mechanisms are needed to ensure the smooth movement of synchronized entities, to real-time-strategy games where thousands of units on the screen all need to be synchronized across game instances. In short, previous effort is substantially inaccessible for new titles.
+Networking code reuse is quite low across titles and projects. This comes from the fact that the requirements of every game vary significantly: from turn-based games that only need to synchronize the game world every few seconds, and where latency is not a big issue, to first-person-shooter games where prediction mechanisms are needed to ensure the smooth movement of synchronized entities, to real-time-strategy games where thousands of units on the screen all need to be synchronized across game instances. In short, previous effort is substantially inaccessible for new titles. Encapsulation suffers from this ad-hoc nature of the implementation of the networking layer in multiplayer games. Indeed managing the information about game updates over a network requires each game entity to mix the game logic with the network socket, data transmission, and support data structures to manage the incoming traffic. Each game entity must indeed do the following:
 
+\begin{itemize}
+	\item Update the logic in the fashion of a singleplayer counterpart.
+	\item Choose what data is necessary to send over the network and create the message containing this information.
+	\item Choose what data can be lost and what data must always be received by the other clients.
+	\item Periodically check if incoming messages contain information which need to be read and to specific updates.
+\end{itemize}
 
+Combining these requirements together within the same entity breaks encapsulation.
 
 \paragraph*{Existing approaches}
 Networking in games is usually built with either very low level or very high level mechanisms. Very low level mechanisms are based on manually sending streams of bytes and serializing only the essential bits of the game world, usually incrementally, on unreliable channels (UDP). This coding process is highly expensive. Such a low level protocol is difficult to get right, and debugging subtle protocol mismatches, transmission errors, etc. will take lots of development resources. Low-level mechanisms must also be very robust, making the task even harder.
@@ -19,185 +26,3 @@ High level protocols such as RDP, reflection-based serialization, etc. can also 
 
 To avoid the problems of both existing approaches, we propose a middle ground. We observe that networking models and algorithms do not vary substantially between games, even though the code that needs to be written to implement them does. The similarity comes from the fact that the ways to serialize, synchronize, and predict the behaviour of entities are relatively standard and described according to a limited series of general ideas. The difference, on the other hand, comes from the fact that low-level protocols need to be adapted to the specific structure of the game world and the data structures that make it up. Until now, common primitives have not been syntactically and semantically captured inside existing languages. Using the right level of abstraction, these general patterns of networking can be captured, while leaving full customization power in the hand of the developer (to apply such primitives to any kind of game).
 
-Networking code can thus be seen as a series of (parametric) transformations from the data definitions of the game world and its structures, into the code that serializes these structures within the constraints imposed by games. This leads us to believe that the difficulties in networking do not stem from an intrinsic, theoretical or fundamental difficulty, but rather they come from the lack of ability of modern programming languages to capture such complex (inductive) transformations from data structures into algorithms. By designing the proper abstractions for networking at the language level, we aim at simplifying the task of building low-level networking protocols for games. We wish to, at the same time, give the developer more powerful and flexible tools to build networking code, always at the proper level of abstraction. We wish to avoid something that is really low-level, for example just a few byte-sending primitives, because this would not really solve the problem but would instead just offer some ready-made functions to call. At the same time we want to avoid extremely high-level primitives such as \texttt{synchronize-world}, because these would take away the flexibility to design ad-hoc protocols for each scenario. 
-
-Finally, we observe that a good system for building multiplayer in games should support timed-protocols and in general a complex flow of control that explicitly mentions time. For example, concurrent waiting operators should be a first class element, in order to be able to express a concept such as \textit{perform an operation after you receive a specific message}. In the following sections we present an extension of Casanova 2 to provide a DSL to define multiplayer. We also explain how the underlying network layer is implemented.
-
-\subsection*{Network architecture}
-We choose to implement the networking layer in Casanova 2 by using a peer-to-peer architecture for the following reasons:
-
-\begin{itemize}
-	\item Server-client architectures are more reliable but suitable only for specific genres of games (mostly Shooter games), while other genres, such as Real-time strategy games or Online Role Playing Games use p2p architecture.
-	\item We do not have to write a separate logic for an authoritative game server which has to validate the actions of clients.
-\end{itemize}
-
-Casanova will provide a generic tracking server, which is run separately from the main program. The tracking server will be defined by an IP address and a ``room'' name, which defines the game. The tracking server will simply broadcast the messages to the other clients without handling them. The message handling is dealt with by the clients.
-
-Each client controls a part of the game state. A client can update directly only the part of the game state he is controlling. The system must be able to synchronize the state of entities which are not directly controlled by the client, and at the same time manage the updates of the entities controlled by the other clients. Thus, the game logic must be able to handle the following situations.
-
-\paragraph*{New client connecting to the game} 
-In multiplayer games usually a player creates a new instance of the game and the other players join the match. This can be done even after the game start, depending on the game genre (usually shooter games or role playing games allow this behaviour, while strategy games do not allow join in progress). When a player starts the game, usually he has a series of game entities under his control (for example in a racing game a player controls the car he is driving but not those of the other players). These entities are instantiated when the player connects to the game. The other players do not have the information for these entities yet, which must be synchronized and created in the remote instances of the game of the other players. At the same time the connecting player must receive the existing game entities from the other players. This exchange of messages must be reliable, since it must be done exactly once and we must be sure that everyone receives the information about the entity instances.
-\paragraph*{Local updates of game entities}
-The language syntax must be able to specify what part of the logic is run on entities owned by the player. For example, if a player controls a car, we want to run the logic which detects the input and changes the direction only on the entities that are owned by the current player, so that he is not able to drive other players' cars.
-\paragraph*{Synchronize remote entities}
-The language syntax must be able to specify what part of the logic is run on entities owned remotely by other players. Usually in this part we receive updates from the other players. Remote entity updates are sent in unreliable mode (UDP).
-
-\begin{itemize}
-	\item management of the reference and networking layer ad-hoc generation.
-	\item Explain \texttt{send}, \texttt{send\_reliable}, \texttt{receive}, \texttt{receive\_many}
-	\item List synchronization
-\end{itemize}
-
-\subsection*{Language extension}
-Casanova 2 must be extended to include primitives to manage the connection, the local entities, and the remote entities. In addition to this we must include primitives to send and receive messages in reliable and unreliable way (TCP and UDP). In this section we introduce each primitive by using a multiplayer game example \footnote{The game source code and executable can be found at \cite{MULTIPLAER_SHOOTER}}. The game is a shooter arena where players control a single starship and can shoot the other players. Each time a player hits an enemy ship we increment the player's score.  
-
-%Besides asteroids can enter the map and hit the players' ships. If this occurs, the score is decreased.
-
-The \texttt{world} contains a list of ships controlled by each player.
-\begin{lstlisting}
-world Shooter = {
-  Ships  : [Ship]
-  ...
-}
-\end{lstlisting}
-
-Each \texttt{Ship} contains a position, a rotation, a collection of shot projectiles, and the score.
-\begin{lstlisting}
-entity Ship = {
-  Position   : Vector2
-  Rotation   : float32
-  Projectiles : [Projectile]
-  Score		  : int
-  ...
-}
-
-\end{lstlisting}
-
-Each \texttt{Projectile} contains its position and velocity.
-
-\begin{lstlisting}
-entity Projectile = {
-  Position : Vector2
-  Velocity : Vector2
-  ...
-}
-\end{lstlisting}
-
-\paragraph*{Connection}
-When a player connects we must consider two different situations: (\textit{i}) a player is already in the game and must send the current game state to the connecting players, and (\textit{ii}) the player who is connecting needs to send the ship he will instantiate and control (its initial state). Both the players in the game and the connecting one must receive the game states that are sent. For this purpose we introduce two additional clauses, \texttt{connecting} and \texttt{connected}, that can be added to the rule declaration to mark their role in the multiplayer logic.
-
-\begin{itemize}
-	\item[\textit{Connecting:}] A rule marked with \texttt{connecting} is executed once when a player joins the game. In our example the player should send its initial state (the created ship) to the other players. We use the primitive \texttt{send\_reliable} because we must be sure that eventually all players will be notified of the ship creation. The redundant \texttt{yield} on \texttt{Ships} is necessary because a rule must always yield at least once.
-	\begin{lstlisting}
-	world Shooter = {
-	  ...
-	  rule connecting Ships =
-	    send_reliable Ships
-	    yield Ships
-	}
-	\end{lstlisting}
-	
-	\item [\textit{Connected}:] A rule marked with \texttt{connected} is run whenever a new player joins the game. When this occurs, each player sends its ship. The system will take care to send only the ship controlled locally by the player itself for each player. The rule will use the \texttt{send\_reliable} primitive for the same reason explained in the previous point.
-	\begin{lstlisting}
-	world Shooter = {
-	...
-	rule connected Ships =
-	  send_reliable Ships
-	  yield Ships
-	}
-	\end{lstlisting}
-\end{itemize}
-
-\paragraph{Managing local instances}
-As explained above, each client manages a series of local game objects (called \textit{master objects}) that are under its direct control. The other clients read passively any update done on those instances and update their remote copy  (\textit{slave objects}) accordingly. We mark rules affecting the behaviour of master objects as \texttt{master}. In our example the following situations are run as master: (\textit{i}) synchronizing the ships among players, (\textit{ii}) updating the ship and projectiles spacial data, and (\textit{iii}) creating and destroying projectiles.
-
-\begin{enumerate}[(i)]
-	\item The part about ship synchronization in the world is run as master, since every player instantiates locally its own copy of the world. In the world you do not have \texttt{slave} rules because there are no remote copies of the world, just the one instantiated at the beginning of the game. In that rule we use \texttt{let!}, which is an operator which waits until the argument expression returns a result and then binds it to the variable. The rule uses \texttt{receive\_many} which receives and collects the list of sent ships by the other players.
-	
-	\begin{lstlisting}
-	world Shooter = {
-	  ...
-	  rule master Ships =
-	    let! ships = receive_many()
-	    yield Ships @ ships
-    }
-	\end{lstlisting}
-	
-	\item The master version of the ship update reads the input of the player and move (or rotate) the ship if a movement key is pressed. Note that this part must be executed only on a master object, because we want to allow each player to control only the ship it owns and instantiates at the beginning of the game. Below we show just the rule to move forward, the other movement and rotation rules are analogous. Note that in this case we use an unreliable send because it is acceptable to lose an update of the position in a certain frame.
-	
-	\begin{lstlisting}
-	entity Ship = {
-	  ...
-	  rule master Position =
-	    wait world.Input.IsKeyDown(Keys.W)
-	    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * 300.0f
-	    let p = Position + vp * dt
-	    send p
-	    yield p
-	}
-	\end{lstlisting}
-	
-	Analogously we do the same for the projectile, except the projectile position is continuously updated and synchronized over the network.
-	
-	\item Creating a new projectile happens when the player shoots. A ship keeps track of the projectiles it has shot so far, and adds a new one to the list of the existing projectiles. The updated list is sent to all the players with the new instance of the projectile. As explained in Section \ref{subsec:network_architecture}, we only send the new projectiles and not the whole list.
-	
-	\begin{lstlisting}
-	entity Ship = {
-	  ...
-	  rule master Projectiles =
-	    wait world.Input.IsKeyDown(Keys.Space)
-	    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * 500.0f
-	    let projs = (new Projectile(Position, vp)) :: Projectiles
-	    send_reliable projs
-	    yield projs
-	    wait not world.Input.IsKeyDown(Keys.Space)
-	}
-	\end{lstlisting}
-	
-	Deleting a projectile is run as a master rule, and computes the difference between the ship projectiles and the colliding projectiles. Even in this case, the network layer sends only the information about the projectiles to remove. Note that the score is managed by each player locally, as it does not require to be synchronized (we do not print the other players' scores. Doing so it would indeed require to send also the score).
-	
-	\begin{lstlisting}
-	entity Ship = {
-	  ...
-	  rule master Projectiles, Score =
-	    let collidingProjs =
-	      [for p in Projectiles do
-	       let ships =
-	         [for s in Ships do
-	          where s <> this and Vector2.Distance(p.Position,s.Position) < 100.0f
-	          select s]
-	       where ships.Count > 0
-	       select p]
-	    let newProjectiles = Projectiles - collidingProjs
-	    send_reliable newProjectiles
-	    yield newProjectiles, Score + collidingProjs.Count
-	}
-	\end{lstlisting}
-\end{enumerate}
-
-\paragraph{Managing remote instances}
-The game objects that were not instantiated by a client, but received from another client, are \textit{slave objects} and must be synchronized differently than master objects. For this purpose, a rule can be marked as \texttt{slave}. In our example we use slave rules in the following situations: (\textit{i}) synchronizing other player's ship and projectiles spacial data, and (\textit{ii}) projectiles instantiated by other players.
-
-\begin{itemize}[(i)]
-	\item Every remote projectile and ship is synchronized locally by a rule which tries to \texttt{receive} a message containing updated special data. Below we provide the code to update the position of the ship, the synchronization of other spacial data is analogous.
-	
-	\begin{lstlisting}
-	entity Ship = {
-	  ...
-	  rule slave Position = yield receive()
-	}
-	\end{lstlisting}
-	
-	\item When a projectile is instantiated remotely, we have to receive it and add it to the list of projectiles. We use \texttt{receive\_many} because the new projectiles are added to a list. This case also supports the situation where a ship could shoot multiple projectiles at the same time.
-
-	\begin{lstlisting}
-	entity Ship = {
-	  ...
-	  rule slave Projectiles =
-	    let! projs = receive_many()
-	    yield projs @ Projectiles
-	}
-	\end{lstlisting} 
-\end{itemize}
-
-\subsection*{Results and future work}

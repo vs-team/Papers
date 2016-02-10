@@ -1,0 +1,150 @@
+Casanova 2 must be extended to include primitives to manage the connection, the local entities, and the remote entities. In addition to this we must include primitives to send and receive messages in reliable and unreliable way. In this section we introduce each primitive by using a multiplayer game example \footnote{The game source code and executable can be found at \cite{MULTIPLAER_SHOOTER}}. The game is a shooter arena where players control a single starship and can shoot the other players. Each time a player hits an enemy ship we increment the player's score.  
+
+%Besides asteroids can enter the map and hit the players' ships. If this occurs, the score is decreased.
+
+The \texttt{world} contains a list of ships controlled by each player.
+\begin{lstlisting}
+world Shooter = {
+  Ships  : [Ship]
+  ...
+}
+\end{lstlisting}
+
+Each \texttt{Ship} contains a position, a rotation, a collection of shot projectiles, and the score.
+\begin{lstlisting}
+entity Ship = {
+  Position   : Vector2
+  Rotation   : float32
+  Projectiles : [Projectile]
+  Score		  : int
+  ...
+}
+
+\end{lstlisting}
+
+Each \texttt{Projectile} contains its position and velocity.
+
+\begin{lstlisting}
+entity Projectile = {
+  Position : Vector2
+  Velocity : Vector2
+  ...
+}
+\end{lstlisting}
+
+\subsection*{Connection}
+When a player connects we must consider two different situations: (\textit{i}) a player is already in the game and must send the current game state to the connecting players, and (\textit{ii}) the player who is connecting needs to send the ship he will instantiate and control (its initial state). Both the players in the game and the connecting one must receive the game states that are sent. For this purpose we introduce two additional clauses, \texttt{connecting} and \texttt{connected}, that can be added to the rule declaration to mark their role in the multiplayer logic.
+
+\begin{itemize}
+	\item[\textit{Connecting:}] A rule marked with \texttt{connecting} is executed once when a player joins the game. In our example the player should send its initial state (the created ship) to the other players. We use the primitive \texttt{send\_reliable} because we must be sure that eventually all players will be notified of the ship creation. The redundant \texttt{yield} on \texttt{Ships} is necessary because a rule must always yield at least once.
+	\begin{lstlisting}
+	world Shooter = {
+	  ...
+	  rule connecting Ships =
+	    send_reliable Ships
+	    yield Ships
+	}
+	\end{lstlisting}
+	
+	\item [\textit{Connected}:] A rule marked with \texttt{connected} is run whenever a new player joins the game. When this occurs, each player sends its ship. The system will take care to send only the ship controlled locally by the player itself for each player. The rule will use the \texttt{send\_reliable} primitive for the same reason explained in the previous point.
+	\begin{lstlisting}
+	world Shooter = {
+	...
+	rule connected Ships =
+	  send_reliable Ships
+	  yield Ships
+	}
+	\end{lstlisting}
+\end{itemize}
+
+\subsection*{Managing local instances}
+As explained above, each client manages a series of local game objects (called \textit{master objects}) that are under its direct control. The other clients read passively any update done on those instances and update their remote copy  (\textit{slave objects}) accordingly. We mark rules affecting the behaviour of master objects as \texttt{master}. In our example the following situations are run as master: (\textit{i}) synchronizing the ships among players, (\textit{ii}) updating the ship and projectiles spacial data, and (\textit{iii}) creating and destroying projectiles.
+
+\begin{enumerate}[(i)]
+	\item The part about ship synchronization in the world is run as master, since every player instantiates locally its own copy of the world. In the world you do not have \texttt{slave} rules because there are no remote copies of the world, just the one instantiated at the beginning of the game. In that rule we use \texttt{let!}, which is an operator which waits until the argument expression returns a result and then binds it to the variable. The rule uses \texttt{receive\_many} which receives and collects the list of sent ships by the other players.
+	
+	\begin{lstlisting}
+	world Shooter = {
+	  ...
+	  rule master Ships =
+	    let! ships = receive_many()
+	    yield Ships @ ships
+    }
+	\end{lstlisting}
+	
+	\item The master version of the ship update reads the input of the player and move (or rotate) the ship if a movement key is pressed. Note that this part must be executed only on a master object, because we want to allow each player to control only the ship it owns and instantiates at the beginning of the game. Below we show just the rule to move forward, the other movement and rotation rules are analogous. Note that in this case we use an unreliable send because it is acceptable to lose an update of the position in a certain frame.
+	
+	\begin{lstlisting}
+	entity Ship = {
+	  ...
+	  rule master Position =
+	    wait world.Input.IsKeyDown(Keys.W)
+	    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * 300.0f
+	    let p = Position + vp * dt
+	    send p
+	    yield p
+	}
+	\end{lstlisting}
+	
+	Analogously we do the same for the projectile, except the projectile position is continuously updated and synchronized over the network.
+	
+	\item Creating a new projectile happens when the player shoots. A ship keeps track of the projectiles it has shot so far, and adds a new one to the list of the existing projectiles. The updated list is sent to all the players with the new instance of the projectile. As explained in Section \ref{sec:net_architecture}, we only send the new projectiles and not the whole list.
+	
+	\begin{lstlisting}
+	entity Ship = {
+	  ...
+	  rule master Projectiles =
+	    wait world.Input.IsKeyDown(Keys.Space)
+	    let vp = new Vector2(Math.Cos(Rotation), Math.Sin(Rotation)) * 500.0f
+	    let projs = (new Projectile(Position, vp)) :: Projectiles
+	    send_reliable projs
+	    yield projs
+	    wait not world.Input.IsKeyDown(Keys.Space)
+	}
+	\end{lstlisting}
+	
+	Deleting a projectile is run as a master rule, and computes the difference between the ship projectiles and the colliding projectiles. Even in this case, the network layer sends only the information about the projectiles to remove. Note that the score is managed by each player locally, as it does not require to be synchronized (we do not print the other players' scores. Doing so it would indeed require to send also the score).
+	
+	\begin{lstlisting}
+	entity Ship = {
+	  ...
+	  rule master Projectiles, Score =
+	    let collidingProjs =
+	      [for p in Projectiles do
+	       let ships =
+	         [for s in Ships do
+	          where s <> this and Vector2.Distance(p.Position,s.Position) < 100.0f
+	          select s]
+	       where ships.Count > 0
+	       select p]
+	    let newProjectiles = Projectiles - collidingProjs
+	    send_reliable newProjectiles
+	    yield newProjectiles, Score + collidingProjs.Count
+	}
+	\end{lstlisting}
+\end{enumerate}
+
+\subsection*{Managing remote instances}
+The game objects that were not instantiated by a client, but received from another client, are \textit{slave objects} and must be synchronized differently than master objects. For this purpose, a rule can be marked as \texttt{slave}. In our example we use slave rules in the following situations: (\textit{i}) synchronizing other player's ship and projectiles spacial data, and (\textit{ii}) projectiles instantiated by other players.
+
+\begin{itemize}[(i)]
+	\item Every remote projectile and ship is synchronized locally by a rule which tries to \texttt{receive} a message containing updated special data. Below we provide the code to update the position of the ship, the synchronization of other spacial data is analogous.
+	
+	\begin{lstlisting}
+	entity Ship = {
+	  ...
+	  rule slave Position = yield receive()
+	}
+	\end{lstlisting}
+	
+	\item When a projectile is instantiated remotely, we have to receive it and add it to the list of projectiles. We use \texttt{receive\_many} because the new projectiles are added to a list. This case also supports the situation where a ship could shoot multiple projectiles at the same time.
+
+	\begin{lstlisting}
+	entity Ship = {
+	  ...
+	  rule slave Projectiles =
+	    let! projs = receive_many()
+	    yield projs @ Projectiles
+	}
+	\end{lstlisting} 
+\end{itemize}
