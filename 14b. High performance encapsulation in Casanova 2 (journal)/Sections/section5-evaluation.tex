@@ -8,7 +8,7 @@ For each test we measure the time (in milliseconds) that the game takes to fully
 \paragraph*{Performance evaluation} Table \ref{tab:times} shows the performance results. As we can see in both cases the performance of our optimized Casanova 2 code is higher than the one of non-optimized implementation, and the idiomatic C\# implementation. Using Unity3D the optimized code is one order of magnitude faster with respect to the non-optimized code. Using MonoGame the optimization is linearly faster. The difference is due to the implementation of the underlying frameworks.
 
 \begin{table}[!ht]
-\caption{Code lines comparison}
+\caption{Code lines comparison for a singleplayer game}
 \tiny
 \label{tab:length}
 \centering
@@ -22,7 +22,7 @@ For each test we measure the time (in milliseconds) that the game takes to fully
 \hline
 \end{tabular}
 \vspace{5pt}
-\caption{Running time comparison}
+\caption{Running time comparison for a singleplayer game}
 \tiny
 \label{tab:times}
 \centering
@@ -39,7 +39,21 @@ For each test we measure the time (in milliseconds) that the game takes to fully
   & C\# &   - & 0.1642 ms\\ \hline
 \hline
 \end{tabular}
+\vspace{5pt}
+\caption{Code lines comparison for a multiplayer game}
+\normalsize
+\centering
+\label{tab:networking}
+\centering
+\begin{tabular}{ @{}|c|c|@{} }
+	\hline
+	Language & Lines \\ \hline
+	Casanova & 126 \\
+	\hline
+	C\# &  1257 \\
+	\hline
+\end{tabular}
 \end{table}
 
 \paragraph*{Code size evaluation}
-Table \ref{tab:length} shows the code length for each implementation. Casanova 2 game code needs about half the lines of code compared to the idiomatic C\# implementation for single player games. When comparing networking code, the difference is one order of magnitude. The intermediate code that the Casanova 2 compiler creates (which is C\# code) is considerably longer due to the presence of support data structures. With increasing code complexity, we may expect the original Casanova 2 code to remain compact, while the generated code will increase rapidly in size, with additional data structures and associated logic code. Writing such optimized code by hand is a daunting and expensive task.
+Table \ref{tab:length} shows the code length for each implementation. Casanova 2 game code needs about half the lines of code compared to the idiomatic C\# implementation for single player games. When comparing networking code, the difference is one order of magnitude (see Table \ref{tab:networking}). The intermediate code that the Casanova 2 compiler creates (which is C\# code) is considerably longer due to the presence of support data structures. With increasing code complexity, we may expect the original Casanova 2 code to remain compact, while the generated code will increase rapidly in size, with additional data structures and associated logic code. Writing such optimized code by hand is a daunting and expensive task.
