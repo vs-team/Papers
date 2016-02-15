@@ -1,15 +1,15 @@
 In this section we introduce the idea of a code transformation technique that changes encapsulated programs into semantically equivalent but more efficient implementations.
 
-\paragraph*{Optimizing lookup}
+\subsection{Optimizing lookup}
 
 In our running example, the main drawback of the encapsulated version is that each planet has to check all the fleets to see if they are close enough to move into the list of attacking fleets. An optimization can be achieved by maintaining an index \texttt{FleetIndex} in \texttt{Planet}, containing a list of those \texttt{Fleets} that satisfy the attacking property, i.e., being owned by a different player and close enough to the planet. When an enemy \texttt{Fleet} is close enough to a \texttt{Planet}, it is moved into \texttt{FleetIndex} by the \texttt{Route}, which stores a list of traveling fleets. When \texttt{FleetIndex} changes, it notifies \texttt{Planet}, so that \texttt{Planet} can update \texttt{AttackingFleets}.
 
 A predicate is a conditional statement based on one or more fields of an object of a class $A$. We can generalize the aforementioned situation by saying that encapsulation suffers from loss of performance whenever an object $B$ needs to update one of its fields depending on a predicate. $B$ stores an index $I_{A}$ which is used to keep track of all possible objects of class $A$ satisfying the predicate. Any object of $A$ has a reference to $B$ and is tasked with updating the index $I_{A}$ of $B$. $B$ checks $I_{A}$ every time it needs to interact with the instances of $A$ satisfying the predicate.
 
-\paragraph*{Optimizing temporal/local predicates}
+\subsection{Optimizing temporal/local predicates}
 
 If we take into consideration the fact that predicates belong to (potentially hundreds or thousands) entities in a simulation that exhibit similar behaviors (ships, bullets, asteroids, etc.) \cite{ai_dithering}, we can expect that some predicates will exhibit some sort of \textit{temporal locality} on their values. We can group those predicates, and their respective block of code, and apply an optimization that (\textit{i}) keeps their code block inactive in a \textit{fast wake-up} collection, and (\textit{ii}) activate only those blocks of which the predicate has changed. In general, this would yield a higher performance without asking developers to write the optimization code themselves.
 
-\paragraph*{Language level integration}
+\subsection{Language level integration}
 
 The process described above can be automated at the compiler level as code transformation, since the index creation and management always follows the same pattern, and thus the compiler itself can create and update the required data structures. Casanova 2, which is a game development oriented language, ensures that variables are only changed through specific statements; this makes it possible for the Casanova 2 compiler to identify patterns in code which are suitable for optimization. The Casanova 2 compiler applies transformations to the code that preserve the program semantics and optimize the encapsulated implementation by creating and maintaining the required indices. This way the code written by the programmer will gain the benefits of readability and maintainability that encapsulated code brings, without suffering from loss of performance or the necessity to break encapsulation to manage the optimization data structures. In the next session we present the compiler architecture and the transformation rules. 

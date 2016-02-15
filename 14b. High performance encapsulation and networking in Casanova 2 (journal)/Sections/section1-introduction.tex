@@ -13,11 +13,11 @@ Software development techniques have been studied in the past years to improve s
 Games feature many small entities that interact with each other. Encapsulation forces those entities to interact through specific interfaces. Therefore, when calling methods of the interfaces, overhead is added due to dynamic dispatching. Such overhead ultimately affects the performance of games at runtime negatively. Performance is of high importance for games, since it is strictly connected to game smoothness, i.e., to the game's framerate, where a frame consists of a complete update of all the entities present in the game. Smoothness strongly influences the perceived quality of a game \cite{claypool2009perspectives}.
 
 Our goal is to develop techniques for taming the complexity of games by means of encapsulation, increasing code readability and maintainability, without losing performance.
-%\vspace{0.5cm}
+
 %\noindent
 In this paper we present a solution to the loss of performance in encapsulated programs. We will show a domain specific language for games, named ``Casanova 2'', which allows developers to write high quality games at reduced development costs. Our solution allows developers to write encapsulated code which, through extensive automated optimization, turns source code into high-performance executable code that covers most domains of game development: logic, artificial intelligence, rendering, and even networking.
 
-%\vspace{0.5cm}
+
 %\noindent
 
 %\subsection{Structure of the paper}

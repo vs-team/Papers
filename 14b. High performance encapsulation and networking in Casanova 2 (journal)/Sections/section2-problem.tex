@@ -10,7 +10,7 @@ Tools generally are focused on specific genres. A typical aspect of these tools 
 General purpose \textbf{languages} (GPL) are suitable for any kind of computational task, including the development of games. This is due to the high expressive power deriving from the the availability of different GPLs for different kinds of abstractions. Every abstraction is built around specific problems, which introduces levels of difficulty in using such abstractions. C\#, Python, and Objective-C are typical examples \cite{languages_for_games1} of languages used for game development. A typical limitation in using GPLs is in expressing performance patterns, since the languages' focus is on the expressiveness. Optimizations that are significant in particular contexts (e.g., the context of game development) are not well expressed by GPLs (with the exception of SQL \cite{sql_indices} indexes). Complex code may require highly complex optimizations, depending on the context. Since such optimizations cannot be supported by a GPL, developers must implement them by hand. In game development, where optimizations of performance are a necessity, they increase the costs of development considerably. Unless the developers have access to large financial resources, the use of a GPL for game development is not a good choice, unless the game remains very small or does not need high performance. Some languages have been developed taking this into account for specific kinds of games. For instance, with CDML \cite{callahan2004cascade} developers are supposed to design their game around the producer-consumer design pattern in order to get the best support from the compilation process. With Inform, Ren'Py and Zillions of Games \cite{languages_for_games2} developers are limited to developing games within particular genres, such as storytelling or board games.
 \end{comment}
 
-\paragraph*{Running example}
+\subsection{Running example}
 
 %recall encapsulation again, and why games would benefit from it?
 
@@ -22,48 +22,49 @@ In our running example, we assume that a \texttt{Route} is represented by a data
 
 According to the definition of encapsulation, data and operations on them must be isolated within a module and a precise interface must be provided. Moreover, each entity is responsible for updating its own fields in such a way that it maintains its own invariant.
 
-\paragraph*{Design techniques and operations}
+\subsection{Design techniques and operations}
 
-In our running example the modules are the \texttt{Planet} and \texttt{Route} classes defined above, \textit{data} are their fields.
+In our running example the modules are the \texttt{Planet} and \texttt{Route} classes defined above, \textit{data} are their fields. To support \emph{encapsulation}, in the following implementation each entity is responsible for updating its fields with respect to the world dynamics. The \textit{operations} for each entity are the following:
+\begin{itemize}
+    \item[] \textbf{Planet}: Takes the enemy fleets traveling along its incoming routes which are close to the planet, and moves them into the attacking fleets list;
+    \item[] \textbf{Route}: Removes the traveling fleets which have been placed in the attacking fleets of the destination planet from the list of traveling fleets.
+\end{itemize}
 
-To support \emph{encapsulation}, in the following implementation each entity is responsible for updating its fields with respect to the world dynamics. The \textit{operations} for each entity are the following:
-\begin{inparaenum}[i)]
-    \item \textbf{Planet}: Takes the enemy fleets traveling along its incoming routes which are close to the planet, and moves them into the attacking fleets list;
-    \item \textbf{Route}: Removes the traveling fleets which have been placed in the attacking fleets of the destination planet from the list of traveling fleets.
-\end{inparaenum}
 \begin{lstlisting}
 class Route
-    Planet Start, Planet End,
-    List<Fleet> TravellingFleets,
-    Player Owner
-    void Update()
-      foreach fleet in TravellingFleets
-        if End.AttackingFleets.Contains(fleet)
-          this.TravellingFleets.Remove(fleet)
+  Planet Start, Planet End,
+  List<Fleet> TravellingFleets,
+  Player Owner
+  void Update()
+    foreach fleet in TravellingFleets
+      if End.AttackingFleets.Contains(fleet)
+        this.TravellingFleets.Remove(fleet)
 class Planet
-    List<Fleet> DefendingFleets,
-    List<Fleet> AttackingFleets
-    void Update()
-      foreach route in GetState().Routes
-        if route.End = this then
-          foreach fleet in route.TravellingFleets
-            if distance(fleet.Position, this.Position) < min_dist && fleet.Owner != this.Owner then
-              this.AttackingFleets.Add(fleet)
+  List<Fleet> DefendingFleets,
+  List<Fleet> AttackingFleets
+  void Update()
+    foreach route in GetState().Routes
+      if route.End = this then
+        foreach fleet in route.TravellingFleets
+          if distance(fleet.Position, this.Position) < min_dist && 
+             fleet.Owner != this.Owner then
+            this.AttackingFleets.Add(fleet)
 \end{lstlisting}
 
 
 An alternative design, which does not use encapsulation, allows the route to move the fleets close to the destination planet directly into the attacking fleets by writing into the planet fields. In this scenario the route is modifying data related to the planet and the route is writing into a reference to a planet.
 \begin{lstlisting}
 class Route
-    Planet Start, Planet End,
-    List<Fleet> TravellingFleets
-    void Update()
-      foreach fleet in this.TravellingFleets
-        if distance(fleet.Position, this.Position) < min_dist && fleet.Owner != End.Owner then
-            this.TravellingFleets.Remove(fleet)
-            End.AttackingFleets.Add(fleet)
+  Planet Start, Planet End,
+  List<Fleet> TravellingFleets
+  void Update()
+    foreach fleet in this.TravellingFleets
+      if distance(fleet.Position, this.Position) < min_dist && 
+         fleet.Owner != End.Owner then
+          this.TravellingFleets.Remove(fleet)
+          End.AttackingFleets.Add(fleet)
 \end{lstlisting}
-\paragraph*{Discussion}
+\subsection{Discussion}
 In our running example a programmer is left with the choice of (\textit{i}) either using the paradigm of encapsulation which improves the understandability of programs and eases their modification \cite{ENCAPSULATION_AND_INHERITANCE_IN_OOP}, or (\textit{ii}) breaking encapsulation by writing directly into the planet fields from an external class, which, as we will show below, is more efficient but potentially dangerous \cite{eder1994coupling}.
 
 As far as \emph{performance} is concerned, in the encapsulated version, the planet queries the game state to obtain all routes which endpoints are the planet itself, and for every route selects the enemy traveling fleets that are close enough to the planet. At the same time, a \texttt{Route} checks the list of attacking fleets of its endpoints and removes the fleets which are contained in both lists from the traveling fleets. If we consider a scenario containing $m$ planets, $n$ routes, and at most $k$ traveling fleets per route, each planet should check the distance condition for $O(nk)$ ships, thus the overall complexity is $O(mnk)$. The non-encapsulated version checks for each route the distance for a maximum of $k$ ships and then directly moves those close to the planet, for which the overall complexity is $O(nk)$. Therefore, the performance on the non-encapsulated version is better.
