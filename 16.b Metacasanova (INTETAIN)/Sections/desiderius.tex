@@ -1,0 +1,111 @@
+In this section we show how \texttt{wait} and \texttt{when} can be expressed with type and semantics rules. We show how this rules are implemented in a hard-coded compiler. We then introduce the idea of the metacompiler, explaining the advantage over a hard-coded compiler. We then give an overview of how a program in Metacasanova is written.
+
+\subsection{Type and semantics of wait and when}
+Usually the type and semantics rules of language elements are represented by rules that resemble those of logic models. Each rule is made of a set of \textit{premises} and a \textit{conclusion}. The conclusion is true if all the premises are true. According to this model, the type rules for \texttt{wait} and \texttt{when} are the following ($E \vdash x \; : \; T$ means that $x$ has type $T$ in the environment $E$):
+
+\begin{mathpar}
+	\tiny
+	\inferrule
+	{E \vdash t \; : \; \mathtt{float}}
+	{E \vdash \mathtt{wait} \; t \; : \; \mathtt{void}}
+	
+	\inferrule
+	{E \vdash c \; : \; \mathtt{bool}}
+	{E \vdash \mathtt{when} \; c : \; \mathtt{void}}
+\end{mathpar}
+
+\noindent
+while their operational semantics is (with $\langle expr \rangle$ we mean ``evaluating $exp$'', with ; a sequence of statements, and with $dt$ the time difference between the current frame and the previous):
+
+\begin{mathpar}
+	\tiny
+	\inferrule
+	{\langle t - dt > 0 \rangle \; \Rightarrow \; \texttt{true}}
+	{\langle \mathtt{wait} \; t;k \; dt \rangle \; \Rightarrow \; \langle \mathtt{wait} \; t - dt ; k \; dt \rangle}
+	
+	\inferrule
+	{\langle t - dt > 0 \rangle \; \Rightarrow \; \texttt{false}}
+	{\langle \mathtt{wait} \; t ; k \; dt \rangle \; \Rightarrow \; \langle k \; dt \rangle}
+	
+	\tiny
+	\inferrule
+	{\langle c \rangle \; \Rightarrow \; \mathtt{true}}
+	{\langle \mathtt{when} \; c;k \; dt \rangle \; \Rightarrow \; \langle k \; dt\rangle}
+	
+	\inferrule
+	{\langle c \rangle \; \Rightarrow \; \mathtt{false}}
+	{\langle \mathtt{when} \; c;k \; dt \rangle \; \Rightarrow \; \langle \mathtt{when} \; c;k \; dt \rangle}
+\end{mathpar}
+
+\subsection{Implementation in a hard-coded compiler}
+The semantics rules of \texttt{wait} and \texttt{when} can be implemented into the type checker module of a compiler written in a general purpose language. The rules are evaluated by means of a recursive function. In the case of a \texttt{wait} statement, we first type check its argument. If the argument is a float than we return the node in the type-checked Abstract Syntax Tree (AST) corresponding to the type-checked \texttt{wait}. If the argument has another type then we raise an exception since the argument has not a valid type. In the case of a \texttt{when} statement we do the same, but this time we check that the argument has boolean type.
+The code generation part requires to output code according to the semantics rules defined above. In this step the compiler can, for example, generate state machines described in Section \ref{subsec:synchronization}.
+
+\subsection{Motivation for Metacasanova}
+
+From the discussion above we observe that, regardless of the implemented language, the process of type checking and implementing the operational semantics in a hard-coded compiler, is repetitive. Indeed, building the type checker and the code generator of a hard-coded compiler is a single, fixed translation of these rules into the general purpose language that was chosen for the implementation. This process can be summarized by the following behaviour: (\textit{i}) find a rule which conclusion matches the structure of the language we are analysing, (\textit{ii}) recursively evaluate all the premises in the same way, (\textit{iii}) when we reach a rule with no premises (a base case), we generate a result (which might be the type of the structure we are evaluating or code that implements its operational semantics).
+
+Our goal is to take this process and automate it, starting only from the specifications which the hard-coded compiler would implement. In order to achieve this we propose to use Metacasanova metacompiler. In what follows we show how a Metacasanova program is defined.
+\begin{comment}
+\subsection{Requirements of Metacasanova}
+In order to relieve programmers of manually defining the behaviour described above in the back-end of the compiler, we propose to use a metacompiler. This metacompiler must include the following features:
+
+\begin{itemize}
+	\item It must be possible to define custom operators (or functions) and data containers. This is needed to define the syntactic structures of the language we are defining.
+	\item It must be typed: each syntactic structure can be associated to a specific type in order to be able to detect meaningless terms (such as adding a string to an integer) and notify the error.
+	\item It must be possible to have polymorphic syntactical structures. This is useful to define equivalent ``roles'' in the language for the same syntactical structure; for instance we can say that an integer literal is both a \textit{Value} and an \textit{Arithmetic expression}.
+	\item It must natively support the evaluation of semantics rules, as those shown above. A \textit{rule},in Metacasanova, in the fashion of a logic rule, is made of a sequence of premises and a conclusion. The premises can be function calls or clauses. Clauses are boolean expressions that are checked in order to proceed with the rule evaluation. The function call will run in order all the rules that contain that function as conclusion. The return value of the first rule that succeeds is taken. A rule returns a value if all the clauses evaluate to \texttt{true} and all the function calls succeed.
+\end{itemize}
+
+From this specifications, we see that our goal is indeed a metacompiler, as it takes as input a language definition, a program for that language, and outputs runnable code that mimics the code that a hard-coded compiler would output.
+\end{comment}
+
+\subsection{General overview}
+
+A Metacasanova program is made of a set of \texttt{Data} and \texttt{Function} definitions, and a sequence of rules. A data definition specifies the constructor name of the data type (used to construct the data type), its field types, and the type name of the data. Optionally it is possible to specify a priority for the constructor of the data type. For instance this is the definition of the sum of two arithmetic expression
+
+\begin{lstlisting}
+Data Expr -> "+" -> Expr : Expr  Priority 500
+\end{lstlisting}
+
+\noindent
+A function definition is similar to a data definition but it also has a return type. For instance the following is the evaluation function definition for the arithmetic expression above:
+
+\begin{lstlisting}
+Func "eval" -> Expr : Evaluator => Value
+\end{lstlisting}
+
+\noindent
+In Metacasanova it is also possible to define polymorphic data in the following way:
+
+\begin{lstlisting}
+Value is Expr
+\end{lstlisting}
+
+\noindent
+In this way we are saying that an atomic value is also an expression and we can pass both a composite expression and an atomic value to the evaluation function defined above.
+
+A rule in Metacasanova, as explained above, may contain a sequence of function calls and clauses. In the following snippet we have the rule to evaluate the sum of two floating point numbers:
+
+\begin{lstlisting}
+eval a => $f c
+eval b => $f d
+<<c + d>> => res
+-----------------------------
+eval (a + b) => $f res
+\end{lstlisting}
+
+\noindent
+Note that if one of the two expressions does not return a floating point value, then the entire rule evaluation fails. The code between angular brackets specifies C\# code that can be embedded in Metacasanova, allowing to perform the arithmetic operations with .NET operators. Metacasanova selects a rule by means of pattern matching in order of declaration on the function arguments. This means that both of the following rules will be valid candidates to evaluate the sum of two expressions:
+
+\begin{lstlisting}
+...                             ...
+---------------                 ---------------------
+eval expr => res                eval (a + b) => res
+\end{lstlisting} 
+
+\noindent
+Finally the language supports expression bindings with the following syntax:
+\begin{lstlisting}
+x := $f 5
+\end{lstlisting}

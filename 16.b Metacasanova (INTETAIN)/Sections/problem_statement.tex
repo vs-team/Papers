@@ -1,0 +1,42 @@
+In this section we introduce the general architecture of a game. We then present an example of common timing and synchronization primitives used in DSL's for games and we show some techniques typically used to implement them. For each technique we list the main drawbacks. Finally we present our solution to the problem of developing a DSL for games.
+
+\subsection{Preliminaries}
+A game engine is usually made by several interoperating components. All the components use a shared data structure, called \textit{game state}, for their execution. The two main components of a game are the \textit{logic engine}, which defines how the game state evolves during the game execution, and the \textit{graphics enginge}, which draws the scene by reading the updated game state. These two components are executed in lockstep within a function called \textit{game loop}. The game loop is executed indefinitely, updating the game state by calling the logic engine, and drawing the scene by using the graphics engine. An iteration of the game loop is called \textit{frame}. Usually a game should run between 30 to 60 frames per second. This requires both the graphics engine and the logic engine to be high-performance. In this paper we will only take into account the performance of the logic engine, as scripting drives the logic of the game loop.
+
+\subsection{A time and synchronization primitive}
+\label{subsec:synchronization}
+\begin{comment}
+A common requirement in game DSL's is a statement which allows to pause the execution of a function for a specified amount of time or until a condition is met. We will refer to these statements as \texttt{wait} and \texttt{when}. Such a behaviour can be modelled using different techniques: (\textit{i}) \textit{Threads} allow to solve such synchronization problems but they are unsuitable for video game development because of memory usage and CPU overhead due to their scheduling, (\textit{ii}) \textit{Finite State Machines} allow to represent such concurrent behaviours \cite{CASANOVA2_PAPER} by using a \texttt{switch} control structure to an opportune state. This solution is high-performance but the logic of the behaviour is lost inside the \texttt{switch} structure, (\textit{iii}) \textit{Strategy pattern} allows to represent the instructions of the language has polymorphic data types. Each concurrent structure is implemented by a class which defines the behaviour of the current structure, and the next structure to execute. This solution is not high-performance due to virtuality and the high number of object instantiations, (\textit{iv}) \textit{Monadic DSL} uses a variation of the state monad. It represents scripts with two states: \textit{Done} and \textit{Next}. The bind operator is used to simulate the code interruption. This approach is simple and elegant but it suffers of the same virtuality problems of the strategy pattern, this time because of the extensive use of lambda expressions, (\textit{v}) \textit{Compiled DSL} is the most common solution and allows to represent the concurrency by using concurrent control structures defined in the language. Compiled DSL's grant high-performance and code readability, but they require to implement a compiler or an interpreter for it. This situation is summarized in Table \ref{tab:techniques}.
+\end{comment}
+A common requirement in game DSL's is a statement which allows to pause the execution of a function for a specified amount of time or until a condition is met. We will refer to these statements as \texttt{wait} and \texttt{when}. Such a behaviour can be modelled using different techniques: (\textit{i}) \textit{Threads} can model this behaviour but are not suitable for game development due to their CPU and memory overhead, (\textit{ii}) \textit{Finite State Machines} are high performance but the code logic is lost inside a \texttt{switch} structure, (\textit{iii}) \textit{Strategy pattern} uses polymorphism to represent the language constructs but it is inefficient due to the extensive use of virtuality, (\textit{iv}) Monadic DSLs use monads to model the waiting or synchronization behaviour but extensively use virtuality as well due to lambda expressions, (\textit{v}) \textit{Compiled DSLs} are the most common solution, are high performance, but they require to implement a compiler or an interpreter.
+
+
+\begin{table}
+	\tiny
+	\centering
+	\begin{tabular}{|c|c|c|c|}
+		\hline
+		Technique & Readability & Performance & Code length \\
+		\hline
+		Monadic DSL & \checkmark & \ding{55} & \checkmark \\
+		\hline
+		Strategy Pattern & \ding{55} & \ding{55} & \checkmark \\
+		\hline
+		Finite state machines & \ding{55} & \checkmark & \ding{55} \\
+		\hline
+		Hard-coded compiler & \checkmark & \checkmark & \ding{55} \\
+		\hline
+	\end{tabular}
+	\caption{Pros and cons of script implementation techniques}
+	\label{tab:techniques}
+\end{table}
+
+In this work we propose another development approach in building a game DSL by using a metacompiler, a program which takes as input a language definition, a program written in that language, and generates executable code.
+
+\noindent
+Given this considerations, we formulate the following problem statement.
+
+\vspace{0.5cm}
+\noindent
+\textbf{PROBLEM STATEMENT:}
+Given the formal definition of a game DSL our goal is to automate, by using a metacompiler, the process of building a compiler for that language in a (\textit{i}) short (code lines), (\textit{ii}) clear (code readability), and (\textit{iii}) efficient (time execution) way, with respect to a hand-made implementation.

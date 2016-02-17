@@ -1,0 +1,116 @@
+% This is lnicst.tex the demonstration file of the LaTeX macro package for
+% Lecture Notes of the Institute for Computer Sciences, Social-Informatics 
+% and Telecommunications Engineering series from Springer-Verlag.
+% It serves as a template for authors as well.
+% version 1.0 for LaTeX2e
+%
+\documentclass[lnicst]{svmultln}
+%
+\usepackage{makeidx}  % allows for indexgeneration
+% \makeindex          % be prepared for an author index
+%
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{pifont}
+\usepackage{url}
+\lstset
+{
+	basicstyle = \ttfamily\tiny,
+	breaklines = true,
+	frame = single
+}
+
+\begin{document}
+%
+\mainmatter              % start of the contribution
+%
+\title{Building game scripting DSL's with the Metacasanova metacompiler}
+%
+\titlerunning{Metacasanova Metacompiler}  % abbreviated title (for running head)
+%                                     also used for the TOC unless
+%                                     \toctitle is used
+%
+%\author{Francesco Di Giacomo\inst{1} \and Agostino Cortesi\inst{1} \and Mohamed Abbadi\inst{1}
+%\and Pieter Spronck\inst{2}
+%\and Giuseppe Maggiore\inst{3}}
+%
+%\authorrunning{Francesco Di Giacomo et al.}   % abbreviated author list (for running head)
+%
+%%%% list of authors for the TOC (use if author list has to be modified)
+%\tocauthor{Francesco Di Giacomo, Agostino Cortesi, Mohamed Abbadi, Pieter Spronck, Giuseppe Maggiore}
+%
+%\institute{Universita' Ca' Foscari, Venezia,\\
+%\email{francesco.digiacomo@unive.it, cortesi@unive.it, mohamed.abbadi@unive.it}
+%\and
+%Tiburg University,\\
+%\email{p.spronck@uvt.nl}
+%\and
+%Hogeschool Rotterdam,\\
+%\email{maggg@hr.nl}}
+
+\maketitle              % typeset the title of the contribution
+% \index{Ekeland, Ivar} % entries for the author index
+% \index{Temam, Roger}  % of the whole volume
+% \index{Dean, Jeffrey}
+
+\begin{abstract}
+	Many video games rely on a Domain Specific Language (DSL) to implement
+	particular features such as artificial intelligence or time and
+	synchronization primitives.
+	Building a compiler for a DSL is a time-consuming task, and adding new
+	features to a DSL is hard  due to the low flexibility of the
+	implementation choice.
+	In this paper, we introduce an alternative to hand-made
+	implementations of compilers for DSLs  for game development: the
+	Metacasanova metacompiler.
+	We show the advantages of this metacomplier  in terms of simplicity of
+	designing and coding requirements, and in terms of  performance of the
+	resulting code, whose efficiency is comparable with hand-made
+	implementations in commercial general purpose languages.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+\input{Sections/introduction}
+
+\section{The challenges of building a game DSL}
+\label{sec:problem_statement}
+\input{Sections/problem_statement}
+
+
+\vspace{-0.6cm}
+\section{The Metacasanova metacompiler}
+\label{sec:formal_description}
+\input{Sections/desiderius}
+
+\vspace{-0.6cm}
+\section{Case study: Casanova 2.5, a language for game development}
+\label{sec:casanova3}
+\input{Sections/casanova3}
+
+
+\section{Evaluation}
+\label{sec:evaluation}
+\input{Sections/evaluation}
+
+\vspace{-1.2cm}
+\section{Conclusion and future work}
+\label{sec:future_works}
+\input{Sections/conclusion}
+
+
+%
+% ---- Bibliography ----
+%
+
+
+\vspace{-0.75cm}
+\bibliography{bibliography}
+\bibliographystyle{plain}
+%
+\end{document}

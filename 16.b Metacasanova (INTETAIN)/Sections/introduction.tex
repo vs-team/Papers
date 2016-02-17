@@ -1,0 +1,127 @@
+In video games development it is often the case that  \textit{Domain
+Specific languages} (DSL) are used, as they provide ad-hoc features
+that simplify the coding process and yield to more concise and
+readable code when dealing with  time management, synchronization, and
+AI thanks to their little CPU and memory overhead
+\cite{DSL_SURVEY_PAPER, GAME_SCRIPTING, CASANOVA2_PAPER} . A typical
+synchronization problem arises when waiting for an event to happen,
+for instance when the short distance of a player from a door enables
+the player to open it. These scenarios usually happen in a heavily
+concurrent system, where possibly hundreds of entities perform such
+interactions within the same update of the game. In order to tackle
+these problems, as a valuable alternative to the use of Threads,
+Finite state machines, or Strategy patterns, developers make use of
+Domain specific languages, like JASS \cite{JASS}, Unreal Script \cite{UNREAL_ENGINE},
+or NWScript \cite{NW_SCRIPT}.
+
+A first approach is implementing a DSL by
+building an interpreter within the host language abstractions, such as
+monads in a functional programming language \cite{DSL_MONAD_PAPER,
+CASANOVA1_PAPER, SCRIPT_MONAD_PAPER}. Unfortunately the performance of
+an interpreted DSL built with monads is not as high as that achieved
+by compiled code, as monads make a large use of anonymous functions
+(or lambda expressions) which are often implemented with virtual
+method calls. Moreover functional languages are rarely employed in
+game developments as games are highly stateful programs.
+
+Another typical approach is to design a hard-coded compiler for the
+DSL. This is a hard and time-consuming task, since a compiler is made
+of several components which perform transformations from the source
+code into machine code. The steps performed in this transformations
+are often the same, regardless of the language for which the compiler
+is being implemented, and they are not part of the creative aspect of
+language design \cite{CWIC}. This is why metacompliers come into the
+scene, with the ability to treat programs as data
+\cite{GENERATIVE_PROGRAMMING_CZARNECKI}.
+
+In this paper we present a novel solution to ease the development of a
+compiler for a game DSL by developing a metacompiler, called Metacasanova, producing code
+that is both clear and efficient, especially designed for games
+development.
+
+In Section \ref{sec:problem_statement} we describe the most
+common techniques to solve the concurrency problems in games. In
+Section \ref{sec:formal_description} we propose a novel approach to
+defining DSL's for games by using a metacompiler called Metacasanova.
+We will motivate the role of Metacasanova in easing the process of building a compiler and explain the structure of a program in Metacasanova. In Section
+\ref{sec:casanova3} we will present as case study Casanova 2.5, a
+re-implementation of Casanova, a language oriented to video game
+development, in the metacompiler. We choose this particular language
+for its high-performance and usability in the scope of game
+development \cite{CASANOVA2_PAPER}. In Section \ref{sec:evaluation} we
+compare the running time of the generated code of Casanova 2.5 for a
+sample with an analogous implementation in Python. Moreover we compare
+the code length of the implementation of Casanova 2.5 in Metacasanova
+with the implementation of the current Casanova hard-coded compiler.
+In Section \ref{sec:future_works} we will present the conclusions about this work.
+
+\begin{comment}
+\subsection{Related work}
+In this section we present the existing work on metacompilers and
+Domain specific languages for games.
+
+\paragraph{Metacompilers}
+A first approach to metacompilers was first made with the
+Schorre-metalanguages family of metacompilers, among which we consider
+META-II \cite{META2}. A META-II program is a set of rules. Each rule
+can either succeed or fail. The body of the rule is made of
+\textit{test}, \textit{operators}, and \textit{output code}. The rules
+allow to express the syntax of the language in a BNF-like syntax. Each
+rule is evaluated, i.e. the tests are performed, and if the tests pass
+then the output code is generated (in the specific case the output was
+machine code for the IBM 1401). An improvement to this metacompiler
+was TREE-META \cite{META3}, which allows the definition of
+tree-building operators to generated an \textit{Abstract Syntax Tree}.
+This feature allows the implementation of language optimizations on
+the AST. Finally, CWIC \cite{CWIC} was a further refinement, employing
+three sub-languages used to define the different stages of the
+transformation process: \textit{Syntax} is used to defined the
+transformation between the grammar definition and the associated AST.
+\textit{Generator} is made of a series of transforming rules to output
+IBM 360 binary code. \textit{MOL-360} is an intermediate language
+which was introduced to write support libraries for CWIC and added
+later as an intermediate layer in the code generation phase. These
+compilers ease the process of defining and checking the grammar of the
+language, but they do not allow to define semantics rule (i.e. a type
+system). Indeed they simply parse the input language and then directly
+output the target code.
+
+The type semantics and operational semantics are often expressed in
+the form of logic rules, which define transformations among AST's. For
+this reason a metacompiler can be seen as a set of logic rules
+defining these transformations. The RML metacompiler \cite{RML1, RML2,
+MODELICA} follows this idea. A program in RML is made of a set of
+rules. Each rule is made of a set of \textit{premises}, whose
+evaluation produces a result, and of a \textit{conclusion} which
+produces the final result of the rule. Each of the premises is
+evaluated and can result in a fail or a success. Premises can be
+combined using logical operators, assuming that a success corresponds
+to \textit{true} and a fail to \textit{false}.
+
+\paragraph{Domain specific languages for games}
+A very common domain specific language is Unreal Script
+\cite{UNREAL_ENGINE}, used to develop a variety of commercial games
+such as Unreal, Unreal Tournament, and Deus Ex. It is an
+object-oriented language interpreted in the Unreal Engine. In this
+language it is possible to define particular functions called
+\texttt{states} to model the concurrent behaviours described above.
+These functions are executed only when the object is in that
+particular state.
+
+Another widely used language for games is the script language created
+for the Neverwinter Nights game series, called NWScript. This language
+is an extension of the C programming language with extended native
+types to support in-game elements, such as graphics effects,
+characters, etc. This language does not provide primitives to
+explicitly interrupt the execution or synchronize the execution with
+other events in the games, rather it allows to run a specific script
+when a set of pre-defined events happen in the game.
+
+The Game Maker Script language \cite{GAME_MAKER} is another widely
+used script language based on a syntax similar to C. It is used in the
+Game Maker game engine.
+
+A different approach in literature is the Game Description Language
+\cite{GAME_DESCRIPTION_LANGUAGE}, a logic language that represents the
+game state as facts and the game mechanics as logical rules.
+\end{comment}
