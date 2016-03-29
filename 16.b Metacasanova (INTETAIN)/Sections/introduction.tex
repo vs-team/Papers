@@ -4,8 +4,7 @@ that simplify the coding process and yield to more concise and
 readable code when dealing with  time management, synchronization, and
 AI thanks to their little CPU and memory overhead
 \cite{DSL_SURVEY_PAPER, GAME_SCRIPTING, CASANOVA2_PAPER} . A typical
-synchronization problem arises when waiting for an event to happen,
-for instance when the short distance of a player from a door enables
+synchronization problem arises when when the short distance of a player from a door enables
 the player to open it. These scenarios usually happen in a heavily
 concurrent system, where possibly hundreds of entities perform such
 interactions within the same update of the game. In order to tackle
@@ -39,6 +38,9 @@ compiler for a game DSL by developing a metacompiler, called Metacasanova, produ
 that is both clear and efficient, especially designed for games
 development.
 
+In this work we briefly describe the most common techniques used to build DSLs for game and their drawbacks (Section \ref{sec:problem_statement}). We then propose a novel approach by introducing Metacasanova as a tool to develop a DSL (Section \ref{sec:formal_description}) and by re-emplementing Casanova DSL (Section \ref{sec:casanova3}). We then evaluate the result in terms of time performance and code length (Section \ref{sec:evaluation}) and draw the conclusion.
+
+\begin{comment}
 In Section \ref{sec:problem_statement} we describe the most
 common techniques to solve the concurrency problems in games. In
 Section \ref{sec:formal_description} we propose a novel approach to
@@ -54,6 +56,7 @@ sample with an analogous implementation in Python. Moreover we compare
 the code length of the implementation of Casanova 2.5 in Metacasanova
 with the implementation of the current Casanova hard-coded compiler.
 In Section \ref{sec:future_works} we will present the conclusions about this work.
+\end{comment}
 
 \begin{comment}
 \subsection{Related work}
