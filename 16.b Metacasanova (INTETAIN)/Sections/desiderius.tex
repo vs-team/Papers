@@ -1,4 +1,4 @@
-In this section we show how \texttt{wait} and \texttt{when} can be expressed with type and semantics rules. We show how this rules are implemented in a hard-coded compiler. We then introduce the idea of the metacompiler, explaining the advantage over a hard-coded compiler. We then give an overview of how a program in Metacasanova is written.
+In this section we show how \texttt{wait} and \texttt{when} can be expressed with type and semantics rules. We show how these rules are implemented in a hard-coded compiler. We then introduce the idea of the metacompiler, explaining the advantage over a hard-coded compiler. We then give an overview of how a program in Metacasanova is written.
 
 \subsection{Type and semantics of wait and when}
 Usually the type and semantics rules of language elements are represented by rules that resemble those of logic models. Each rule is made of a set of \textit{premises} and a \textit{conclusion}. The conclusion is true if all the premises are true. According to this model, the type rules for \texttt{wait} and \texttt{when} are the following ($E \vdash x \; : \; T$ means that $x$ has type $T$ in the environment $E$):
@@ -38,7 +38,7 @@ while their operational semantics is (with $\langle expr \rangle$ we mean ``eval
 \end{mathpar}
 
 \subsection{Implementation in a hard-coded compiler}
-The semantics rules of \texttt{wait} and \texttt{when} can be implemented into the type checker module of a compiler written in a general purpose language. The rules are evaluated by means of a recursive function. In the case of a \texttt{wait} statement, we first type check its argument. If the argument is a float than we return the node in the type-checked Abstract Syntax Tree (AST) corresponding to the type-checked \texttt{wait}. If the argument has another type then we raise an exception since the argument has not a valid type. In the case of a \texttt{when} statement we do the same, but this time we check that the argument has boolean type.
+The semantics rules of \texttt{wait} and \texttt{when} can be implemented into the type checker module of a compiler written in a general purpose language. The rules are evaluated by means of a recursive function. In the case of a \texttt{wait} statement, we first type check its argument. If the argument is a float then we return the node in the type-checked Abstract Syntax Tree (AST) corresponding to the type-checked \texttt{wait}. If the argument has another type then we raise an exception since the argument has an invalid type. In the case of a \texttt{when} statement we do the same, but this time we check that the argument has boolean type.
 The code generation part requires to output code according to the semantics rules defined above. In this step the compiler can, for example, generate state machines described in Section \ref{subsec:synchronization}.
 
 \subsection{Motivation for Metacasanova}
@@ -62,7 +62,7 @@ From this specifications, we see that our goal is indeed a metacompiler, as it t
 
 \subsection{General overview}
 
-A Metacasanova program is made of a set of \texttt{Data} and \texttt{Function} definitions, and a sequence of rules. A data definition specifies the constructor name of the data type (used to construct the data type), its field types, and the type name of the data. Optionally it is possible to specify a priority for the constructor of the data type. For instance this is the definition of the sum of two arithmetic expression
+A Metacasanova program is made of a set of \texttt{Data} and \texttt{Function} definitions, and a sequence of rules. A data definition specifies the constructor name of the data type (used to construct the data type), its field types, and the type name of the data. Optionally it is possible to specify a priority for the constructor of the data type. For instance this is the definition of the sum of two arithmetic expressions
 
 \begin{lstlisting}
 Data Expr -> "+" -> Expr : Expr  Priority 500
