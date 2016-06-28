@@ -42,24 +42,24 @@
 \begin{frame}
 \frametitle{Reasons behind scripting DSL's}
 Games contain very complex behaviours:
-\begin{itemize}
+\begin{enumerate}
 \item Wait to be close enough to interact with an item.
 \item Perform an action only if the key was pressed and then released.
 \item Execute two tasks in parallel and take the result of the one that terminates first.
 \item Prioritized behaviours.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 	\frametitle{Reasons behind scripting DSL's}
 	\framesubtitle{Examples}
 	Games contain very complex behaviours:
-	\begin{itemize}
+	\begin{enumerate}
 		\item Interacting with a door only if you are close to it.
 		\item Shoot with a handgun
 		\item A special moves in a fighting game: we want that pressing a key in the combination is done within a given time.
 		\item A guard AI that patrols with lowest priority, shoot the enemy with medium priority, and take cover with highest priority.
-	\end{itemize}
+	\end{enumerate}
 \end{frame}
 
 \begin{frame}
@@ -132,7 +132,7 @@ Games contain very complex behaviours:
 	\begin{itemize}
 		\item Write the language definition (type system and semantics) as a real program.
 		\item Generate code according to this definition.
-		\item Advantage: no need to encode the definition in a programming language (no hard-coded compiler).
+		\item Advantage: no need to encode the definition in a programming language (no hard-coded compiler) $\Rightarrow$ more scalability (just copy/paste the formal definition).
 	\end{itemize}
 \end{frame}
 
@@ -268,8 +268,9 @@ eval_s (when expr) k ctxt dt => Suspend (when expr);k ctxt
 	\begin{itemize}
 		\item Script making a guard patrol two checkpoints
 		\item Tests run with the script written in Casanova 2.5 and Python.
-		\item Python is used as a scripting language is several games (e.g. World in Conflict, Civilization IV).
-		\item We neglected C\# because we already have benchmarks for that in Casanova 2.0 and they are faster of several orders of magnitude.
+		\item Implementation of Casanova 2.5 compared with the code length of the hard-coded compiler modules for Casanova 2.0.
+		\item Python is used as a scripting language in several games (e.g. World in Conflict, Civilization IV).
+		\item We neglected C\# because we already have benchmarks for that in Casanova 2.0 and both languages are faster of several orders of magnitude.
 	\end{itemize}
 \end{frame}
 
@@ -370,10 +371,16 @@ eval_s (when expr) k ctxt dt => Suspend (when expr);k ctxt
 
 \begin{frame}
 	\frametitle{Conclusion}
+	\textbf{Advantages:}
 	\begin{itemize}
 		\item The code length to define the semantics of the language is almost 5 times shorter.
-		\item The generated code is slower than Python but of the same order of magnitude.
 		\item Using Metacasanova greatly reduces the effort to build a compiler.
+		\item The definition of the language in Metacasanova is almost identical to the formal definition.
+		\item Extending the language becomes easier.
+	\end{itemize}
+	\textbf{Disadvantages:}
+	\begin{itemize}
+		\item The generated code is slower than Python but of the same order of magnitude.
 		\item Code performance affected by maps used to model the memory.
 		\item The code generation requires further improvement.
 		\item Using data structures and methods from external libraries requires to build a wrapper with meta-types and meta-functions.
@@ -386,6 +393,7 @@ eval_s (when expr) k ctxt dt => Suspend (when expr);k ctxt
 		\item Implement type functions to generate modules at compile time
 		\item Inline the result of the evaluations of type functions directly in the emitted code.
 		\item It should solve both the problem related to the memory model and the need for a wrapper for external data structures.
+		\item Extend Casanova 2.5 with networking primitives.
 	\end{itemize}
 \end{frame}
 
