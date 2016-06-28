@@ -22,11 +22,17 @@
 
 \begin{document}
 
-\author[Di Giacomo]
-{Francesco ~Di Giacomo}
+\author[Di Giacomo et al.]
+{Francesco ~Di Giacomo \inst{1} \\
+	\and Mohamed ~Abbadi \inst{1} \\
+	\and Agostino ~Cortesi \inst{1} \\
+	\and Pieter ~Spronck \inst{2} \\
+	\and Giuseppe ~Maggiore \inst{3}}
 \institute[Universities Here and There] % (optional)
 {
   Università Ca' Foscari di Venezia
+  \and Tilburg University
+  \and Hogeschool Rotterdam
 }
 \date{}
 \title{Build game scripts DSL's with the Metacasanova metacompiler}
@@ -116,7 +122,7 @@ Games contain very complex behaviours:
 	\frametitle{Compilers are repetitive}
 	\begin{itemize}
 		\item The only ``creative'' part of the process is step 1,3,5 (on the paper)
-		\item The rest is just translating those points in the chosen language.
+		\item The rest is just about implementing those points in the chosen language.
 		\item What if it was possible to have a compiler that accepts as input a language definition, a program written in that language, and outputs executable code?
 	\end{itemize}
 \end{frame}
@@ -186,7 +192,7 @@ Value is Expr
 \begin{frame}[fragile]
 	\frametitle{Example of program in Casanova}
 	\begin{lstlisting}[basicstyle = \ttfamily\small]
-entity Ball = {
+entity Guard = {
 Position  : Vector2
 Velocity  : Vector2
 
@@ -233,7 +239,7 @@ rule Velocity =
 
 \begin{frame}[fragile]
 	\frametitle{Implementation of wait in Metacasanova}
-	In the following waiting on a condition is called \texttt{when} because Metacasanova does not currently support operation overloading
+	In the following waiting on a condition is called \texttt{when} because Metacasanova does not currently support operators overloading
 	\begin{lstlisting}
 eval expr ctxt => ($f t)
 <<t <= dt>> == false
@@ -255,6 +261,140 @@ eval expr ctxt => ($b false)
 eval_s (when expr) k ctxt dt => Suspend (when expr);k ctxt
 	\end{lstlisting}
 	
+\end{frame}
+
+\begin{frame}
+	\frametitle{Results: patrol script}
+	\begin{itemize}
+		\item Script making a guard patrol two checkpoints
+		\item Tests run with the script written in Casanova 2.5 and Python.
+		\item Python is used as a scripting language is several games (e.g. World in Conflict, Civilization IV).
+		\item We neglected C\# because we already have benchmarks for that in Casanova 2.0 and they are faster of several orders of magnitude.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Results: patrol script}
+	\begin{table}
+		\centering
+		\tiny	
+		\begin{tabular}{|c|c|c|}
+			\hline
+			\multicolumn{3}{|c|}{\textbf{Casanova 2.5}} \\
+			\hline
+			Entity \# & Average update time (ms) & Frame rate \\
+			\hline
+			100 & 0.00349 & 286.53 \\
+			\hline
+			250 & 0.00911 & 109.77 \\
+			\hline
+			500 & 0.01716 & 58.275 \\
+			\hline
+			750 & 0.02597 & 38.506 \\
+			\hline
+			1000 & 0.03527 & 28.353 \\
+			\hline
+			\multicolumn{3}{|c|}{\textbf{Python}} \\
+			\hline
+			Entity \# & Average update time (ms) & Frame rate \\
+			\hline
+			100 & 0.00132 & 756.37 \\
+			\hline
+			250 & 0.00342 & 292.05 \\
+			\hline
+			500 & 0.00678 & 147.54 \\
+			\hline
+			750 & 0.01087 & 91.988 \\
+			\hline
+			1000 & 0.01408 & 71.002 \\
+			\hline
+		\end{tabular}
+		\quad
+		\begin{tabular}{|c|c|}
+			\hline
+			\multicolumn{2}{|c|}{\textbf{Casanova 2.5 with Metacasanova}} \\
+			\hline
+			Module & Code lines \\
+			\hline
+			Data structures and function definitions & 40 \\
+			\hline
+			Query Evaluation & 16 \\
+			\hline
+			While loop & 4 \\
+			\hline
+			For loop & 5 \\
+			\hline
+			If-then-else & 4 \\
+			\hline
+			When & 4 \\
+			\hline
+			Wait & 6 \\
+			\hline
+			Yield & 10 \\
+			\hline
+			Additional rules for Casanova program evaluation & 40 \\
+			\hline
+			Additional rules for basic expression evaluation & 201 \\
+			\hline
+			\multicolumn{2}{|l|}{\textbf{Total: } 300} \\
+			\hline
+			\multicolumn{2}{|c|}{\textbf{Casanova 2.0 compiler}} \\
+			\hline
+			Module & Code lines \\
+			\hline
+			While loop & 10 \\
+			\hline
+			For-loop and query evaluation & 44 \\
+			\hline
+			If-Then-Else & 15 \\
+			\hline
+			When & 11 \\
+			\hline
+			Wait & 24 \\
+			\hline
+			Yield & 29 \\
+			\hline
+			Additional structures for rule evaluation & 63 \\
+			\hline
+			Structures for state machine generations & 754 \\
+			\hline
+			Code generation & 530 \\
+			\hline
+			\multicolumn{2}{|l|}{\textbf{Total: } 1480} \\
+			\hline			
+		\end{tabular}
+		\caption{Patrol sample evaluation}
+		\label{tab:evaluation}
+	\end{table}	
+\end{frame}
+
+\begin{frame}
+	\frametitle{Conclusion}
+	\begin{itemize}
+		\item The code length to define the semantics of the language is almost 5 times shorter.
+		\item The generated code is slower than Python but of the same order of magnitude.
+		\item Using Metacasanova greatly reduces the effort to build a compiler.
+		\item Code performance affected by maps used to model the memory.
+		\item The code generation requires further improvement.
+		\item Using data structures and methods from external libraries requires to build a wrapper with meta-types and meta-functions.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Work in progress/Future works}
+	\begin{itemize}
+		\item Implement type functions to generate modules at compile time
+		\item Inline the result of the evaluations of type functions directly in the emitted code.
+		\item It should solve both the problem related to the memory model and the need for a wrapper for external data structures.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\centering
+	\Huge
+	Tank you!\\
+	\vspace{0.5cm}
+	\textcolor{red}{Questions?}
 \end{frame}
 
 \end{document}
