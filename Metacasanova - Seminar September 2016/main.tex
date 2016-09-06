@@ -134,11 +134,12 @@
 \end{frame}
 
 \begin{frame}
-		\frametitle{Towards meta-compilers}
-		\framesubtitle{Implementation}
-		
-		**STUB**
-		Paste the code for wait state machine from Casanova compiler
+	\frametitle{Towrds meta-compilers}
+	\framesubtitle{Implementation of the semantics}
+	
+	\begin{figure}
+		\includegraphics[scale=0.4]{Figures/wait_code}
+	\end{figure}
 \end{frame}
 
 \begin{frame}
@@ -265,7 +266,7 @@ ExprList is Expr
 		\mprset{flushleft}
 		\inferrule*[left=R1:]
 		{C = \emptyset \\\\ F = \emptyset}
-		{\langle f^{r} \rangle \Rightarrow x} \\
+		{\langle f^{r} \rangle \Rightarrow \lbrace x \rbrace} \\
 		
 		\mprset{flushleft}
 		\inferrule*[left=R2:]
@@ -323,6 +324,250 @@ eval expr1 + expr2 => $i arithmeticResult
 		\item The second rule is an axiom: if the expression is an integer constant we simply return it.
 	\end{itemize}
 
+\end{frame}
+
+\begin{frame}
+	\frametitle{Case study: Casanova 2.5}
+	
+	\begin{itemize}
+		\item \textbf{Entities:} They contain both the data and the behaviour of the objects in the game
+		\item \textbf{Rules:} They define the behaviour of the entity. Once a rule ends its execution it is restarted at the next frame.
+		\item \textbf{Domain:} A set of entity attributes the rule is allowed to change. A rule can always read all fields but can modify only those in the domain through a \texttt{yield} statement.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Example of program in Casanova}
+	\begin{lstlisting}[basicstyle = \ttfamily\small]
+entity Guard = {
+Position  : Vector2
+Velocity  : Vector2
+
+rule Position = Position + Velocity * dt
+
+rule Velocity =
+wait Position.X >= 300f || Position.X <= 0f
+yield new Vector2(-Velocity.X, 0f)
+}
+	\end{lstlisting}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Rule pausing}
+	Rule execution can be paused with built-in statements:
+	\begin{itemize}
+		\item \texttt{wait} takes either a floating point value or a predicate. In the first version the rule is paused by the given amount of seconds, in the second it is paused until the condition is met.
+		\item \texttt{yield} updates the fields in the domain with the given values. The rule execution is paused by one frame in order to be able to see the changes at the next game update.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Semantics of wait}
+	\begin{mathpar}
+		\small
+		\inferrule
+		{\langle t - dt > 0 \rangle \; \Rightarrow \; \texttt{true}}
+		{\langle \mathtt{wait} \; t;k \; dt \rangle \; \Rightarrow \; \langle \mathtt{wait} \; t - dt ; k \; dt \rangle}
+		
+		\inferrule
+		{\langle t - dt > 0 \rangle \; \Rightarrow \; \texttt{false}}
+		{\langle \mathtt{wait} \; t ; k \; dt \rangle \; \Rightarrow \; \langle k \; dt \rangle}
+		
+		\small
+		\inferrule
+		{\langle c \rangle \; \Rightarrow \; \mathtt{true}}
+		{\langle \mathtt{wait} \; c;k \; dt \rangle \; \Rightarrow \; \langle k \; dt\rangle}
+		
+		\inferrule
+		{\langle c \rangle \; \Rightarrow \; \mathtt{false}}
+		{\langle \mathtt{wait} \; c;k \; dt \rangle \; \Rightarrow \; \langle \mathtt{wait} \; c;k \; dt \rangle}
+	\end{mathpar}
+\end{frame}
+
+\begin{frame}[fragile]
+	\frametitle{Implementation of wait in Metacasanova}
+	In the following waiting on a condition is called \texttt{when} because Metacasanova does not currently support operators overloading
+	\begin{lstlisting}[basicstyle=\ttfamily\tiny]
+eval expr ctxt => ($f t)
+<<t <= dt>> == false
+----------------------------------
+eval_s (wait expr) k ctxt dt => Suspend (wait $f (<<t - dt>>));k ctxt
+
+eval expr ctxt => ($f t)
+<<t <= dt>> == true
+----------------------------------
+eval_s (wait expr) k ctxt dt => Resume k ctxt
+
+
+eval expr ctxt => ($b true)
+---------------------------------------------
+eval_s (when expr) k ctxt dt => Atomic k ctxt
+
+eval expr ctxt => ($b false)
+------------------------------------------
+eval_s (when expr) k ctxt dt => Suspend (when expr);k ctxt
+	\end{lstlisting}
+	
+\end{frame}
+
+\begin{frame}
+	\frametitle{Results: patrol script}
+	\begin{itemize}
+		\item Script making a guard patrol two checkpoints
+		\item Tests run with the script written in Casanova 2.5 and Python.
+		\item Implementation of Casanova 2.5 compared with the code length of the hard-coded compiler modules for Casanova 2.0.
+		\item Python is used as a scripting language in several games (e.g. World in Conflict, Civilization IV).
+		\item We neglected C\# because we already have benchmarks for that in Casanova 2.0 and both languages are faster of several orders of magnitude.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Results: patrol script}
+	\begin{table}
+		\centering
+		\tiny	
+		\begin{tabular}{|c|c|c|}
+			\hline
+			\multicolumn{3}{|c|}{\textbf{Casanova 2.5}} \\
+			\hline
+			Entity \# & Average update time (ms) & Frame rate \\
+			\hline
+			100 & 0.00349 & 286.53 \\
+			\hline
+			250 & 0.00911 & 109.77 \\
+			\hline
+			500 & 0.01716 & 58.275 \\
+			\hline
+			750 & 0.02597 & 38.506 \\
+			\hline
+			1000 & 0.03527 & 28.353 \\
+			\hline
+			\multicolumn{3}{|c|}{\textbf{Python}} \\
+			\hline
+			Entity \# & Average update time (ms) & Frame rate \\
+			\hline
+			100 & 0.00132 & 756.37 \\
+			\hline
+			250 & 0.00342 & 292.05 \\
+			\hline
+			500 & 0.00678 & 147.54 \\
+			\hline
+			750 & 0.01087 & 91.988 \\
+			\hline
+			1000 & 0.01408 & 71.002 \\
+			\hline
+		\end{tabular}
+		\caption{Patrol sample evaluation}
+		\label{tab:evaluation}
+	\end{table}	
+\end{frame}
+
+\begin{frame}
+	\frametitle{Results: patrol script}
+	\begin{table}
+		\centering
+		\tiny	
+		\begin{tabular}{|c|c|}
+			\hline
+			\multicolumn{2}{|c|}{\textbf{Casanova 2.5 with Metacasanova}} \\
+			\hline
+			Module & Code lines \\
+			\hline
+			Data structures and function definitions & 40 \\
+			\hline
+			Query Evaluation & 16 \\
+			\hline
+			While loop & 4 \\
+			\hline
+			For loop & 5 \\
+			\hline
+			If-then-else & 4 \\
+			\hline
+			When & 4 \\
+			\hline
+			Wait & 6 \\
+			\hline
+			Yield & 10 \\
+			\hline
+			Additional rules for Casanova program evaluation & 40 \\
+			\hline
+			Additional rules for basic expression evaluation & 201 \\
+			\hline
+			\multicolumn{2}{|l|}{\textbf{Total: } 300} \\
+			\hline
+			\multicolumn{2}{|c|}{\textbf{Casanova 2.0 compiler}} \\
+			\hline
+			Module & Code lines \\
+			\hline
+			While loop & 10 \\
+			\hline
+			For-loop and query evaluation & 44 \\
+			\hline
+			If-Then-Else & 15 \\
+			\hline
+			When & 11 \\
+			\hline
+			Wait & 24 \\
+			\hline
+			Yield & 29 \\
+			\hline
+			Additional structures for rule evaluation & 63 \\
+			\hline
+			Structures for state machine generations & 754 \\
+			\hline
+			Code generation & 530 \\
+			\hline
+			\multicolumn{2}{|l|}{\textbf{Total: } 1480} \\
+			\hline			
+		\end{tabular}
+		\caption{Metacasanova vs Casanova 2.0 compiler}
+		\label{tab:evaluation}
+	\end{table}	
+\end{frame}
+
+\begin{frame}
+	\frametitle{Conclusion}
+	\textbf{Advantages:}
+	\begin{itemize}
+		\item The code length to define the semantics of the language is almost 5 times shorter.
+		\item Using Metacasanova greatly reduces the effort to build a compiler.
+		\item The definition of the language in Metacasanova is almost identical to the formal definition.
+		\item Extending the language becomes easier.
+	\end{itemize}
+	\textbf{Disadvantages:}
+	\begin{itemize}
+		\item The generated code is slower than Python but of the same order of magnitude.
+		\item Code performance affected by maps used to model the memory.
+		\item The code generation requires further improvement.
+		\item Using data structures and methods from external libraries requires to build a wrapper with meta-types and meta-functions.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Related work}
+	
+	\begin{itemize}
+		\item META II family languages, parser generators plus code generators. Untyped. (1970's).
+		\item RML language family based on natural semantics (1996). It generates C code.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Future work}
+	
+	\begin{itemize}
+		\item Type classes and inliner to access fields in records by using the result of type function calls.
+		\item Handling imported libraries automatically by generating \texttt{unsafe} type to handle side effects, or allow the programmer to specify a mapping to metacompiler types.
+		\item Expand Casanova 2.5 with networking primitives.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\centering
+	\Huge
+	Tank you!\\
+	\vspace{0.5cm}
+	\textcolor{red}{Questions?}
 \end{frame}
 
 \end{document}
