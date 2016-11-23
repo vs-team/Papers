@@ -1,0 +1,53 @@
+In this section we introduce the basic concepts of the implementation of multiplayer game development for Casanova 2. This implementation aims to relieve the programmer of the complexity of hard-coding the network implementation for an online game, while preserving encapsulation in code. We show that code analysis is required to generate the appropriate network primitives to send and receive data. Finally, we present a simple multiplayer game to show a concrete example.
+
+\subsection{Introduction}
+Adding multi-player support to games is a highly desirable feature. By letting players interact with each other, new forms of gameplay, cooperation, and competition emerge without requiring any additional design of game mechanics \cite{granberg2014david}. This allows a game to remain fresh and playable, even after the single player content has been exhausted. For example, consider any modern AAA (AAA refers to games with the highest development budgets\cite{wolf2008video}) game such as \textit{Halo 4}. After months since its initial release, most players have exhausted the single player, narrative-driven campaign. Nevertheless the game remains heavily in use thanks to multiplayer modes, which in effect extended the life of the game significantly. This phenomenon is even more evident in games such as \textit{World of Warcraft} or \textit{EVE}, where multiplayer is the only modality of play and there is no single-player experience.
+
+\paragraph{Challenges}
+Multi-player support in games is a very expensive piece of software to build. Multiplayer games are under strong pressure to have very good \textit{performance}\cite{claypool2006latency}. Performance is both in terms of CPU time, and in bandwidth used. Also, games need to be very \textit{robust} with respect to transmission delays, packets lost, or even clients disconnected. To make matters worse, players often behave erratically. It is widespread practice among players to leave a competitive game as soon as their defeat is apparent (a phenomenon so common to even have its own name: ``rage quitting'' \cite{rage_quitting}), or to try to abuse the game and its technical flaws to gain advantages or to disrupt the experience of others.
+
+Networking code reuse is quite low across titles and projects. This comes from the fact that the requirements of every game vary significantly: from turn-based games that only need to synchronize the game world every few seconds, and where latency is not a big issue, to first-person-shooter games where prediction mechanisms are needed to ensure the smooth movement of synchronized entities, to real-time-strategy games where thousands of units on the screen all need to be synchronized across game instances \cite{smed2002aspects}. In short, previous effort is substantially inaccessible for new titles. Encapsulation suffers from this ad-hoc nature of the implementation of the networking layer in multiplayer games. Indeed managing the information about game updates over a network requires each game entity to interface the game logic code with network connection and socket objects, data transmission method calls such as send and receive, and support data structures to manage traffic and track the status of common protocols. This happens because each game entity must provide the following functionality in order to work in a multiplayer game:
+
+\begin{itemize}
+	\item Update the logic in the fashion of a singleplayer counterpart.
+	\item Choose what data is necessary to send over the network and create the message containing this information.
+	\item Choose what data can be lost and what data must always be received by the other clients.
+	\item Periodically check if incoming messages contain information that needs to be read and to specific updates.
+\end{itemize}
+
+Combining these requirements together within the same entity breaks encapsulation because now the logic of the entity and lots of spurious details only relevant to the networking implementation are mixed together, resulting in a highly noisy program. Maintenance then becomes very hard, as every change in the game logic must also be reflected in the networking implementation.
+
+\paragraph{Existing approaches}
+Networking in games is usually built with either very low-level or very high-level mechanisms. Very low-level mechanisms are based on manually sending streams of bytes and serializing only the essential bits of the game world, usually incrementally, on unreliable channels (UDP). This coding process is highly expensive because building by hand such a low-level protocol is difficult to get right, and debugging subtle protocol mismatches, transmission errors, etc. will take lots of development resources. Low-level mechanisms must also be very robust, making the task even harder.
+
+High-level protocols such as RDP, reflection-based serialization, frameworks (such as Pastry, netty.io), etc. can also be used. These methods greatly simplify networking code, but are rarely used in complex games and scenarios. The requirements of performance mean that many high-level protocols or mechanisms are insufficient, either because they are too slow computationally (especially when the rely on reflection or events) or because they transmit too much data across the network.
+
+\subsection{Motivation}
+
+To avoid the problems of both existing approaches, we propose a middle ground. We observe that networking fundamental abstractions upon which the actual code and protocols are built do not vary substantially between games, even though the code that needs to be written to implement them does. The similarity comes from the fact that the ways to serialize, synchronize, and predict the behaviour of entities are relatively standard and described according to a limited series of general ideas. The difference, on the other hand, comes from the fact that low-level protocols need to be adapted to the specific structure of the game world and the data structures that make it up. Until now, common primitives have not been syntactically and semantically captured inside existing domain-specific languages for game development\cite{bhatti2009domain}. Using the right level of abstraction, these general patterns of networking can be captured, while leaving full customization power in the hand of the developer (to apply such primitives to any kind of game).
+
+\subsection{Related works}
+In the following we discuss some existing networking tools used in game development and we highlight some issues that arise from their use.
+
+\paragraph{The Real time framework (RTF)} RTF \cite{glinka2007rtf} is a middleware built for C++ to relieve the programmer from dealing with data compression. It is more flexible than solutions based on game engines or hand-made implementations, since it automates the process of data transmission. Moreover, it supports distributed server management. Unfortunately, this solution has several flaws:
+\begin{itemize}
+	\item All entities must inherit from the class \texttt{Local} and the semantics of the position is pre-determined, often clashing with rendering or physics;
+	\item Platform independence requires that the programmer uses RTF primitive	types;
+	\item Data transmission automation requires that all game entities inherit the class \\ \texttt{Serializable};
+	\item Being a middleware, RTF is not aware of what games are going to use it (every game comes with different data structures). Thus, the developer is tasked to include in his code also logic to update the RTF layer, in order to keep the game updated over the network.
+\end{itemize}
+
+
+\paragraph{Network scripting language (NSL)} NSL \cite{russell2008tackling} provides a language extension based on a send-receive mechanism. Moreover it provides a built-in client side prediction (a feature missing in existing highly concurrent and distributed languages such as Stackless Python \cite{kalogirou2005multithreaded} and Erlang \cite{armstrong1993concurrent}), which is periodically corrected by the server. 
+
+\paragraph{Unreal Engine/Unity Engine} Unreal Engine \cite{games2006unreal} and Unity Engine \cite{engine9unity} are commercial game engines supporting networking.  Both Unity and Unreal Engine use a client-server approach. In Unreal Engine 
+the server contains the ``true'' game state, and the clients contain a ``dirty'' copy, which is validated periodically. It is possible to define entities (actors in Unreal Engine jargon) that are replicated on the clients. Whenever a replicated actor changes on the server, this change is also reflected on the clients. Additional customization can be achieved through Remote procedure calls (RPC's) of three kinds:
+\begin{itemize}
+	\item The function is called on the server and executed on the client. This is used for game element that do not affect gameplay, such as creating a particle effect when a weapon is fired;
+	\item The function is called on the client and executed on the server. This is useful for events that affect the other clients and should be validated by the server;
+	\item The function is executed in multi-cast, meaning that the server calls the function and that it is executed on both the server and all the clients.
+\end{itemize}
+
+The Unity Engine uses a similar approach based on networking components, synchronized at every frame, and RPC's to define custom synchronization events.
+
+Unfortunately, customization comes at the cost of the level of detail that developers must face. Using RPC's require a deep knowledge of the engine and writing lots code, as discussed in Section \ref{Common issues}.

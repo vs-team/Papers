@@ -1,0 +1,156 @@
+%% 
+%% Copyright 2007, 2008, 2009 Elsevier Ltd
+%% 
+%% This file is part of the 'Elsarticle Bundle'.
+%% ---------------------------------------------
+%% 
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% The list of all files belonging to the 'Elsarticle Bundle' is
+%% given in the file `manifest.txt'.
+%% 
+
+%% Template article for Elsevier's document class `elsarticle'
+%% with numbered style bibliographic references
+%% SP 2008/03/01
+
+\documentclass[preprint,12pt]{elsarticle}
+
+%% Use the option review to obtain double line spacing
+%% \documentclass[authoryear,preprint,review,12pt]{elsarticle}
+
+%% Use the options 1p,twocolumn; 3p; 3p,twocolumn; 5p; or 5p,twocolumn
+%% for a journal layout:
+%% \documentclass[final,1p,times]{elsarticle}
+%% \documentclass[final,1p,times,twocolumn]{elsarticle}
+%% \documentclass[final,3p,times]{elsarticle}
+%% \documentclass[final,3p,times,twocolumn]{elsarticle}
+%% \documentclass[final,5p,times]{elsarticle}
+%% \documentclass[final,5p,times,twocolumn]{elsarticle}
+
+%% For including figures, graphicx.sty has been loaded in
+%% elsarticle.cls. If you prefer to use the old commands
+%% please give \usepackage{epsfig}
+
+%% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{url}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{algorithm}% http://ctan.org/pkg/algorithms
+\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+\usepackage[T1]{fontenc}
+
+\usepackage{textcomp}
+\lstset{
+	aboveskip=0.5\baselineskip,
+	belowskip=0.5\baselineskip,
+	tabsize=2,
+	upquote=true,
+	basicstyle=\small,
+	columns=fixed,
+	showstringspaces=false,
+	mathescape,
+	breaklines=true,
+	frame=single,
+	showtabs=false,
+	showspaces=false,
+	showstringspaces=false,
+	identifierstyle=\ttfamily,
+	keywordstyle=\ttfamily
+}
+%% The amsthm package provides extended theorem environments
+%% \usepackage{amsthm}
+
+%% The lineno packages adds line numbers. Start line numbering with
+%% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+%% for the whole article with \linenumbers.
+%% \usepackage{lineno}
+
+\journal{Entertainment Computing}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\input{title}
+
+\begin{abstract}
+\textit{Encapsulation} is a programming technique that helps developers keeping code readable and maintainable. However, encapsulation in modern object oriented languages often causes significant runtime overhead. Developers must choose between clean encapsulated code or fast code. In the application domain of computer games, speed of execution is of utmost importance, which means that the choice between clean and fast usually is decided in favor of the latter. In this paper we discuss how encapsulation is embedded in the Casanova 2 game development language, and show how Casanova 2 allows developers to write encapsulated game code, which thanks to extensive optimization achieves at the same time high levels of performance. Furthermore, we show that the abstractions provided by Casanova so far cover no more than the tip of the iceberg: we document a further extension in the traditionally challenging domain of networking and show how the language can provide significant improvement in productivity.
+\end{abstract}
+
+\begin{keyword}
+Domain Specific Language, Encapsulation, Networking, Games
+\end{keyword}
+
+\end{frontmatter}
+
+%% \linenumbers
+
+%% main text
+\section{Introduction}
+\label{sec:introduction}
+\input{Sections/section1-introduction}
+
+\section{Encapsulation in games}
+\label{sec:the_problem}
+\input{Sections/section2-problem}
+
+\section{Optimizing encapsulation}
+\label{sec:idea}
+\input{Sections/section3-idea}
+
+\section{Implementation Details}
+\label{sec:details}
+\input{Sections/section4-details}
+
+\section{Networking in Casanova 2}
+\label{sec:networking}
+\input{Sections/section7-networking}
+
+
+\section{Networking architecture}
+\label{sec:net_architecture}
+\input{Sections/section8-networking_architecture}
+
+\section{Evaluation}
+\label{sec:evaluation}
+\input{Sections/section5-evaluation}
+
+\section{Conclusions}
+\label{sec:conclusions_and_future_works}
+\input{Sections/section6-conclusions_and_future_work}
+%% The Appendices part is started with the command \appendix;
+%% appendix sections are then done as normal sections
+%% \appendix
+
+%% \section{}
+%% \label{}
+
+%% If you have bibdatabase file and want bibtex to generate the
+%% bibitems, please use
+%%
+%%  \bibliographystyle{elsarticle-num} 
+%%  \bibliography{<your bibdatabase>}
+
+%% else use the following coding to input the bibitems directly in the
+%% TeX file.
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}
+\endinput
+%%
+%% End of file `elsarticle-template-num.tex'.

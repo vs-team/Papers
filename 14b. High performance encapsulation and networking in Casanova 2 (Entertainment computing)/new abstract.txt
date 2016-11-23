@@ -1,0 +1,42 @@
+Background
+Encapsulation is a programming technique that helps developers keeping 
+code readable and maintainable. However, encapsulation in modern object 
+oriented languages often causes significant runtime overhead. Thus, 
+developers, including video games developers, must choose between clean 
+encapsulated code or fast code. Since, in the application domain of 
+computer games speed of execution is of most importance, developers usually 
+decide for fast code. Similar problems are noticeable in other aspects of game 
+development such as the one of networking, where developers, due to a lack 
+of an effective support of networking primitives by the adopted tools, have to write complex 
+networking code. This often results in overlaps with the networking logic and the game logic,
+thus affecting the code maintainability.
+
+
+Aim
+This article explores to what extent game development would benefit from
+the use of encapsulation in code and other games abstractions such as networking.
+
+
+Method
+In this work we discuss how encapsulation is embedded in the Casanova 2 
+game development language, and show how Casanova 2 allows developers to 
+write encapsulated game code that, thanks to extensive optimization, 
+achieves high levels of performance. 
+Furthermore, we show that the abstractions provided by Casanova 2 so far 
+cover no more than the tip of the iceberg: we document a further extension 
+in the traditionally challenging domain of networking.
+
+Results
+Code compactness has been measured to evaluate the quality of our proposed 
+methods: encapsulation in code and embedded networking.
+Moreover, the speed of Casanova 2 has been evaluated in comparison with the speed of code written 
+in representative languages for game development. 
+
+This evaluation demonstrates that Casanova 2 runs faster than or at a comparable level 
+to the other languages.
+
+
+Conclusions
+By means of domain abstraction and domain optimization the resulting Casanova 2
+code is compact (even in the presence of networking considerations), maintainable 
+(due to encapsulation), and fast (thanks to our optimizer); all aspects that improve productivity.

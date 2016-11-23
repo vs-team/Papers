@@ -1,0 +1,104 @@
+%% 
+%% Copyright 2007, 2008, 2009 Elsevier Ltd
+%% 
+%% This file is part of the 'Elsarticle Bundle'.
+%% ---------------------------------------------
+%% 
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% The list of all files belonging to the 'Elsarticle Bundle' is
+%% given in the file `manifest.txt'.
+%% 
+
+%% Template article for Elsevier's document class `elsarticle'
+%% with numbered style bibliographic references
+%% SP 2008/03/01
+
+\documentclass[preprint,12pt]{elsarticle}
+
+%% Use the option review to obtain double line spacing
+%% \documentclass[authoryear,preprint,review,12pt]{elsarticle}
+
+%% Use the options 1p,twocolumn; 3p; 3p,twocolumn; 5p; or 5p,twocolumn
+%% for a journal layout:
+%% \documentclass[final,1p,times]{elsarticle}
+%% \documentclass[final,1p,times,twocolumn]{elsarticle}
+%% \documentclass[final,3p,times]{elsarticle}
+%% \documentclass[final,3p,times,twocolumn]{elsarticle}
+%% \documentclass[final,5p,times]{elsarticle}
+%% \documentclass[final,5p,times,twocolumn]{elsarticle}
+
+%% For including figures, graphicx.sty has been loaded in
+%% elsarticle.cls. If you prefer to use the old commands
+%% please give \usepackage{epsfig}
+
+%% The amssymb package provides various useful mathematical symbols
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{url}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{algorithm}% http://ctan.org/pkg/algorithms
+\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+\usepackage[T1]{fontenc}
+
+\usepackage{textcomp}
+\lstset{
+	aboveskip=0.5\baselineskip,
+	belowskip=0.5\baselineskip,
+	tabsize=2,
+	upquote=true,
+	basicstyle=\small,
+	columns=fixed,
+	showstringspaces=false,
+	mathescape,
+	breaklines=true,
+	frame=single,
+	showtabs=false,
+	showspaces=false,
+	showstringspaces=false,
+	identifierstyle=\ttfamily,
+	keywordstyle=\ttfamily
+}
+%% The amsthm package provides extended theorem environments
+%% \usepackage{amsthm}
+
+%% The lineno packages adds line numbers. Start line numbering with
+%% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+%% for the whole article with \linenumbers.
+%% \usepackage{lineno}
+
+\journal{Entertainment Computing}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\input{title}
+
+\author[1]{Francesco Di Giacomo}
+\author[1]{Mohamed Abbadi}
+\author[1]{Agostino Cortesi}
+\author[2]{Pieter Spronck}
+\author[3]{Giulia Costantini}
+\author[3]{Giuseppe Maggiore}
+\address[1]{Ca'Foscari University, Venice}
+\address[2]{Tilburg University, Tilburg}
+\address[3]{Hogeschool Rotterdam, Rotterdam}
+
+\end{frontmatter}
+
+\end{document}
+\endinput
+%%
+%% End of file `elsarticle-template-num.tex'.
