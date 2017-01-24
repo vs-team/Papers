@@ -1,0 +1,49 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{pifont}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{caption}
+
+\title{Automated networking in Meta-Casanova}
+\author{ }
+\date { }
+\lstset
+{
+	basicstyle = \ttfamily\tiny,
+	breaklines = true,
+	frame = single
+}
+
+\begin{document}
+\maketitle
+	
+\section{Introduction}
+\input{Sections/introduction}
+
+\section{Challenges of multiplayer games}
+\input{Sections/problem}
+
+\section{Networking architecture and semantics}
+\input{Sections/architecture}
+
+\section{Implementation in Metacasanova}
+\input{Sections/implementation}
+
+\section{Evaluation}
+\input{Sections/evaluation}
+
+\section{Conclusion}
+\input{Sections/conclusion}
+
+\bibliography{bibliography}
+\bibliographystyle{plain}
+
+\end{document}

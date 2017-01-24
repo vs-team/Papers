@@ -1,0 +1,47 @@
+In this section we explore several existing solutions to designing a networking layer for multiplayer games. For each solution we list the main advantages and drawbacks, and finally we present our approach and formulate a problem statement.
+
+\subsection{Preliminaries}
+\textbf{Architecture of networking in games, local view of the ``real'' game state, centralized server vs p2p.
+}
+\subsection{Manual implementation}
+Manual implementation of a networking layer for multiplayer games is the most common choice for big development video game studios. Notable examples can be found in games such as Starcraft, Age of Empire, Supreme Commander, and Half-Life. This solution is tightly bound to the behaviour of game entities and requires to implement all the networking components by hand, from the data transmission primitives to the synchronization logic and client-side prediction. In this scenario the data transmission and synchronization will be dependent on the structure and behaviour of the entities. Indeed, the transmission must take into account the nature of the data describing the game entity (value or reference) and the action it might perform during the game. For instance, let us assume that we want to synchronize the action of shooting with a gun, the game creates a projectile locally when the player presses the button to shoot and that information must be shared with all the players. Furthermore, the modules functionality is not dedicated to a specific task but interconnected with that of other game components. Thus, this solution is affected by two main problems: \textit{tight coupling}, \textit{low cohesion}. Notable examples of these problems were encountered during the development of Starcraft \cite{starcraft}, where it was reported that the game code for specific units (including multiplayer behaviours) were branched and completely diverged from the rest of the program, and Half-Life \cite{bernier2001latency}, where the transmitted data was bound to a specific pre-defined data structure and any change to the game had to be reflected there. Moreover, the networking code flexibility and the chance of re-use it in different games is non-existent as it is strictly bound to the specific implementation of the game.
+
+\subsection{Game Engines}
+
+Game engines overcome the problems of \textit{low cohesion} by providing built-in modules and functionalities to manage the network transmissions for multiplayer games. Unity Engine \cite{engine9unity} and Unreal Engine \cite{games2006unreal} are both commercial game engines that support networking. Their approach is centred around a centralized server approach, where the ``real'' state of the game is stored on the server and the clients only see its local approximation, which must be periodically validated and possibly corrected. The game engine offers the chance of defining what entities should be replicated on the clients and the synchronization is automatically granted by the engine itself, with the possibility of customizing some parameters, such as the update frequency and the prediction methods. Further customization can be achieved by using \textit{Remote procedure calls} (RPC's) by specifying (\textit{i}) that a specific function is called on the server and executed by the clients (for instance, to control events that do not affect gameplay, such as graphical effects), by(\textit{ii}) that a function is called on the client and executed on the server (for instance, to perform actions), and (\textit{iii}) multi-cast calls (executed on all the clients and the server).
+
+The approach based on game engines grants \textit{high cohesion}, because it allows to separate the logic of the game from the logic of the networking layer by providing library-level abstraction. The problem of \textit{tight coupling} persists because the game logic will be still connected to the several networking components of the game engine. This solution also offers little to no code re-usability and portability, since anything related to the networking part (and also in general to the whole game implementation) will be bound to the specific game engine, thus, for instance, migrating from Unity Engine to Unreal Engine would require to rewrite most of the code.
+
+\subsection{Language-level primitives}
+
+Another option is to implement primitives at language level, that is to build a programming language to support networking primitives to define network synchronization behaviours and data transmission. This approach grants \textit{high cohesion} and \textit{low coupling}, since the details of the networking are hidden and abstracted away by the language itself and the game will only interface with the language layer. This approach was explored in scientific works such as the \textit{Network Scripting Language} (NSL) \cite{russell2008tackling}. This approach grants also code re-usability and portability, as the networking code is bound only to the language and not to a particular engine or specific implementation of the game. For this reason code related to components of the game that exhibits similar behaviours can be re-used for other games. This approach requires to build a compiler (or interpreter) for the language, which makes extending the networking layer with additional functionalities difficult as any change to the networking language must be reflected in the implementation of the compiler itself.
+
+\subsection{Towards an approach based on meta-compilation}.
+
+\begin{table}
+	\tiny
+	\begin{tabular}{|c|c|c|c|c|}
+		% \checkmark & \ding{55}
+		%Technique & Loose coupling | High cohesion | Re-usability and portability | Extensibility
+		\hline
+		\textbf{Technique} & \textbf{Loose coupling} & \textbf{High Cohesion} & \textbf{Re-usability/portability} & \textbf{Extensibility} \\
+		\hline 
+		Manual implementaion & \ding{55} & \ding{55} & \ding{55} & \ding{55} \\
+		\hline
+		Game engine & \ding{55} & \checkmark & \ding{55} & \ding{55} \\
+		\hline
+		Compiler & \checkmark & \checkmark & \checkmark & \ding{55} \\
+		\hline
+	\end{tabular}
+	\caption{Advantages and disadvantages of networking implementation techniques}
+	\label{tab:problem_techniques}
+\end{table}
+
+In the previous considerations we have analysed different techniques to implement network communication for a multiplayer game. In order to evaluate the goodness of each solution we considered four parameters:
+
+\begin{itemize}[noitemsep]
+	\item \textit{Loose coupling}: the measure of how closely two modules are.
+	\item \textit{High cohesion}: the degree to which the elements of a module belongs together.
+	\item \textit{Code re-usability and portability}: how it is possible to re-use the code for a different similar game and how much of the code can be ported to this version.
+	\item \textit{Extensibility}: how much it is possible to extend the networking implementation with additional functionality.
+\end{itemize}
