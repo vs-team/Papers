@@ -1,0 +1,71 @@
+GrandeOmega has been tested extensively with students from Hogeschool Rotterdam, a university of applied science in the Netherlands. The classes were divided into two groups: in the first classes were given some programming assignments to be completed in the traditional way (without GrandeOmega), while in the second other classes were given the same assignments in GrandeOmega. Table \ref{tab:performance_go} contains the data relative to the pass rate and average grades of classes that used GrandeOmega before and after using the tool itself. Table \ref{tab:prediction} and Figure \ref{fig:prediction} contains data relative to the accuracy of the prediction on the student success performed by GrandeOmega.
+
+\begin{table}
+	\begin{tabular}{|p{0.16\textwidth}|p{0.16\textwidth}|p{0.16\textwidth}|p{0.16\textwidth}|p{0.16\textwidth}|p{0.16\textwidth}|}
+		\hline
+		\textbf{Class} & Completions & Pass rate & Pass rate G.O. & Average grade & Average grade G.O. \\
+		\hline
+		INF1B & 71.8 & 3 & 14 & 84.7 & 97.2 \\
+		\hline
+		INF1F & 56.7 & 6 & 5 & 77.0 & 88.1 \\
+		\hline
+		INF1L & 48.1 & 2 & 2 & 75 & 83.8 \\
+		\hline
+		INF1A & 41.7 & 7 & 7 & 82.1 & 86.5 \\
+		\hline
+		INF1C & 35.6 & 5 & 7 & 82.5 & 93.3 \\
+		\hline
+	\end{tabular}
+	\caption{Student performance before and after GrandeOmega}
+	\label{tab:performance_go}
+\end{table}
+
+\begin{table}
+	\begin{tabular}{|p{0.2\textwidth}|p{0.2\textwidth}|p{0.2\textwidth}|p{0.2\textwidth}|p{0.2\textwidth}|}
+		\hline
+		\textbf{Class} & \textbf{Correct prediction} & \textbf{False positive} & \textbf{False negative} & \textbf{Incorrect prediction} \\
+		\hline
+		INF1B & 16 & 8 & 2 & 10 \\
+		\hline
+		INF1F & 11 & 2 & 4 & 6 \\
+		\hline
+		INF1L & 18 & 3 & 1 & 4 \\
+		\hline
+		INF1A & 13 & 0 & 2 & 2 \\
+		\hline
+		INF1C & 15 & 1 & 1 & 2 \\
+		\hline
+	\end{tabular}
+	\caption{Prediction of student performance}
+	\label{tab:prediction}
+\end{table}
+
+\begin{table}
+	\begin{tabular}{|p{0.25\textwidth}|p{0.25\textwidth}|p{0.25\textwidth}|p{0.25\textwidth}|}
+		\hline
+		\textbf{Class} & \textbf{Grade} & \textbf{Passed students} & \textbf{Avarage grade} \\
+		\hline
+		INF1H & 41.4 & 3 & 83.3 \\
+		\hline
+		INF1E & 30.6 & 1 & 75 \\
+		\hline
+		INF1J & 23.3 & 0 & N.A. \\
+		\hline
+		INF1G & 41.4 & 7 & 80.3 \\
+		\hline
+	\end{tabular}
+	\caption{Results of classes without GrandeOmega}
+	\label{tab:performance_no_go}
+\end{table}
+
+\begin{figure}
+	\includegraphics[width = \textwidth]{Figures/prediction}
+	\caption{Predition accuracy of GrandeOmega}
+	\label{fig:prediction}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[width = \textwidth]{Figures/bar_chart}
+	\caption{Student performance with and without G.O.}
+	\label{fig:bar_chart}
+\end{figure}

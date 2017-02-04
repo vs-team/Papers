@@ -2,9 +2,43 @@ Within the context of higher education, learning programming is hard for both be
 
 It is suggested by some [...] that learning programming is no different than most other complex skills: it takes roughly ten years (ten thousand hours) to become truly proficient.
 
-The reason why it takes so long is disarmingly simple. Programming requires both the ability to \textbf{understand} and to \textbf{design} code. 
+The reason why it takes so long is disarmingly simple. Programming requires both the ability to \textit{understand} and to \textit{design} code. 
 
 \subsection{Understanding code}
-Understanding code is a passive skill, but not any simpler because of it. The true meaning of code is the sequence of steps that the machine will actually perform: every single bit that will be read and written as a result of an instruction is part of the meaning of that instruction, just like every cache hit-or-miss, the activation of the CPU ALU(s), network channels, operating systems, interpreters, just-in-time compilers, and ultimately interactions with users. Being able to figure precisely what a program does, and how it does it (also in terms of performance) requires the ability to formulate an abstract idea of the program behaviour, and the mapping of this abstract idea to the concrete components when more specific reasoning is needed.
+Understanding code is a passive skill, but not any simpler because of it. The true meaning of code is the sequence of steps that the machine will actually perform: every single bit that will be read and written as a result of an instruction is part of the meaning of that instruction, just like every cache hit-or-miss, the activation of the CPU ALU(s), network channels, operating systems, interpreters, just-in-time compilers, and ultimately interactions with users. Being able to figure precisely what a program does, and how it does it (also in terms of performance) requires the ability to formulate an abstract idea of the program behaviour, and the mapping of this \textit{abstract idea} to the concrete components when more specific reasoning is needed.
 
-The sheer size of the machinery involved in the execution of even the simplest program is simply very large, and the ability to think hierarchically and zoom in and out of the details as needed takes a lot of experience.
+The sheer size of the machinery involved in the execution of even the simplest program is simply \textit{very large}, and \textit{the ability to think hierarchically and zoom in and out of the details as needed takes a lot of experience}.
+
+\subsection{Designing code}
+Designing code is an active skill, and as such intrinsically complex. Designing code requires the formulation (and therefore the choice) of a design strategy, usually in a top-down fashion, which is then recursively turned into a more and more concrete definition of the program. Being able to design a program effectively requires the ability to choose a specific design among a series of possible designs, which taken together form \textit{the abstract meta-strategies} that characterise a programmer’s knowledge, style, and experience.
+
+The sheer size of the design space of even the simples program is \textit{so large as to be essentially infinite} (we are talking about finite machines after all!), and the ability to \textit{formulate meta-strategies and employ them recursively takes a lot of experience}.
+
+\subsection{Size matters (and so does structure)}
+We believe the size of the domain to be the core of the issue. Even though some students might already know a few tricks to produce working programs in some very narrow domain, the fundamental ability to abstractly reason about code (both for understanding and designing programs) is usually severely lacking in first year students.
+
+Moreover, we cannot just solve the problem by throwing unstructured assignments such as “read this code” or “try and write this program”, as we must train the specific mental activities that we wish to stimulate in students. Specific training must be structured in order to gently guide the activation of the proper thought structures, in a slow buildup of complexity and freedom to express one’s own creativity.
+
+\subsection{The issues}
+We close this session by identifying a series of practical, concrete issues that we believe sum up the discussion so far:
+
+\begin{table}[!h]
+	\begin{tabular}{|c|p{8cm}|}
+		\hline
+		\textbf{ID} & \textbf{Issue} \\
+		\hline
+		REASON\textunderscore MODEL & Students need extensive practice with reasoning about models of programs \\
+		\hline
+		REASON\textunderscore DESIGN & Students need extensive practice with reasoning about existing design strategies \\
+		\hline
+		EXTEND\textunderscore DESIGN & Students need extensive practice with extending existing programs (which should follow a formative design). \\
+		\hline
+		EXTEND\textunderscore BUILDUP & Students need a buildup in complexity with their extension activities. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+By keeping these issues in mind, we will now setup a proposed didactic model which we believe can mitigate them or outright resolve them.
+
+
+
