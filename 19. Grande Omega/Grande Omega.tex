@@ -1,0 +1,40 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{pifont}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{caption}
+
+\title{GrandeOmega - a didactic model for learning programming}
+\author{ }
+\date { }
+\lstset
+{
+	basicstyle = \ttfamily\tiny,
+	breaklines = true,
+	frame = single
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+	Teaching (and learning) how to program is an open problem. Both teachers and students cite a variety of issues, ranging from difficulty bridging the gap between theory and practice, to lack of simple assignments suitable for beginners.
+	We believe that technology can offer a powerful tool in supporting a solution to these problems, but at a high cost in internal complexity. For this reason we have built GrandeOmega: a generic, web-based code-interpreter that can be easily used to build interactive lectures and assignments where students experiment with learning how to program while receiving real-time feedback.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+\input{Sections/introduction}
+
+\section{Why is it so hard?}
+\label{sec:problem}
+\input{Sections/problem}
+\end{document}
