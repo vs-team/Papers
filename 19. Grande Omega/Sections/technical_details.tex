@@ -80,7 +80,30 @@ From this example we proceed to define the general way of evaluating an semantic
 \end{itemize}
 
 \subsection{The generic structured code editor}
-Moreover, the code interpreter is not only involved in the evaluation of programs, but also in the rendering of their debugging steps, and in the interactive, structured editor.
+The code interpreter is not only used to implement the operational semantics of a computer language, but also to implement an interactive parser for the code editor. Let us consider the statement
 
-[[Mudy: add explanation here and a couple of screenshots]]
+\begin{lstlisting}
+if expr statements else statements
+\end{lstlisting}
+
+The interpreter contains the definition for the language construct, so it is able to detect the terminal and non-terminal elements of the statement. The code editor uses, in the current version, an infix notation, so for example the expression \texttt{5 + 3} written using the suffix notation must be typed with the prefix notation \texttt{+ 5 3}. When the user types a valid terminal symbol, the code editor will detect it and generate the remaining keywords as text and display them on the screen. The non terminal symbols (like \texttt{expr} and \texttt{statements} in the example above) will be generated as input boxes. The user will be able to further edit the code inside these boxes, which will be recursively evaluated with the same method. For instance, the following code
+
+\begin{lstlisting}
+if x > 5
+	x = x + 1
+else
+	x = x - 1
+\end{lstlisting}
+
+\noindent
+will be created by initially typing \texttt{if} in the code editor (followed by a space to mark that the keyword is over). In that moment the editor will lookup the keyword in the language definition and create the appropriate layout. The editor will display the keywords \texttt{if} and \texttt{else} as text, and create 3 input boxes for the condition, the \texttt{if} block, and the \texttt{else} block. In order to create the condition we must type the comparison by starting with the \texttt{>} symbol, which will create again two input boxes by detecting that a keyword has been typed and that the left and right arguments of that keyword are non-terminal symbols. Analogously, it is possible to create the variable assignment (\texttt{=}) and the assigned expressions (containing the keywords \texttt{+} and \texttt{-}). Figure \ref{fig:code_editor_steps} summarizes these steps.
+
+\begin{figure}
+	\centering
+	\includegraphics[width = 0.2\textwidth]{Figures/code_editor_step1} \includegraphics[width = 0.2\textwidth]{Figures/code_editor_step2}\\
+	\vspace{0.1cm}
+	\includegraphics[width = 0.2\textwidth]{Figures/code_editor_step3} \includegraphics[width = 0.2\textwidth]{Figures/code_editor_step4}
+	\caption{Code editor example: (1) \texttt{If} creation, (2) condition creation, (3) variable assignment creation, (4) final result}
+	\label{fig:code_editor_steps}
+\end{figure}
 

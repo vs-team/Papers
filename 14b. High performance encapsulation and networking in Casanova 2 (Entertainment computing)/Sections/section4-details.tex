@@ -1,4 +1,4 @@
-In this section we introduce the syntax of the Casanova 2 language and show how to select the predicates and the associated blocks of code that can be optimized.
+In this section we show how to select the predicates and the associated blocks of code that can be optimized.
 
 Most games represent simulations of some sort. A property of simulations is a certain \textit{temporal locality} of behaviors \cite{ai_dithering}. This translates to the fact that some predicates tend to have a high chance of no value change between frames. To reduce the amount of interactions and achieve better performance, we could optimize those predicates that exhibit temporal locality. This can be performed by either using code analysis based on statistics on the average inactive time or by manually annotating the parts that stay inactive for a long time (we discuss this also in Section \ref{sec:conclusions_and_future_works}).
 
@@ -6,7 +6,7 @@ We will refer to a predicate on fields that do not change at every frame as \tex
 
 Dealing with ICs adds an additional layer of complexity to the game. The execution of game mechanics tends to be very frequent (we may expect that some mechanics will be executed potentially hundreds of times per second), so interacting frequently with ICs affects the game performance due to the complexity of the data structure.
 
-ICs are used to identify which blocks of code can be suspended and resumed with little overhead. We use ICs at compile time to generate code that is able (through the support of specific data structure) to suspend and wake up with little overhead. This is schematically shown in Figure \ref{fig:system_configuration}.
+ICs are used to identify which blocks of code can be suspended and resumed with little overhead. We use ICs at compile time to generate code that is able (through the support of a specific data structure) to suspend and wake up with little overhead. This is schematically shown in Figure \ref{fig:system_configuration}.
 
 \begin{figure}[!ht]
 		\centering
@@ -16,9 +16,7 @@ ICs are used to identify which blocks of code can be suspended and resumed with 
 \end{figure}
 
 \subsection{Casanova overview}
-Casanova is a \textit{Domain Specific Language} oriented towards game development. A program in Casanova is a set of entities organized in a tree hierarchy, of which the root is marked as \textit{world}. Each entity contains a set of fields, a set of rules, and a constructor. An extensive description of the formal grammar and semantics of Casanova can be found in \cite{maggiore2013casanova}. Casanova 2 (which we use) is a recent iteration of the original Casanova, which does not introduce changes to syntax or semantics.
-
-In Casanova the state of a game changes only upon the execution of a \textit{rule}. A rule is a block of code acting on a subset of the entity fields called \textit{domain}, which has at least one \texttt{yield} statement and zero or more \texttt{wait} statements. The former updates the value of the fields of an entity; the latter suspends the evaluation of the rule until its condition is met, temporally affecting the fields update. The rule body is re-executed once the end is reached.
+In Casanova, the state of a game changes only upon the execution of a \textit{rule}. A rule is a block of code acting on a subset of the entity fields called \textit{domain}, which has at least one \texttt{yield} statement and zero or more \texttt{wait} statements. The former updates the value of the fields of an entity; the latter suspends the evaluation of the rule until its condition is met, temporally affecting the fields update. The rule body is re-executed once the end is reached.
 
 An example of a rule that illustrates the \texttt{wait} statement (which specifies that a shield is repaired when it gets damaged) is the following :
 \begin{lstlisting}
@@ -48,7 +46,7 @@ Casanova allows interaction with external libraries and frameworks such as the .
 \item An \textit{atomic rule} is a rule that does not contain suspendable statements.
 \end{itemize}
 
-We now present two algorithms that respectively check if a predicate is affected by an atomic rule (Algorithm \ref{alg:atomic}) and build the ICDS (Algorithm \ref{alg:icds_construction}). For brevity we do not present the procedure to check if a rule is an ISR, which can be done by simply looking at the syntax tree of the rule body.
+We now present two algorithms that respectively check if a predicate is affected by an atomic rule (Algorithm \ref{alg:atomic}) and build the ICDS (Algorithm \ref{alg:icds_construction})\footnote{In the algorithm \texttt{r.index} refers to an incremental index assigned by the compiler to each rule for each entity.}. For brevity we do not present the procedure to check if a rule is an ISR, which can be done by simply looking at the syntax tree of the rule body.
 
 
 \begin{algorithm}
@@ -65,7 +63,7 @@ We now present two algorithms that respectively check if a predicate is affected
         \For {$r \in R$}
             \If {$r$ is an atomic rule}
                 \For{$f \in r.domain$}
-                    \State $DFA \cup \lbrace (e,f) \rbrace$
+                    \State $DFA \gets DFA \cup \lbrace (e,f) \rbrace$
                 \EndFor
             \EndIf
         \EndFor
@@ -90,7 +88,7 @@ We now present two algorithms that respectively check if a predicate is affected
             \If {$r$ is an ISR}
                 \State $p$ is the first interesting condition of $r$
                 \If {\textbf{not} \Call{Atomic}{$p$}}
-                    \State $ICDS \cup \lbrace (e,r.index,r.domain,p) \rbrace$
+                    \State $ICDS \gets ICDS \cup \lbrace (e,r.index,r.domain,p) \rbrace$
                 \EndIf
             \EndIf
         \EndFor
@@ -118,7 +116,7 @@ We implement the previous behavior by means of dictionaries that keep track of t
 
 We use the static information from the ICDS (see Figure \ref{fig:system_configuration}(c)) to refer to the appropriate dictionary, based on the structure of the IC, to generate unique names for dictionaries. For every field in the predicate, we combine the name of the type of the object containing the field, the name of the field itself, the entity containing the ISR, and the ISR index.
 
-As key we use a pair made of the reference to the object containing the field of the IC and the field itself. As value we store a collection of pairs made of the instance of the entity containing the ISR and the ISR index. We use a collection because it might be the case that one or more instances of the same entity type are pending on the same specific object field. In the example below the rule in \texttt{E} waits on a field \texttt{X} in the \texttt{world}, and the \texttt{world} contains a collection of instances of \texttt{E}. When \texttt{X} changes (the statement \texttt{wait 10} means wait for 10 seconds), all the rules of each instance of \texttt{E} waiting for \texttt{X} must be resumed.
+As key we use a pair made of the reference to the object containing the field of the IC and the field itself. As value we store a collection of pairs made of the instance of the entity containing the ISR and the ISR index. We use a collection because it might be the case that one or more instances of the same entity type are pending on the same specific object field. In the example below, the rule in \texttt{E} waits on a field \texttt{X} in the \texttt{world}, and the \texttt{world} contains a collection of instances of \texttt{E}. When \texttt{X} changes (the statement \texttt{wait 10} means wait for 10 seconds), all the rules of each instance of \texttt{E} waiting for \texttt{X} must be resumed.
 
 \begin{lstlisting}
 world W = 
@@ -135,22 +133,22 @@ entity E =
     ...
 \end{lstlisting}
 
-An entry of the dictionary in the example would be \texttt{(world,X), (L[0],rule Y)}.
+An entry of the dictionary in the example would be \texttt{(world,X), \{(L[0],rule Y)\}}.
 
 \subsection{Suspendable rules instantiate, destroy, and update}
 
-In order to maintain the suspendable rules we identify three stages that represent the life cycle of a suspendable rule:
+In order to maintain the suspendable rules, we identify three stages that represent the life cycle of a suspendable rule:
 
 \begin{itemize}
-\item \textbf{On creation}: when we instantiate an element of which a field appears in one of the pairs of \texttt{OBS}, we use the instance and the field itself as a key to populate all its DEPs with an empty collection as value. When we instantiate an entity the rules of which are targeted by an IC, we add the pair made of the entity instance and each targeted rule as a value in its DEPs;
+\item \textbf{On creation}: when we instantiate an element of which a field appears in one of the pairs of \texttt{OBS}, we use the instance and the field itself as a key to populate all its DEPs with an empty collection as value. When we instantiate an entity, the rules of which are targeted by an IC, we add the pair made of the entity instance and each targeted rule as a value in its DEPs;
 \item \textbf{On destroy}: when an instance appears either as a value or a key in one of DEPs, we remove all the occurrences of the instance in DEPs;
-\item \textbf{On update}: when a field of an IC changes we notify the entities pending on it. After generating the IC data structure, we can safely refer to the dictionaries relying on the fact that the generated code is sound and will not produce errors at run time. As a consequence of a notification, the ISRs involved in the notification will be activated during the next frame (if they were inactive). We add them to a collection representing the active rules of the entity containing the involved ISRs (see Figure \ref{fig:system_configuration}(d)). We group instances of the same target type into the same collection to achieve better performance (we iterate the active rules all at the same time per type instead of iterating them while iterating each entity). We store a collection in the \texttt{world} entity that contains all the suspended rules that currently active. These rules are grouped by their respective entities.
+\item \textbf{On update}: when a field of an IC changes, we notify the entities pending on it. After generating the IC data structure, we can safely refer to the dictionaries relying on the fact that the generated code is sound and will not produce errors at run time. As a consequence of a notification, the ISRs involved in the notification will be activated during the next frame (if they were inactive). We add them to a collection representing the active rules of the entity containing the involved ISRs (see Figure \ref{fig:system_configuration}(d)). We group instances of the same target type into the same collection to achieve better performance (we iterate the active rules all at the same time per type instead of iterating them while iterating each entity). We store a collection in the \texttt{world} entity that contains all the suspended rules that are currently active. These rules are grouped by their respective entities.
 \end{itemize}
 
 
 Rules in Casanova are translated at compile time into a series of switches without nesting within functions that return \texttt{void}. ISRs return \texttt{Done} when the evaluation of their IC is \texttt{false} (stay inactive) or \texttt{Working} when the evaluation of their IC is \texttt{true} (go active) or we are still busy with the execution of the block after the IC. When a suspendable rule gets suspended, i.e., its evaluation returns \texttt{Done}, we simply remove it from the active rules collection (see Figure \ref{fig:system_configuration}(a)).
 
-Notice the similarity between Casanova and Aspect-Oriented Programming paradigm: interruptions and yields share the same philosophy of cross-cutting concerns and aspects. When using a \texttt{wait}, a developer simply declares the concern of suspending the code with respect to some condition, and the compiler acts as a weaver inlining the code for the optimization (our aspect) discussed above. When using a \texttt{yield}, a developer declares the concern of updating an attribute of an entity, and the compiler realises the wake up system for all the wait statements depending on that attribute.
+Notice the similarity between Casanova and the Aspect-Oriented Programming paradigm: interruptions and yields share the same philosophy of cross-cutting concerns and aspects. When using a \texttt{wait}, a developer simply declares the concern of suspending the code with respect to some condition, and the compiler acts as a weaver inlining the code for the optimization (our aspect) discussed above. When using a \texttt{yield}, a developer declares the concern of updating an attribute of an entity, and the compiler realises the wake up system for all the wait statements depending on that attribute.
 
 \subsection{Query interpretation}
 
