@@ -1,7 +1,7 @@
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \def\P@banner{The Art, Science, and Engineering of Programming}
 \ProvidesClass{programming}%
-    [2016/12/16 v1.1 ^^J Articles for \P@banner^^J]
+    [2017/01/11 v1.2 ^^J Articles for \P@banner^^J]
 
 
 %%
@@ -143,12 +143,12 @@
 
 \providecommand*\P@area{%
   \P@warning@noline{No area specified}%
-  {\larger\textbf{No area specified. Please add a \texttt{\string\area\{...\}} before \string\maketitle.}}}
+  {\larger\textbf{No area specified. Please add a \texttt{area=..} option to \string\paperdetails{...}.}}}
 \P@SubmissionKey{area}{\gdef\P@area{#1}\FamilyKeyStateProcessed}
 
 \providecommand*\P@perspective{%
   \P@warning@noline{No perspective selected}%
-  {\larger\textbf{No perspective selected. Please add a \texttt{perspective=...} document option.}}}%
+  {\larger\textbf{No perspective selected. Please add a \texttt{perspective=...}  option to \string\paperdetails{...}.}}}%
 \P@SubmissionKey{perspective}{
   \P@setnum{perspective}{@tempa}{%
     {art}{0},{theart}{0},%
@@ -249,7 +249,6 @@
   numbers=noenddot,
 }
 \KOMAoption{captions}{nooneline,tableheading}
-\setcapdynwidth{\textwidth}
 
 \newcommand*\P@settopbottommargins{%
   \setlength{\topmargin}{-15pt}%
@@ -487,7 +486,7 @@
     url=true,%
     abbreviate=false,%
     maxnames=20}
-  \@ifpackagelater{biblatex}{2016-09-10}%
+  \@ifpackagelater{biblatex}{2016/09/10}%
     {\ExecuteBibliographyOptions{urldate=edtf,seconds=true}}%
     {\ExecuteBibliographyOptions{urldate=iso8601}}
   \PreventPackageFromLoading[\message{%
@@ -648,7 +647,7 @@
   \gdef\P@last@author{#2}%
   \listgadd\P@authors{%
     \P@author@link{#2}\ignorespaces%
-    \P@affil{#1}}%
+    \P@affil{#1}\relax}%
   \stepcounter{P@authors}%
   \P@author@serialize%
 }

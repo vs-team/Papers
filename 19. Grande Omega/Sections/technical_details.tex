@@ -1,4 +1,4 @@
-The web-based implementation of GrandeOmega features, at its core, a generic code interpreter which takes as input a specification of one or more programming languages, and yields the following as output:
+The web-based implementation of GrandeOmega \cite{grande_omega} features, at its core, a generic code interpreter which takes as input a specification of one or more programming languages, and yields the following as output:
 
 \begin{itemize}[noitemsep]
 	\item an interactive, assistive code-editor (Figure \ref{fig:code_editor_debugger});
@@ -13,21 +13,21 @@ The web-based implementation of GrandeOmega features, at its core, a generic cod
 
 The system also features a dashboard which shows assignment data over a whole course, a whole class, or a single student.
 
-\begin{figure}
+\begin{figure}[!h]
 	\includegraphics[width = 0.5\textwidth]{Figures/code_editor}
 	\includegraphics[width = 0.5\textwidth]{Figures/debugger}
 	\caption{Code editor and debugger}
 	\label{fig:code_editor_debugger}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[!h]
 	\includegraphics[width=0.5\textwidth]{Figures/forward_assignment}
 	\includegraphics[width=0.5\textwidth]{Figures/backward_assignment}
 	\caption{Teacher's assignment editor}
 	\label{fig:assignment_editor}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[!h]
 	\includegraphics[width=0.5\textwidth]{Figures/slide_editor}
 	\includegraphics[width=0.5\textwidth]{Figures/forward_assignment_student}
 	\caption{Slide editor and student's editor}
@@ -35,7 +35,7 @@ The system also features a dashboard which shows assignment data over a whole co
 \end{figure}
 
 \subsection{Architecture}
-In order to ensure the right level of responsivity, the application is features a large front-end written in React and TypeScript. React is a UI framework published by Facebook, implementing the functional reactive programming paradigm [...] in JavaScript and for browsers. The combination of referential transparency and controlled state updates make it possible to build truly complex, deeply hierarchical interactive structures with a high degree of correctness and confidence[add reference to referential transparency correctness]. TypeScript is an extension of JavaScript built by Microsoft, featuring a rich type-system inspired from the world of statically typed functional languages, emphasising inductive composition of types and generic programming. The combination of (functional) reactive programming and a rich language of statically checked types has enabled us to build a complex system with few defects and high performance and availability, without having to leave the platform of the web and therefore without sacrificing accessibility.
+In order to ensure the right level of responsivity, the application is features a large front-end written in React and TypeScript. React is a UI framework published by Facebook, implementing the functional reactive programming paradigm \cite{react,Hudak1999} in JavaScript and for browsers. The combination of referential transparency and controlled state updates make it possible to build truly complex, deeply hierarchical interactive structures with a high degree of correctness and confidence[add reference to referential transparency correctness]. TypeScript is an extension of JavaScript built by Microsoft, featuring a rich type-system inspired from the world of statically typed functional languages, emphasising inductive composition of types and generic programming. The combination of (functional) reactive programming and a rich language of statically checked types has enabled us to build a complex system with high performance and availability, without having to leave the platform of the web and therefore without sacrificing accessibility.
 
 %insert schema of the architecture
 
@@ -44,7 +44,7 @@ The backend is twofold: on one hand we have a traditional Ruby on Rails applicat
 \subsection{The generic code interpreter}
 The code interpreter is the beating heart of GrandeOmega. First of all, there is no “single programming language supported”: GrandeOmega is extensible to support any programming language definable: from Python (currently implemented), to SQL, and further to mathematical languages such as the lambda calculus or even languages for set theory and boolean logic.
 
-The code interpreter is based on pattern matching and substitution and it directly mimic the small-step semantics [add reference] used to describe the formal semantics of computer languages. The small-step semantics define a set of rules in the form of logical rules, which means they are made of a (optional) set of premises that, if satisfied, will produce the result defined in the conclusion. If a rule does not contain premises it is called \textit{axiom} (meaning that its evaluation is immediate). Below you find an example of such rules describing the evaluation of the sum of two arithmetic expressions:
+The code interpreter is based on pattern matching and substitution and it directly mimic the operational semantics \cite{plotkin1981structural} used to describe the formal semantics of computer languages. The operational semantics define a set of rules in the form of logical rules, which means they are made of a (optional) set of premises that, if satisfied, will produce the result defined in the conclusion. If a rule does not contain premises it is called \textit{axiom} (meaning that its evaluation is immediate). Below you find an example of such rules describing the evaluation of the sum of two arithmetic expressions:
 
 \begin{mathpar}
 	\inferrule
@@ -61,7 +61,7 @@ The code interpreter is based on pattern matching and substitution and it direct
 
 The first rule is an axiom: if the input of the rule is an integer number \texttt{x} then its evaluation simply returns itself. The second rule evaluates the sum of two expressions by recursively calling the evaluation on the left and right expression. If the evaluation succeeds and returns an integer value, then the result of the whole rule is the arithmetic sum of the result of evaluating the two expressions.
 
-From this example we proceed to define the general way of evaluating an semantics rule:
+From this example we proceed to define the general way of evaluating a semantics rule:
 
 \begin{itemize}
 	\item The left part of the conclusion is analysed by using pattern matching in the following way:
@@ -96,7 +96,7 @@ else
 \end{lstlisting}
 
 \noindent
-will be created by initially typing \texttt{if} in the code editor (followed by a space to mark that the keyword is over). In that moment the editor will lookup the keyword in the language definition and create the appropriate layout. The editor will display the keywords \texttt{if} and \texttt{else} as text, and create 3 input boxes for the condition, the \texttt{if} block, and the \texttt{else} block. In order to create the condition we must type the comparison by starting with the \texttt{>} symbol, which will create again two input boxes by detecting that a keyword has been typed and that the left and right arguments of that keyword are non-terminal symbols. Analogously, it is possible to create the variable assignment (\texttt{=}) and the assigned expressions (containing the keywords \texttt{+} and \texttt{-}). Figure \ref{fig:code_editor_steps} summarizes these steps.
+will be created by initially typing \texttt{if} in the code editor (followed by a space to mark that the keyword is over). In that moment the editor will lookup the keyword in the language definition and create the appropriate layout (Figure \ref{fig:code_editor_steps} (1)). The editor will display the keywords \texttt{if} and \texttt{else} as text, and create 3 input boxes for the condition, the \texttt{if} block, and the \texttt{else} block. In order to create the condition we must type the comparison by starting with the \texttt{>} symbol, which will create again two input boxes by detecting that a keyword has been typed and that the left and right arguments of that keyword are non-terminal symbols (Figure \ref{fig:code_editor_steps} (2)). Analogously, it is possible to create the variable assignment (\texttt{=}) and the assigned expressions (containing the keywords \texttt{+} and \texttt{-}). Figure \ref{fig:code_editor_steps} (3) and (4) summarizes these steps.
 
 \begin{figure}
 	\centering
