@@ -1,0 +1,129 @@
+The performance decay in Meta-Casanova is caused by the use at runtime of a dictionary to represent records and accesses to record fields. This problem can be eliminated because (\textit{i}) we know that the record cannot grow at execution time, i.e. the fields are always the same during the entire execution of the program, and (\textit{ii}) the field structure does not change at runtime, i.e. their names and types are always the same during the execution. For these reasons we can exploit type functions and module generations to inline at compile time the field accesses.
+
+We can represent a record recursively as a field followed by the rest of the record definition. The recursion will terminate by defining an empty record field. First of all we need to define a way to represent the type of the record. This can be done by using a module that contains a type function returning the type of the record
+
+\begin{lstlisting}
+Module "Record" : Record {
+	TypeFunc "RecordType"  : * 
+}
+\end{lstlisting}
+
+This code defines a module called \texttt{Record} that contains a type function \texttt{RecordType} that returns a kind (because the record type can vary, and so we cannot constraint the return type to be only one type). Now we can define the structure of an empty record, i.e. a record without fields. This is done by defining a type function which returns a \texttt{Record}. Calling this type function will generate a module for the empty record.
+
+\begin{lstlisting}
+TypeFunc EmptyRecord => Record
+
+-----------------------
+EmptyRecord => Record {
+
+	-------------------
+	RecordType => unit
+	
+	-----------
+	cons -> ()
+}
+\end{lstlisting}
+
+The function \texttt{cons} is used to construct (i.e.) to place data inside the record field. In this case we store unit because the record field is empty.
+
+Now we can define a field for a record. A record field is a type function that generates a record module by taking the name of the field, its type, and the type of the rest of the record: the record type returns the type of a pair containing the type of the current field and the type of the remaining record.
+
+\begin{lstlisting}
+TypeFunc RecordField => string => * => Record => Record
+
+-----------------------------------
+RecordField name type r => Record {
+	Func "cons" -> type -> r.RecordType : RecordType
+
+	------------------------------------
+	RecordType => (type * r.RecordType)
+
+	------------------------
+	cons x xs -> (x,xs)
+}
+\end{lstlisting}
+
+The function \texttt{cons} in this case constructs the record field returning a pair with the value of the current field and the rest of the fields.
+We now have to define how to get and set the value of the fields. The getter is defined as a module that has a type function \texttt{GetType} that returns the type of the field to get, and a function \texttt{get} that returns the value of the field. 
+
+\begin{lstlisting}
+Module "Getter" => string => Record : Getter name r {
+	TypeFunc "GetType" : *
+	Func "get" -> r.RecordType -> GetType
+}
+\end{lstlisting}
+
+At this point we use a type function with a premise to generate two different versions of the \texttt{Getter}: one if the current field is the one we are looking for and one if the current field is not the one we want to get. The first version simply generates a \texttt{Getter} module where the \texttt{GetType} function returns the type of the field and the function \texttt{get} extracts the value in it.
+
+\begin{lstlisting}
+name = lt
+-------------------------------
+GetField lt (Recordfield name type r) => Getter name r {
+	GetType => type
+	get (x,xs) -> x
+}
+\end{lstlisting}
+
+When the field we are looking for is not the one we are looking at, we have to keep searching in the rest of the record. The function \texttt{GetType} calls a new \texttt{Getter} that is able to lookup in the rest of the record and calls the \texttt{GetType function} of this new getter. The \texttt{get} function uses the \texttt{get} in the new \texttt{Getter} to extract the value of the field.
+
+\begin{lstlisting}
+name <> lt
+-----------------------------------
+GetField lt (RecordField name type r) => Getter name r {
+	TypeFunc "Getfield1" : Getter
+	
+	-----------------------------
+	GetField1 => GetField lt r
+	
+	-----------------------------
+	GetType => GetField1.GetType
+	
+	--------------------------------
+	get (x,xs) -> GetField1.get xs
+}
+\end{lstlisting}
+
+The \texttt{Setter} is defined analogously to the \texttt{Getter}, except that the function \texttt{set} takes as extra argument the value to set.
+
+\begin{lstlisting}
+Module "Setter" => string => Record : Setter lt r => {
+	TypeFunc "SetType" : *
+	Func "set" -> (r.RecordType) -> SetType : (r.RecordType) 
+}
+\end{lstlisting}
+
+The \texttt{Setter} comes as well in two version, one when the field we are looking at is the one we want to modify, and one when the field is not the one we want to change. In the first case the function \texttt{SetType} simply returns the type of the field and \texttt{set} sets the field with the proper value.
+
+\begin{lstlisting}
+TypeFunc "SetField" => string => Record : Record
+
+name = lt
+--------------------------------
+SetField lt (RecordField name type r) => Setter name r {
+
+	-----------------
+	SetType => type
+	
+	-------------------
+	set (x,xs) v -> (v,xs)
+}
+\end{lstlisting}
+
+In the second case we define a new \texttt{SetField} which is able to generate the \texttt{Setter} for the rest of the record. 
+
+\begin{lstlisting}
+name <> lt
+-----------------------------------------------
+SetField lt (RecordField name type r) => Setter name r {
+	TypeFunc "SetField1" : Setter
+	
+	-------------------------
+	SetField1 => SetField lt r
+	
+	----------------------------
+	SetType => SetField1.SetType
+	
+	----------------------------------
+	set (x,xs) v -> SetField1.set xs v
+}
+\end{lstlisting}
