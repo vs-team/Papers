@@ -1,7 +1,12 @@
+The number of programming languages available on the market has dramatically increased during the last years. The tiobe index [...], a ranking of programming languages based on their popularity, lists 50 programming languages for 2017. This number is only a small glimpse of the real amount, since it does not take into account several languages dedicated to specific applications. This growth has brought a further need for new compilers that are able to translate programs written in those languages into executable code. The goal of this work is to investigate how the development speed of a compiler can be boosted by employing meta-compilers, programs that generalize the task performed by a normal compiler. In particular the goal is creating a meta-compiler that significantly reduces the amount of code needed to define a language and its compilation steps, while maintaining acceptable performance.
+
+This Chapter introduces the issue of expressing the solution of problems in terms of algorithms in Section \ref{sec:ch1_algorithms}. Then we proceed by defining how the semi-formal definition of an algorithm must be translated into code executable by a processor (Section \ref{sec:ch1_programming_languages}). In this section we discuss the advantages and disadvantages of using different kinds of programming languages with respect to their affinity with the specific hardware architecture and the scope of the domain they target. In Section \ref{sec:ch1_compilers} we explain the reason behind compilers and we explain why building a compiler is a time-consuming task. In Section \ref{sec:ch1_metacompilers} we introduce the idea of meta-compilers as a further step into generalizing the task of compilers. In this section we also explain the requirements, benefits, and the relevance as a scientific topic. Finally in Section \ref{sec:ch1_problem_statement} we formulate the problem statement and the research questions that this work will answer.
+
 \section{Algorithms and problems}
+\label{sec:ch1_algorithms}
 Since the ancient age, there has always been the need of describing the sequence of activities needed to perform a specific task [...], to which we refer with the name of \textit{Algorithm}. The most ancient known example of this dates back to the Babylonians, who invented algorithms to perform the factorization and the approximation of the square root [...]. Regardless of the specific details of each algorithm, one needs to use some kind of language  to define the sequence of steps to perform. In the past people used natural language to describe such steps but, with the advent of the computer era, the choice of the language has been strictly connected with the possibility of its implementation [...]. Natural languages are not suitable for the implementation, as they are known to be verbose and ambiguous. For this purpose, several kind of formal solutions have been employed, which are described below.
 
-\paragraph{Flow charts}
+\subsubsection*{Flow charts}
 A flow chart is a diagram where the steps of an algorithm are defined by using boxes of different kinds, connected by arrows to define their ordering in the sequence. The boxes are rectangular-shaped if they define an \textit{activity} (or processing step), while they are diamond-shaped if they define a \textit{decision}. An example of a flow chart describing how to sum the numbers in a sequence is described in Figure \ref{fig:ch1_flow_chart}.
 
 \begin{figure}
@@ -11,7 +16,7 @@ A flow chart is a diagram where the steps of an algorithm are defined by using b
 	\label{fig:ch1_flow_chart}
 \end{figure}
 
-\paragraph{Pseudocode}
+\subsubsection*{Pseudocode}
 Pseudocode is a semi-formal language that might contain also statements expressed in natural language and omits system specific code like opening file writers, printing messages on the standard output, or even some data structure declaration and initialization. It is intended mainly for human reading rather than machine reading. The pseudocode to sum a sequence of numbers is shown in Algorithm \ref{alg:ch1_pseudocode}.
 
 \begin{algorithm}
@@ -28,12 +33,15 @@ Pseudocode is a semi-formal language that might contain also statements expresse
 	\end{algorithmic}
 \end{algorithm}
 
-%It might be necessary to make a section about how an algorithm is expressed as pseudo-code and then it has to be implemented in a programming language. An introduction section on how expressing algorithm in history has evolved might be a good idea.
+\subsubsection*{Advantages and disadvantages}
+Using flow charts or pseudo-code has the advantage of being able to define an algorithm in a way which is very close to the abstractions employed when using natural language: a flow chart combines both the use of natural language and a visual interface to describe an algorithm, pseudo-code allow to employ several abstractions and even define some steps in terms of natural language. The drawback is that, when it comes to the implementation, the definition of the algorithm must be translated by hand into code that the hardware is able to execute. This could be done by implementing the algorithm in a low-level or high-level programming language. This process affects at different levels how the logic of the algorithm is presented, as explained further ahead.
 
 \section{Programming languages}
+\label{sec:ch1_programming_languages}
 A programming language is a formal language that is used to define instructions that a machine, usually a computer, must perform in order to produce a result through computation [...]. There is a variety of taxonomies used to classify programming languages [...], but all of them are considering four main characteristics [...]: the level of abstraction, or how close to the specific targeted hardware they are, and the domain, which defines the range of applicability of a programming language. In the following sections we give an exhaustive explanation of the aforementioned characteristics.
 
 \subsection{Low-level programming languages}
+\label{subsec:ch1_ll_languages}
 A low-level programming language is a programming language that provides little to no abstraction from the hardware architecture of a processor [...]. This means that it is strongly connected with the instruction set of the targeted machine, the set of instructions a processor is able to execute. These languages are divided into two sub-categories: \textit{first-generation} and \textit{second-generation} languages [...]:
 
 \subsubsection*{First-generation languages}
@@ -46,61 +54,239 @@ A low-level programming language is a programming language that provides little 
 	\label{fig:ch1_front_panel}
 \end{figure}
 
-
-\begin{lstlisting}[caption = Machine code to compute the sum of a sequence of numbers, label = lst:ch1_machine_code]
-Here put an example of hexadecimal machine code generated using C++ (for example sum of an array of integers)
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[numbers = left, caption = Machine code to compute the sum of a sequence of numbers, label = lst:ch1_machine_code]
+ 00075	c7 45 b8 00 00
+ 00 00
+ 0007c	eb 09	
+ 0007e	8b 45 b8
+ 00081	83 c0 01
+ 00084	89 45 b8
+ 00087	83 7d b8 0a
+ 0008b	7d 0f
+ 0008d	8b 45 b8
+ 00090	8b 4d c4
+ 00093	03 4c 85 d0
+ 00097	89 4d c4
+ 0009a	eb e2
 \end{lstlisting}
+\end{minipage}
 
 \subsubsection*{Second-generation languages}
-The languages in this category provides an abstraction layer over the machine code by expressing processor instructions with mnemonic names both for the instruction code and the arguments. For example the arithmetic sum instruction \texttt{add} is the mnemonic name for the instruction code \texttt{0x00} in \texttt{x86} processors. Among these languages we find \textit{Assembly}, that is mapped with an \textit{Assembler} to machine code. The Assembler can load directly the code or link different \textit{object files} to generate a single executable by using a \textit{linker}. An example of assembly \texttt{x86} code corresponding to the machine code in Listing \ref{lst:ch1_machine_code} can be found in Listing \ref{lst:ch1_assembly_code}.
+The languages in this category provides an abstraction layer over the machine code by expressing processor instructions with mnemonic names both for the instruction code and the arguments. For example the arithmetic sum instruction \texttt{add} is the mnemonic name for the instruction code \texttt{0x00} in \texttt{x86} processors. Among these languages we find \textit{Assembly}, that is mapped with an \textit{Assembler} to machine code. The Assembler can load directly the code or link different \textit{object files} to generate a single executable by using a \textit{linker}. An example of assembly \texttt{x86} code corresponding to the machine code in Listing \ref{lst:ch1_machine_code} can be found in Listing \ref{lst:ch1_assembly_code}. You can see that the code in the machine code \texttt{00081	83 c0 01} at line 5 has been replaced by its mnemonic representation in Assembly as \texttt{add	eax, 1}.
 
-\begin{lstlisting}[caption = Assembly x86 code to compute the sum of a sequence of numbers, label = lst:ch1_assembly_code]
-Example of Assembly x86 code generated using c++
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[numbers = left, caption = Assembly x86 code to compute the sum of a sequence of numbers, label = lst:ch1_assembly_code]
+mov	DWORD PTR _i$1[ebp], 0
+jmp	SHORT $LN4@main
+$LN2@main:
+mov	eax, DWORD PTR _i$1[ebp]
+add	eax, 1
+mov	DWORD PTR _i$1[ebp], eax
+$LN4@main:
+cmp	DWORD PTR _i$1[ebp], 10			; 0000000aH
+jge	SHORT $LN3@main
+mov	eax, DWORD PTR _i$1[ebp]
+mov	ecx, DWORD PTR _sum$[ebp]
+add	ecx, DWORD PTR _numbers$[ebp+eax*4]
+mov	DWORD PTR _sum$[ebp], ecx
+jmp	SHORT $LN2@main
 \end{lstlisting}
+\end{minipage}
 
 \subsubsection*{Advantages and disadvantages}
-Writing a program in low-level programming languages have been known to produce programs that are generally more efficient than their high-level counterparts [...]. However, the high-performance comes at great costs: (\textit{i}) the programmer must be an expert of the underlying architecture and of the specific instruction set of the processor, (\textit{ii}) the program loses portability because the low-level code is tightly bound to the specific hardware architecture it targets, and (\textit{iii}) the logic and readability of the program is hidden among the details of the instruction set itself.
+Writing a program in low-level programming languages has been known to produce programs that are generally more efficient than their high-level counterparts [...]. However, the high-performance comes at great costs: (\textit{i}) the programmer must be an expert of the underlying architecture and of the specific instruction set of the processor, (\textit{ii}) the program loses portability because the low-level code is tightly bound to the specific hardware architecture it targets, and (\textit{iii}) the logic and readability of the program is hidden among the details of the instruction set itself.
 
 \subsection{High-level programming languages}
+\label{subsec:ch1_hl_languages}
 A high-level programming language is a programming language that offers a high level of abstraction from the specific hardware architecture of the machine [...]. Unlike machine code (and in some way also assembly), high-level languages are not directly executable by the processor and they require some kind of translation process into machine code. The level of abstraction offered by the language defines how high level the language is. Several categories of high-level programming language exist, but the main one are described below.
 
 \subsubsection*{Imperative programming languages}
-\textit{Imperative programming languages} model the computation as a sequence of statements that alter the state of the program (usually the memory state). A program in such languages consists then of a sequence of \textit{commands}. Notable examples are FORTRAN, C, and PASCAL. An example of the program used in Listing \ref{lst:ch1_machine_code} and \ref{lst:ch1_assembly_code} written in C can be seen in Listing \ref{lst:ch1_c_code}
+\textit{Imperative programming languages} model the computation as a sequence of statements that alter the state of the program (usually the memory state). A program in such languages consists then of a sequence of \textit{commands}. Notable examples are FORTRAN, C, and PASCAL. An example of the program used in Listing \ref{lst:ch1_machine_code} and \ref{lst:ch1_assembly_code} written in C can be seen in Listing \ref{lst:ch1_c_code}. Line 5 to 9 corresponds to the Assembly code in Listing \ref{lst:ch1_assembly_code}.
 
-\begin{lstlisting}[caption = C code to compute the sum of a sequence of numbers, label = lst:ch1_c_code]
-Code for integer sequence sum in C
+\begin{lstlisting}[numbers = left, caption = C code to compute the sum of a sequence of numbers, label = lst:ch1_c_code]
+int main()
+{
+  int numbers[10] = { 1, 6, 8, -2, 4, 3, 0, 1, 10, -5 };
+  int sum = 0;
+  for (int i = 0; i < 10; i++)
+  {
+    sum += numbers[i];
+  }
+  printf("%d\n", sum);
+  return 0;
+}
 \end{lstlisting}
 
-\subsection*{Declarative programming}
+\subsection*{Declarative programming languages}
+\textit{Declarative programming languages} are antithetical to those based on imperative programming, as they model computation as an evaluation of expressions and not as a sequence of commands to execute. They are often compared to imperative programming languages by stating that declarative programming defines \textit{what} to compute and not \textit{how} to compute it. This family of languages include \textit{functional programming}, \textit{logic programming}, and \textit{database query languages}. Notable examples are F\#, Haskell, Prolog, SQL, and Linq (which is a query language embedded in C\#). Listing \ref{lst:ch1_fsharp_code} shows the code to perform the sum of a sequence of integer numbers in F\#.
 
-\textbf{Section layout}
-\begin{itemize}[noitemsep]
-	\item Classification of programming languages.
-	\item Motivation for programming languages.
-	\item Understanding of programming languages
-\end{itemize}
+\begin{lstlisting}[caption = F\# code to compute the sum of a sequence of numbers, label = lst:ch1_fsharp_code]
+let sumList l = l |> List.fold (+) 0
+\end{lstlisting}
+
+\subsection{General-purpose vs Domain-specific languages}
+\label{sec:ch1_dsl}
+\textit{General-purpose languages} are defined as languages that can be used across different application domains and lack abstractions that specifically target elements of a single domain. Example of these are languages such as C, C++, C\#, and Java. Although several applications are still being developed by using general-purpose programming languages, in several contexts it is more convenient to rely on \textit{Domain-specific languages}, because they offer abstractions relative to the problem domain that are unavailable in general-purpose languages. Notable examples about the use of domain-specific languages are listed below.
+
+\subsubsection*{Graphics programming}
+Rendering a scene in a 3D space is often performed by relying on dedicated hardware. Modern graphics processors rely on shaders to create various effects that are rendered in the 3D scene. Shaders are written in Domain-Specific languages, such as GLSL or HLSL [...], that offer abstractions to compute operations at GPU level that are often used in computer graphics, such as vertices and pixel transformations, matrix multiplications, and interpolation of textures. Listing \ref{lst:ch1_hlsl_code} shows the code to implement light reflections in HLSL. At line 4 you can, for example, see the use of matrix multiplication provided as a language abstraction in HLSL.
+
+\begin{minipage}{\linewidth}
+
+\begin{lstlisting}[numbers = left, caption = HLSL code to compute the light reflection, label = lst:ch1_hlsl_code]
+VertexShaderOutput VertexShaderSpecularFunction(VertexShaderInput input, float3 Normal : NORMAL)
+{
+  VertexShaderOutput output;
+  float4 worldPosition = mul(input.Position, World);
+  float4 viewPosition = mul(worldPosition, View);
+  output.Position = mul(viewPosition, Projection);
+  float3 normal = normalize(mul(Normal, World));
+  output.Normal = normal;
+  output.View = normalize(float4(EyePosition,1.0f) - worldPosition);
+  return output;
+}
+\end{lstlisting}
+\end{minipage}
+
+\subsubsection*{Game programming}
+Computer games are a field where domain-specific languages are widely employed, as they contain complex behaviours that often require special construct to model timing event-based primitives, or executing tasks in parallel. These behaviours cannot be modelled, for performance reasons, by using threads so in several occasions [...] a domain-specific providing these abstractions is implemented. In Listing \ref{lst:ch1_sqf_code} an example of the SQF domain-specific language for the game ArmA2 is shown. This language offers abstractions to wait for a specific amount of time, to wait for a condition, and to spawn scripts that run in parallel to the callee, that you can respectively see at lines 18, 12, and 10.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[numbers = left, caption = ArmA 2 scripting language, label = lst:ch1_sqf_code]
+"colorCorrections" ppEffectAdjust [1, pi, 0, [0.0, 0.0, 0.0, 0.0], [0.05, 0.18, 0.45, 0.5], [0.5, 0.5, 0.5, 0.0]];  
+"colorCorrections" ppEffectCommit 0;  
+"colorCorrections" ppEffectEnable true;
+
+thanatos switchMove "AmovPpneMstpSrasWrflDnon";
+[[],(position tower) nearestObject 6540,[["USMC_Soldier",west]],4,true,[]] execVM "patrolBuilding.sqf";
+playMusic "Intro";
+
+titleCut ["", "BLACK FADED", 999];
+[] Spawn 
+{
+	waitUntil{!(isNil "BIS_fnc_init")};
+	[
+	  localize "STR_TITLE_LOCATION" ,
+	  localize "STR_TITLE_PERSON",
+	  str(date select 1) + "." + str(date select 2) + "." + str(date select 0)
+	] spawn BIS_fnc_infoText;
+	sleep 3;
+	"dynamicBlur" ppEffectEnable true;   
+	"dynamicBlur" ppEffectAdjust [6];   
+	"dynamicBlur" ppEffectCommit 0;     
+	"dynamicBlur" ppEffectAdjust [0.0];  
+	"dynamicBlur" ppEffectCommit 7;
+	titleCut ["", "BLACK IN", 5];
+};
+\end{lstlisting}
+\end{minipage}
+
+\subsubsection*{Shell scripting languages}
+Shell scripting languages, such as the \textit{Unix Shell script}, are used to manipulate files or user input in different ways. They generally offer abstractions to the operating system interface in the form of dedicated commands. Listing \ref{lst:ch1_shell_code} shows an example of a program written in Unix shell script to convert an image from JPG to PNG format. At line 3 you can see the use of the statement \texttt{echo} to display a message in the standard output.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[numbers = left, caption = Unix shell code, label = lst:ch1_shell_code]
+for jpg; do                                  
+  png="${jpg%.jpg}.png"                    
+  echo converting "$jpg" ...               
+  if convert "$jpg" jpg.to.png ; then      
+    mv jpg.to.png "$png"                 
+  else                                     
+    echo 'jpg2png: error: failed output saved in "jpg.to.png".' >&2
+    exit 1
+  fi                                       
+done                                         
+echo all conversions successful              
+exit 0
+\end{lstlisting}
+\end{minipage}
+
+\subsubsection*{Advantages and disadvantages}
+High-level programming languages offer a variety of abstractions over the specific hardware the program targets. The obvious advantage of this is that the programmer must not be an expert of the underlying hardware architecture or instruction set. A further advantage is that the available abstractions are closer to the semi-formal description of the underlying algorithm as pseudo-code. This produces two desirable effects: (\textit{i}) the readability of the program is increased as the available abstractions are closer to the natural language than the equivalent machine code, and (\textit{ii}) that being able to mimic the semi-formal version of an algorithm, which is generally how the algorithm is presented and on which its correctness is proven, grants a higher degree of correctness in the specific implementation [...].
+
+The use of a high-level programming language might, in general, not achieve the same high-performance as writing the same program with a low-level programming language, but modern code-generation optimization techniques that can achieve similar performance are known [...]. A further major issue in using high-level programming language is that the machine cannot directly execute the code, thus the use of a compiler that translates the high-level program into machine code is necessary.
+
+The portability of a high-level programming language depends on the architecture of the underlying compiler, thus some languages are portable and the same code can be run on different machines (for example Java), while others might require to be compiled to target a specific architecture (for example C++).
 
 \section{Compilers}
-\begin{itemize}[noitemsep]
-	\item Origin of compilers.
-	\item Reason of compilers.
-	\item Requirements of compilers.
-\end{itemize}
+\label{sec:ch1_compilers}
+A compiler is a program that transforms source code defined in a programming language into another computer language, which usually is object code but can also be code written into a high-level programming language [...]. Writing a compiler is a necessary step to implementing a high-level programming language. Indeed, a high-level programming languages, unlike low-level ones, are not executable directly by the processor and need to be translated into machine code, as stated in Section \ref{subsec:ch1_ll_languages} and \ref{subsec:ch1_hl_languages}.
 
-Connect to the previous section by explaining why compilers were born and how you design and build a compiler.
+The first complete compiler was developed by IBM for the FORTRAN language and required 18 person-years for its development [...]. This clearly shows that writing a compiler is a hard and time-consuming task.
+
+A compiler is a complex piece of software made of several components that implement a step in the translation process. The translation process performed by a compiler involves the following steps:
+
+\begin{enumerate}
+	\item \textit{syntactical analysis:} In this phase the compiler checks that the program is written according to the grammar rules of the language. In this phase the compiler must be able to recognize the \textit{syntagms} of the language (the ``words'') and also check if the program is conform to the syntax rules of the language through a grammar specification.
+	\item \textit{type checking:} In this phase the compiler checks that a \textit{syntactically correct program} performs operations conform to a defined \textit{type systems}. A type system is a set of rules that assign properties called types to the constructs of a computer program [...]. The use of a type system drastically reduces the chance of having bugs in a computer program [...]. This phase can be performed at compile time (\textit{static typing}) or the generated code could contain the code to perform the type checking at runtime (\textit{dynamic typing}). 
+	\item \textit{code generation:} In this phase the compiler takes the \textit{syntactically and type correct program} and performs the translation step. At this point an equivalent program in a target language will be generated. The target language can be object code, another high-level programming language, or even a bytecode that can be interpreted by a virtual machine.
+\end{enumerate}
+
+All the previous steps are always the same disregarding of the language the compiler translates from and they are not part of the creative aspect of the language design[...]. Approaches to automating the construction of the syntactical analyser are well known in literature [...], to the point that several lexer/parser generators are available for programmers, for example all those belonging to the \texttt{yacc} family such as \texttt{yacc} for C/C++, \texttt{fsyacc} for F\#, \texttt{cup} for Java, and \texttt{Happy} for Haskell. On the other hand, developers lack a set of tools to automate the implementation of the last two steps, namely the type checking and the code generation.
+
+For this reason, when implementing a compiler, the formal type system definition and the operational semantics, which is tightly connected to the code generation and defines how the constructs of the language behave, must be translated into the abstractions provided by the host language in which the compiler will be implemented. Other than being a time-consuming activity itself, this causes that (\textit{i}) the logic of the type system and operational semantics is lost inside the abstraction of the host-language, and (\textit{ii}) it is difficult to extend the language with new features.
 
 \section{Meta-compilers}
-\begin{itemize}[noitemsep]
-	\item History of meta-compilers
-	\item Motivation behind meta-compilers.
-	\item Requirements of meta-compilers.
+\label{sec:ch1_metacompilers}
+In Section \ref{sec:ch1_compilers} we described how the steps involved in designing and implementing a compiler do not require creativity and are always the same, disregarding of the language the compiler is built for. The first step, namely the syntactical analysis, can be automated by using one of the several lexer/parser generators available, but the implementation of a type checker and a code generator still relies on a manual implementation. This is where meta-compilers come into play: a meta-compiler is a program that takes the source code of another program written in a specific language and the language definition itself, and generates executable code. The language definition is written in a programming language, referred to as \textit{meta-language}, which should provide the abstractions necessary to define the syntax, type system, and operational semantics of the language, in order to implement all the steps above.
+
+\subsection{Requirements}
+As stated in Section \ref{sec:ch1_metacompilers}, a meta-compiler should provide a meta-language that is able to define the syntax, type system, and operational semantics of a programming language. In Section \ref{sec:ch1_compilers} we discussed how methods to automate the implementation of syntactical analyser are already known in scientific literature. For this reason, in this work, we will focus exclusively on automating the implementation of the type system and of the operational semantics. Given this focus, we formulate the following requirements:
+
+\begin{itemize}
+	\item The meta-language should provide abstractions to define the constructs of the language. This includes the possibility of defining control structures, operators with any form of prefix or infix notation, and the priority of the constructs that is used when evaluating their behaviour. Furthermore, it must be possible to define the equivalence of language constructs. For instance, an integer constant might be considered both a value and a basic arithmetic expression.
+	
+	\item The meta-language must be able to mimic as close as possible the formal definition of a programming language. This will bring the following benefits: (\textit{i}) Implementing the language in the meta-compiler will just involve re-writing almost one-to-one the type system or the semantics of the language with little or no change, (\textit{ii}) the correctness and soundness [...] of the language formal definition will be directly reflected in the implementation of the language, and (\textit{iii}) any extension of the language definition can be just added as an additional rule in the type system or the semantics.
+	
+	\item The meta-compiler must be able to embed libraries from external languages, so that they can be used to implement specific behaviours such as networking transmission or specific data structure usage.
 \end{itemize}
- Idea behind meta compilers. Introduction of the first META-languages family of meta-compilers, parser generators, then RML and other meta-compilers based on natural semantics. Main requirements of a meta-compiler.
 
-\section{Scientific relevance}
+\subsection{Benefits}
+\label{sec:ch1_benefits}
+%list the benefits first and then explain. Add a paragraph also about correctness
+Programming languages usually are released with a minimal (but sufficient to be Turing-complete) set of features, and later extended in functionality in successive versions. Several times this process is slow and significant improvements or additions are only seen after some years from the last release. For example, Java was released in 1996 and lacked an important feature such as Generics until 2004, when J2SE 5.0 was released. Furthermore, Java and C++ lacked a construct, which is becoming more and more important with the years [...], such as lambda abstractions until 2016, while a similar language like C\# 3.0 was released with such capability in 2008. The slow rate of changing of programming languages is due to the fact that every abstraction added to the language must be reflected in all the modules of its compiler: the grammar must be extended to support new syntactical rules, the type checking of the new constructs must be added, and the appropriate code generation must be implemented. Given the complexity of a software such as a compiler, this process requires a huge amount of work, and it is often obstructed by the low flexiblity of the compiler as piece of software, and the need for backward compatibility [...]. Using a meta-compiler would speed up the extension of an existing language because it would require only to change on paper the type system and the operational semantics, and then add the new definitions to their counterpart written in the meta-language. This process is easier because the meta-language should mimic as close as possible their behaviour. Moreover, backward compatibility is automatically granted because an older program will simply use the extended language version to be compiled by the meta-compiler.
 
-Discuss about the few existing results in the field, and performance vs language customization issues (fixed rule representation, fixed symbol table structure, etc.).
+To this we add the fact that, in general, for the same reasons, the development of a new programming language is generally faster when using a meta-compiler. This could be beneficial into the development of Domain-specific languages of various kind. Indeed, this kind of languages are often employed in situations where the developers have little or no resources to develop a fully-fledged hard-coded compiler by hand. For instance, it is desirable for game developers to focus on aspect that are strictly tight to the game itself, for example the development of an efficient graphics engine or to improve the game logic. At the same time they would need a domain-specific language to express some behaviours typical of games, thing that could be achieved by using a meta-compiler rather than on a hand-made implementation.
+
+\subsection{Scientific relevance} %change the tile
+\label{sec:ch1_scientific_relevance}
+Meta-compilers have been researched since the 1980's [...] and some solutions have been proposed [...]. In general meta-compilers perform poorly with respect to hard-coded compilers because they add the additional layer of abstraction of the meta-language. Moreover, a specific implementation of a compiler opens to the possibility of implementing language-specific optimizations during the code generation phase. In general we find in scientific literature a substantial effort in developing techniques to optimize the code generation for compilers [...] but not many attempts in producing optimized meta-compilers (one notable exception being [put reference to RML here]). We argue that it could be interesting to present a novel approach into optimize the code generation of a meta-compiler, which might open new horizons to the research on code generation optimization also for normal compilers. Furthermore, the growth in need for domain-specific languages [...] requires the capability of producing compilers in a short amount of time, to which a significant contribution could be given by presenting a solution based on a meta-compiler. Finally, producing a domain-specific for a field like game development, where high performance is paramount, through a meta-compiler could prove that they can be used to produce languages with decent performance.
 
 \section{Problem statement}
+\label{sec:ch1_problem_statement}
+In Section \ref{sec:ch1_programming_languages} we showed the advantages of using high-level programming languages when implementing an algorithm. Among such languages, it is sometimes desirable to employ domain-specific languages that offer abstractions relative to a specific application domain (Section \ref{sec:ch1_dsl}). In Section \ref{sec:ch1_compilers} we described the need of a compiler for such languages, and that developing one is a time-consuming activity despite the process being, in great part, non-creative. In Section \ref{sec:ch1_metacompilers} we introduced the role of meta-compilers to speed up the process of developing a compiler and we listed the requirements and the benefits that one should have. In Section \ref{sec:ch1_scientific_relevance} we explained why we believe that meta-compilers are a relevant scientific topic if coupled with the problem of of developing domain-specific languages in response to the their increasing need. We can now formulate our problem statement:
 
-Can we build a meta-compiler that is able to implement a language in less lines of codes than the hard-coded compiler, and at the same time have good performance?
+\vspace{0.5cm}
+\noindent
+\textbf{Problem statement: } \textit{Is it possible to build a domain-specific language by using a meta-compiler and to reduce the complexity and length of the code needed to generate runnable code for a program written in that language while having acceptable performance?}
+
+\vspace{0.5cm}
+\noindent
+The first parameter we need to evaluate in order to answer this question is the size of the code reduction needed to implement the domain-specific language. At this purpose, the following research question arises:
+
+\vspace{0.5cm}
+\noindent
+\textbf{Research question 1: } \textit{To what extend can a meta-compiler reduce the amount of code required to create a compiler for a given programming language?}
+
+\vspace{0.5cm}
+\noindent
+The second parameter we need to evaluate is the eventual performance loss caused by introducing the abstraction layer provided by the meta-compiler. This leads to the following research question:
+
+\vspace{0.5cm}
+\noindent
+\textbf{Research question 2: } \textit{How much is the performance loss introduced by the meta-compiler with respect to an implementation written in a language compiled with a traditional compiler? Is this loss acceptable?}
+
+\vspace{0.5cm}
+\noindent
+The third parameter we need to evaluate is the gain in terms of code size reduction by using a meta-compiler with respect to a hand-made implementation of a compiler for the same language, which is evaluated through the following research question:
+
+\vspace{0.5cm}
+\noindent
+\textbf{Research question 3: } \textit{What is the advantage of using a meta-compiler in term of code reduction with rispect to a hand-made implementation?}
+
+\vspace{0.5cm}
+\noindent
+
+\section{Thesis structure}
+%fill in when the structure is more or less final
