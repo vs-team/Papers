@@ -11,9 +11,10 @@
 \usepackage{enumitem}
 \usepackage{url}
 \usepackage{caption}
+\usepackage[font=small,labelfont=bf]{caption}
 
 \title{Automated networking in Meta-Casanova}
-\author{ }
+\author{ Francesco Di Giacomo, Mohamed Abbadi, Giuseppe Maggiore,\\ Agostino Cortesi, Pieter Spronck }
 \date { }
 \lstset
 {
@@ -24,6 +25,8 @@
 
 \begin{document}
 \maketitle
+
+\abstract{Multiplayer support is a desirable feature in commercial games since it allows to extend the longevity of a title. The same importance can be found in several examples of serious games, as they are often used in training where several individuals must cooperate to reach a common goal. Having smaller resources than big entertainment companies, serious games developers cannot afford to develop ad-hoc networking code and need to rely on game engines. On the other hand, game engines require deep knowledge and do not overcome all the problems of hand-made networking implementations. For this reason, it is desirable to express networking behaviours in a dedicated language, or Domain-specific language, that provides the necessary abstractions, but this approach suffers from having to implement a compiler for the language, which is hard to extend. In this paper we provide an alternative approach based on meta-compilation defined in Metacasanova, a meta-compiler where it is possible to specify the formal semantics of the language. We show that using Metacasanova notably reduces the effort of developing a Domain-specific language while keeping the same advantage in terms of quality of code.}
 	
 \section{Introduction}
 \input{Sections/introduction}

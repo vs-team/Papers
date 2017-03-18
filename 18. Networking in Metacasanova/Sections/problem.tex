@@ -1,4 +1,14 @@
-In this section we explore several existing solutions to designing a networking layer for multiplayer games. For each solution we list the main advantages and drawbacks, and finally we present our approach and formulate a problem statement.
+In this section we explore several existing solutions to designing a networking layer for multiplayer games. For each solution we list the main advantages and drawbacks measured in terms of four characteristics:
+
+\begin{itemize}[noitemsep]
+	\item \textit{Loose coupling}: the measure of how closely two modules are.
+	\item \textit{High cohesion}: the degree to which the elements of a module belongs together.
+	\item \textit{Code re-usability and portability}: how it is possible to re-use the code for a different similar game and how much of the code can be ported to this version.
+	\item \textit{Extensibility}: the ease of extending the networking implementation with additional functionality.
+\end{itemize}
+
+\noindent
+Finally, we present our alternative solution and formulate the problem statement.
 
 \subsection{Preliminaries}
 \textbf{Architecture of networking in games, local view of the ``real'' game state, centralized server vs p2p.
@@ -14,9 +24,17 @@ The approach based on game engines grants \textit{high cohesion}, because it all
 
 \subsection{Language-level primitives}
 
-Another option is to implement primitives at language level, that is to build a programming language to support networking primitives to define network synchronization behaviours and data transmission. This approach grants \textit{high cohesion} and \textit{low coupling}, since the details of the networking are hidden and abstracted away by the language itself and the game will only interface with the language layer. This approach was explored in scientific works such as the \textit{Network Scripting Language} (NSL) \cite{russell2008tackling}. This approach grants also code re-usability and portability, as the networking code is bound only to the language and not to a particular engine or specific implementation of the game. For this reason code related to components of the game that exhibits similar behaviours can be re-used for other games. This approach requires to build a compiler (or interpreter) for the language, which makes extending the networking layer with additional functionalities difficult as any change to the networking language must be reflected in the implementation of the compiler itself.
+Another option is to implement primitives at language level, that is to build a \textit{domain-specific language} to support networking primitives defining network synchronization behaviours and data transmission. This approach grants \textit{high cohesion} and \textit{low coupling}, since the details of the networking are hidden and abstracted away by the language itself and the game will only interface with the language layer. This approach was explored in scientific works such as the \textit{Network Scripting Language} (NSL) \cite{russell2008tackling} or Casanova Language \cite{Giacomo2017}. This approach grants also code re-usability and portability, as the networking code is bound only to the language and not to a particular engine or specific implementation of the game. For this reason, code related to components of the game that exhibits similar behaviours can be re-used for other games. This approach requires to build a compiler (or interpreter) for the language, which makes extending the networking layer with additional functionalities difficult as any change to the networking language must be reflected in the implementation of the compiler itself.
 
-\subsection{Towards an approach based on meta-compilation}.
+\subsection{Towards an approach based on meta-compilation}
+
+In the previous considerations we analysed different techniques to implement network communication for a multiplayer game. In order to evaluate the goodness of each solution, we evaluated it in terms of loose coupling, high cohesion, code re-usability and portability, and extensibility. Table \ref{tab:problem_techniques} summarizes this evaluation, pointing out whether a specific technique grants one of the properties. The solution that grants the highest number of properties is the one using abstractions defined in a Domain-specific language. As stated above, this solution still lacks extensibility as all further extensions to the language must be reflected directly in the compiler implementation. Thus, the capability of extending the language is strictly connected with the capability of extending its compiler with additional language constructs. This is known to be a hard and time-consuming task, as a compiler is made of several inter-operating components responsible for the translation steps and the semantics analysis of the program \cite{aho1986compilers, kaagedal1998generating}. Regardless of this, the only creative aspect of defining a compiler is not the implementation of such modules, that always follows the same logic, but only the definition of the language constructs \cite{BookShorre}. Meta-compilers are programs that are able to take as input the definition of a language, defined in a meta-language, a program written in that language, and generate executable code. Using a meta-compiler to define the semantics of a Domain-specific language has been proven useful in several situations, for example in \cite{kaagedal1998generating, DiGiacomo2017}, but to our knowledge never attempted in the scope of creating language-level primitives for multiplayer games development. Given these considerations we formulate the following problem statement:
+
+\vspace{0.5cm}
+\textbf{Problem statement:} \textit{Given the formal definition of language-level networking primitives, to what extent using a meta-compiler eases the process of integrating them into an existing Domain-specific language?}
+
+\vspace{0.5cm}
+In what follows, we will present Casanova 2, an existing Domain-specific language, and Metacasanova, a meta-compiler used to give a re-implementation of Casanova 2. We then proceed to present a networking architecture defined in Casanova 2 and we give the semantics of its primitives. We finally show an implementation of such semantics in Metacasanova and we compare the code length with its respective implementation counterpart in the Casanova 2 hard-coded compiler.
 
 \begin{table}
 	\tiny
@@ -30,18 +48,9 @@ Another option is to implement primitives at language level, that is to build a 
 		\hline
 		Game engine & \ding{55} & \checkmark & \ding{55} & \ding{55} \\
 		\hline
-		Compiler & \checkmark & \checkmark & \checkmark & \ding{55} \\
+		Language-level primitives & \checkmark & \checkmark & \checkmark & \ding{55} \\
 		\hline
 	\end{tabular}
 	\caption{Advantages and disadvantages of networking implementation techniques}
 	\label{tab:problem_techniques}
 \end{table}
-
-In the previous considerations we have analysed different techniques to implement network communication for a multiplayer game. In order to evaluate the goodness of each solution we considered four parameters:
-
-\begin{itemize}[noitemsep]
-	\item \textit{Loose coupling}: the measure of how closely two modules are.
-	\item \textit{High cohesion}: the degree to which the elements of a module belongs together.
-	\item \textit{Code re-usability and portability}: how it is possible to re-use the code for a different similar game and how much of the code can be ported to this version.
-	\item \textit{Extensibility}: how much it is possible to extend the networking implementation with additional functionality.
-\end{itemize}
