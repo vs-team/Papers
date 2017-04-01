@@ -1,5 +1,57 @@
+In this section we give an overview of Casanova 2, a declarative domain-specific language oriented towards game development. In this section we just give a brief informal overview of the language; for further technical details we point the reader to \cite{AbbadiThesis2017, Abbadi2015}. We then present the language extension to include networking abstractions, which prototype was presented in \cite{DiGiacomo201725} and hard-coded in its compiler, and we finally present its formal semantics.
+
+\subsection{Overview of Casanova 2}
+Casanova 2 is a declarative language oriented to game development. A program in Casanova 2 consists of a set of entities that define the dynamic elements of the game. These range from elements which interact or are interacted with by the player, such as characters, weapons, or interactive scene elements, to elements not directly operable such as bullets or non-playable characters. The entities are organized into a tree structure, at which root you find a special entity called \textit{World}. Each entity defines a set of fields, in the fashion of a class, and a set of rules that define its temporal evolution. Unlike object-oriented programming, entity fields are not directly modifiable through variable assignments (although they can always be read), but only through rules: each rule takes as input a domain, which is a subset of fields that it can modify, and they can be updated only by calling a dedicated statement called \texttt{yield}. If a rule tries to update a field outside its domain, this is captured at type-system level. Moreover, each rule works in the fashion of threads (although the implementation in the back-end of the compiler is completely different, as it makes use of state machines rather than a scheduler), meaning that they can be interrupted by using built-in abstractions in the language, such as \texttt{wait} statements, or the \texttt{yield} itself, which stops the rule execution by one game frame. Finally, each rule takes as input a reference to the current entity (\texttt{this}) and a parameter \texttt{dt} which contains the elapsed time between the current game frame and the previous update.
+
+In the next section we present a language extension for Casanova 2 in order to include abstractions to express networking synchronization.
+
+\subsection{Networking architecture}
+The networking architecture that we present is peer-to-peer based. This means that we do not have a centralized authoritative server that constantly validates the local versions of the game state on the clients, but rather each client is tasked with maintaining and validating a portion of the game state.
+
+In this scenario, we identified the following abstractions that must be provided by the language:
+
+\begin{itemize}
+	\item \textit{Connection:} the developer should be able to specify what happens when a new player connects to the game and how the existing players react to this event.
+	\item \textit{Managing the local and remote game state:} the developer should be able to define how local and remote entities evolve on each client.
+	\item \textit{Sending and receiving data:} the developer should be able to specify how and what data to send and receive to and from other clients.
+\end{itemize}
+
+Below we present the extensions implementing such abstractions.
+
+\subsubsection{Handling connections}
+When a new client connects to the game, it instantiates a local copy of the game state. This game state is incomplete, meaning that it does not contain an information about the game state views of the other clients, nor the other clients know anything about the local view of the new client. At this purpose, we extend Casanova 2 rules with two clauses: \texttt{connecting} and \texttt{connected}. A rule defined as \texttt{connecting} is executed only once when a new client connects to the game. On the other hand, a rule marked as \texttt{connected} is executed by all clients when a new client connects. An example of this is shown below: a client connects to the game and instantiates a ship locally, which is sent to the other clients. At the same time, the rule defined as \texttt{connected} is executed by the existing clients which sends their ships. The data transmission primitives will be discussed further below.
+
+\begin{lstlisting}
+world Shooter = {
+  ...
+  rule connecting Ships =
+    yield send_reliable Ships
+    
+  rule connected Ships =
+    yield send_reliable Ships
+}
+\end{lstlisting}
+
+\noindent
+Note that, even if the two rules seem to be identical, the semantics is completely different: the first is run by a connecting client and sends the only local ship instantiated when connecting to the game to all the existing clients, the second is executed by all the other clients, each one sending a list with the existing Ships.
+
+\subsection{Local and remote entities}
+To handle local and remote portions of the game state we must divide accordingly the entities in two sets: those instantiated by the current client, which are under its direct control, and those instantiated by other clients and under their control. To further illustrate this situation, consider a simple shooter game where every client controls a ship that can shoot the other clients' ships. The client can use input devices (such as mouse and keyboard or a gamepad) to perform an action with its ship, but it should be unable to control the other clients' ships. At this purpose the client should send the updates performed locally on the ship it controls, and receive the updates performed at the same time on the other clients for all the other ships. Entities instantiated locally by a client are defined as \texttt{master} entities, while entities that were instantiated on remote clients and which copy is replicated in the current client are defined as \texttt{slave}. We extend the rules with this two additional identifiers \texttt{master} and \texttt{slave}. Rules defined as \texttt{master} are run only for instances of entities that were locally instantiated by a client, while rules defined as \texttt{slave} are run only for instances of entities that were instantiated remotely. Note that rules that are not marked either as \texttt{master} or \texttt{slave} are always run independently on the entity being instantiated locally or remotely. This could be helpful to perform dynamics that do not need a synchronization with other clients, such as reacting to an interaction with a GUI element. An example of rules defining the dynamics for local entities is shown below:
+
+\begin{lstlisting}
+entity Ship = {
+   ...
+   rule master Position =
+     wait world.Input.KeyDown(Keys.W)
+     let vp = new Vector2(Math.Cos(Rotation),Math.Sin(Rotation)) * 300.0f
+     let p = Position + vp * dt
+     yield send p     
+}
+\end{lstlisting}
+
+\subsection{}
+
 \begin{itemize}[noitemsep]
-	\item overview of Casanova 2.
 	\item \texttt{master}, \texttt{slave rules}, and \texttt{connect} rules.
 	\item \texttt{send}, \texttt{send\textunderscore reliable}, \texttt{receive}, \texttt{receive\textunderscore many}, \texttt{let!}
 	\item Formal semantics
