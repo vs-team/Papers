@@ -1,4 +1,17 @@
-In this section we give an overview of Casanova 2, a declarative domain-specific language oriented towards game development. In this section we just give a brief informal overview of the language; for further technical details we point the reader to \cite{AbbadiThesis2017, Abbadi2015}. We then present the language extension to include networking abstractions, which prototype was presented in \cite{DiGiacomo201725} and hard-coded in its compiler, and we finally present its formal semantics.
+\begin{comment}
+\begin{mathpar}
+\tiny
+\inferrule
+{E \vdash t \; : \; \mathtt{float}}
+{E \vdash \mathtt{wait} \; t \; : \; \mathtt{void}}
+
+\inferrule
+{E \vdash c \; : \; \mathtt{bool}}
+{E \vdash \mathtt{when} \; c : \; \mathtt{void}}
+\end{mathpar}
+\end{comment}
+
+In this section we give an overview of Casanova 2, a declarative domain-specific language oriented towards game development. In this section we just give a brief informal overview of the language; for further technical details we point the reader to \cite{AbbadiThesis2017,Abbadi2015}. We then present the language extension to include networking abstractions, which prototype was presented in \cite{DiGiacomo201725} and hard-coded in its compiler, and we finally present its formal semantics.
 
 \subsection{Overview of Casanova 2}
 Casanova 2 is a declarative language oriented to game development. A program in Casanova 2 consists of a set of entities that define the dynamic elements of the game. These range from elements which interact or are interacted with by the player, such as characters, weapons, or interactive scene elements, to elements not directly operable such as bullets or non-playable characters. The entities are organized into a tree structure, at which root you find a special entity called \textit{World}. Each entity defines a set of fields, in the fashion of a class, and a set of rules that define its temporal evolution. Unlike object-oriented programming, entity fields are not directly modifiable through variable assignments (although they can always be read), but only through rules: each rule takes as input a domain, which is a subset of fields that it can modify, and they can be updated only by calling a dedicated statement called \texttt{yield}. If a rule tries to update a field outside its domain, this is captured at type-system level. Moreover, each rule works in the fashion of threads (although the implementation in the back-end of the compiler is completely different, as it makes use of state machines rather than a scheduler), meaning that they can be interrupted by using built-in abstractions in the language, such as \texttt{wait} statements, or the \texttt{yield} itself, which stops the rule execution by one game frame. Finally, each rule takes as input a reference to the current entity (\texttt{this}) and a parameter \texttt{dt} which contains the elapsed time between the current game frame and the previous update.
@@ -11,12 +24,25 @@ The networking architecture that we present is peer-to-peer based. This means th
 In this scenario, we identified the following abstractions that must be provided by the language:
 
 \begin{itemize}
+	\item \textit{Sending and receiving data:} the developer should be able to specify how and what data to send and receive to and from other clients.
 	\item \textit{Connection:} the developer should be able to specify what happens when a new player connects to the game and how the existing players react to this event.
 	\item \textit{Managing the local and remote game state:} the developer should be able to define how local and remote entities evolve on each client.
-	\item \textit{Sending and receiving data:} the developer should be able to specify how and what data to send and receive to and from other clients.
 \end{itemize}
 
 Below we present the extensions implementing such abstractions.
+
+\subsection{Data transmission}
+
+The language extension should include primitives to send data. These primitives should allow the programmer to choose whether to send data in a reliable (meaning that the receiver will be sure to receive the data at some point) or an unreliable way (meaning that the data could be lost because of packets losses). To this end, we define the primitives (\texttt{send} and \texttt{send\textunderscore reliable}. The programmer should be provided with the means of receiving data, which are given by the primitives \texttt{receive} and \texttt{receive\textunderscore many}: the former receive a single entity or atomic value, the second is able to receive a list of entities or values. The \texttt{receive} operations can be used in combination with the \texttt{yield} statement to simultaneously receive the data and update an entity field. Furthermore, we will be needing of a language primitive that waits until a received value is available and then binds it to a variable, called \texttt{let!} to distinguish it from a normal \texttt{let} binding. The following snippet illustrates an example using some of these primitives (the \texttt{@} operator denotes lists concatenation):
+
+\begin{lstlisting}
+world Shooter = {
+...
+rule master Ships =
+  let! receivedShips = receive_many
+  yield Ships @ receivedShips
+}
+\end{lstlisting}
 
 \subsubsection{Handling connections}
 When a new client connects to the game, it instantiates a local copy of the game state. This game state is incomplete, meaning that it does not contain an information about the game state views of the other clients, nor the other clients know anything about the local view of the new client. At this purpose, we extend Casanova 2 rules with two clauses: \texttt{connecting} and \texttt{connected}. A rule defined as \texttt{connecting} is executed only once when a new client connects to the game. On the other hand, a rule marked as \texttt{connected} is executed by all clients when a new client connects. An example of this is shown below: a client connects to the game and instantiates a ship locally, which is sent to the other clients. At the same time, the rule defined as \texttt{connected} is executed by the existing clients which sends their ships. The data transmission primitives will be discussed further below.
@@ -49,10 +75,155 @@ entity Ship = {
 }
 \end{lstlisting}
 
-\subsection{}
+\subsection{Formal semantics}
+In what follows we present the operational semantics of the networking language extension that was introduced above. In order to keep consistency with how Casanova semantics was defined \cite{Abbadi2015}, we use a rewrite-based definition \cite{klop1992term}, where the world is transformed into a new one containing an updated version of its fields and rules.
 
-\begin{itemize}[noitemsep]
-	\item \texttt{master}, \texttt{slave rules}, and \texttt{connect} rules.
-	\item \texttt{send}, \texttt{send\textunderscore reliable}, \texttt{receive}, \texttt{receive\textunderscore many}, \texttt{let!}
-	\item Formal semantics
-\end{itemize}
+The semantics of Casanova 2 must be extended to reflect the fact that, in a networking scenario, there is a \textit{Network State} (see Section \ref{sec:preliminaries}) consisting of local approximated views of the global state. At this purpose we define this state as a set $N_{s} = \lbrace S_{c_{i}} | c_{i} \in C \rbrace$ where $C$ is the set of clients connected to the game and $S_{c_{i}}$ is the local game state for client $c_{i}$. Each local state is a pair $S_{c_{i}} = (E_{L},E_{R})$ of local (instantiated on the client $c_{i}$) and remote (instantiated on a different client $c_{j}, \; j \neq i$) entities. Each entity $e \; | \; e \in E_{L} \vee e \in E_{R}$ is a set of fields and rules:
+
+\begin{lstlisting}[mathescape = true]
+E = {$Field_{1} = f_{1}, ..., Field_{n} = f_{n}$
+     $Rule_{1} = r_{1}, ..., Rule_{m} = r_{m}$} 
+\end{lstlisting}
+
+In order to include the definition of \texttt{master}, \texttt{slave}, \texttt{connecting}, and \texttt{connected} rules, we consider their respective sets $R_{m}$, $R_{s}$, $R_{c}$, and $R_{c}'$.
+
+\subsubsection{Entity update in a networking scenario}
+
+The update of the game state in Casanova 2 is realised by using a recursive function \texttt{tick} that recursively updates all the fields of an entity and, at the same time, executes all its rules through another function \texttt{step}.
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+   f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+   .
+   .
+   f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)}
+\end{lstlisting}
+
+In what follows we will refer to \texttt{tick} and \texttt{step} as defined above, where  the \texttt{tick} function is extended with an additional argument \texttt{c} denoting that it is being performed by client \texttt{c}. For further details see \cite{Abbadi2015}.
+
+\paragraph{Connecting rule semantics}
+As explained above, a connecting rule is executed once on a client connecting to the game for the first time. Thus, if the client does not yet exist among the clients participating to the game session the rule is executed
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt, c) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_j$ = r$_j'$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+    r$_j$ $\in$ $R_{c}$, c $\notin C$
+    f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+    .
+    .
+    f$_1^j$, $\dots$, f$_n^j$, r$_j'$ = step(f$_1^{j-1}$, $\dots$, f$_n^{j-1}$, r$_j$)
+    .
+    .
+    f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)
+\end{lstlisting}
+
+\noindent
+On the other hand, if the client already exists among the current clients, the rule has no effect on the entity.
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt, c) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_j$ = r$_j$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+    r$_j$ $\in$ $R_{c}$, c $\in C$
+    f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+    .
+    .
+    f$_1^{j-1}$, $\dots$, f$_n^{j-1}$,r$_j$ = step(f$_1^{j-1}$, $\dots$, f$_n^{j-1}$, r$_j$)
+    .
+    .
+    f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)
+\end{lstlisting}
+
+\paragraph{Connected rule semantics}
+A connected rule is executed when a new client connects to the game, so when there exists a client that does not belong to the set of connected clients.
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt, c) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_j$ = r$_j'$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+    r$_j$ $\in$ $R_{c}'$, $\exists c' | c' \notin C$
+    f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+    .
+    .
+    f$_1^j$, $\dots$, f$_n^j$,r$_j'$ = step(f$_1^{j-1}$, $\dots$, f$_n^{j-1}$, r$_j$)
+    .
+    .
+    f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)
+\end{lstlisting}
+
+\noindent
+Again, if no new client has connected to the game, then the rule has simply no effect.
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt, c) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_j$ = r$_j$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+    r$_j$ $\in$ $R_{c}$, $\forall c' | c' \in C$
+   f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+   .
+   .
+   f$_1^{j-1}$, $\dots$, f$_n^{j-1}$,r$_j$ = step(f$_1^{j-1}$, $\dots$, f$_n^{j-1}$, r$_j$)
+   .
+   .
+   f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)
+\end{lstlisting}
+
+\paragraph{Master rule semantics}
+Master rules are executed on instances of entities that were instantiated on the current client, that is, when the entity belongs to the set of local entities of the current client state.
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt, c) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_j$ = r$_j'$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+    r$_j$ $\in$ $R_{m}$, e $\in E_{L}$
+    f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+    .
+    .
+    f$_1^j$, $\dots$, f$_n^j$,r$_j'$ = step(f$_1^{j-1}$, $\dots$, f$_n^{j-1}$, r$_j$)
+    .
+    .
+    f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)
+\end{lstlisting}
+
+\paragraph{Slave rule semantics}
+Slave rules are executed on instances of entities that were instantiated on a remote client, that is, when the entity belongs to the set of remote entities of the current client state.
+
+\begin{lstlisting}[mathescape]
+tick(e:E, dt, c) =
+{ Field$_1$=tick(f$_1^m$, dt); $\dots$; Field$_n$=tick(f$_n^m$, dt);
+  Rule$_1$=r$_1'$; $\dots$; Rule$_j$ = r$_j'$; $\dots$; Rule$_m$=r$_m'$ }
+  where
+    r$_j$ $\in$ $R_{s}$, e $\in E_{R}$
+    f$_1^m$, $\dots$, f$_n^m$, r$_m'$ = step(f$_1^{m-1}$, $\dots$, f$_n^{m-1}$, r$_m$)
+    .
+    .
+    f$_1^j$, $\dots$, f$_n^j$,r$_j'$ = step(f$_1^{j-1}$, $\dots$, f$_n^{j-1}$, r$_j$)
+    .
+    .
+    f$_1^1$, $\dots$, f$_n^1$, r$_1'$ = step(f$_1$, $\dots$, f$_n$, r$_1$)
+\end{lstlisting}
+
+\subsubsection{Semantics of data transmission} The networking transmission semantics must include the possibility that some messages might be lost during the transmission. At this purpose we introduce a parameter $p_{r} \in \; ]0,1[$ for the \textit{network reliability} which represents the probability that a message is lost before reaching its destination. We also use a parameter $p_{m} \in \; ]0,1[$ which is a random number generated for each message to simulate the message losses with respect to $p_{r}$. In what follows we change the definition of the \texttt{step} function to include the fact that there are multiple clients running the rules in the network state, and that a receive on a client usually corresponds to a send on another client.
+
+\paragraph{Sending and receiving unreliable messages} The language provides two primitives to send messages, one which reliably sends the message, meaning that it ensures that the receiver receives the message, and one unreliable primitive, with which the message could be lost with no chance of recovering it. In the case of an unreliable send, the client send the message and if received, that is if $p_{m} \geq p_{r}$ then the fields of the receiving client are updated with the message value, otherwise the receiver does not receive the message and simply skips to the next statement.
+
+\begin{lstlisting}[mathescape = true]
+step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$^{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) =
+(step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{k$_{c_i}$}),(x, {k$_{c_j}$})
+when $p_{m} \geq p_{r}$
+\end{lstlisting}
+
+\begin{lstlisting}[mathescape = true]
+step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$^{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) = (step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{k$_{c_i}$}),(f$_1^{c_{j}}$,...,f$_n^{c_{j}}$,{ k$_{c_j}$})
+when $p_{m} < p_{r}$
+\end{lstlisting}
+
