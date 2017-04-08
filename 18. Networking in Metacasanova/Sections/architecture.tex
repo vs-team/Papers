@@ -214,16 +214,57 @@ tick(e:E, dt, c) =
 
 \subsubsection{Semantics of data transmission} The networking transmission semantics must include the possibility that some messages might be lost during the transmission. At this purpose we introduce a parameter $p_{r} \in \; ]0,1[$ for the \textit{network reliability} which represents the probability that a message is lost before reaching its destination. We also use a parameter $p_{m} \in \; ]0,1[$ which is a random number generated for each message to simulate the message losses with respect to $p_{r}$. In what follows we change the definition of the \texttt{step} function to include the fact that there are multiple clients running the rules in the network state, and that a receive on a client usually corresponds to a send on another client.
 
-\paragraph{Sending and receiving unreliable messages} The language provides two primitives to send messages, one which reliably sends the message, meaning that it ensures that the receiver receives the message, and one unreliable primitive, with which the message could be lost with no chance of recovering it. In the case of an unreliable send, the client send the message and if received, that is if $p_{m} \geq p_{r}$ then the fields of the receiving client are updated with the message value, otherwise the receiver does not receive the message and simply skips to the next statement.
+\paragraph{Sending unreliable messages} The language provides a primitive to send messages in an unreliable way, with which the message could be lost with no chance of recovering it. In this case, the client sends the message and, if received, that is if $p_{m} \geq p_{r}$, then the fields of the receiving client are updated with the message content, otherwise the receiver does not receive the message and simply skips to the next statement.
 
 \begin{lstlisting}[mathescape = true]
-step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$^{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) =
+step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$_{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) =
+(step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{k$_{c_i}$}),(x, {k$_{c_j}$})
+when $p_{m} \geq p_{r}$
+\end{lstlisting}
+
+
+\begin{lstlisting}[mathescape = true]
+step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$^{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) = 
+(step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{k$_{c_i}$}),(f$_1^{c_{j}}$,...,f$_n^{c_{j}}$,{ k$_{c_j}$})
+when $p_{m} < p_{r}$
+\end{lstlisting}
+
+\paragraph{Sending reliable messages} 
+The language provides a primitive to send messages in a reliable way, with which it is granted that the client will eventually receive the message (the message cannot be lost due a transmission error). In this case, when there is a transmission failure, that is when $p_{m} < p_{r}$, the send should retry to send the message again, and repeat this step until the client receives it. At the same time the client must retry to receive the message.
+
+\begin{lstlisting}[mathescape = true]
+step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$_{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) =
 (step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{k$_{c_i}$}),(x, {k$_{c_j}$})
 when $p_{m} \geq p_{r}$
 \end{lstlisting}
 
 \begin{lstlisting}[mathescape = true]
-step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$^{c_i}$}),f$_1^{c_{j}}$},...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) = (step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{k$_{c_i}$}),(f$_1^{c_{j}}$,...,f$_n^{c_{j}}$,{ k$_{c_j}$})
+step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x; k$_{c_i}$}),f$_1^{c_{j}}$,...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$}) =
+(step(f$_1^{c_{i}}$},...,f$_n^{c_{i}}$,{send x;k$_{c_i}$}),f$_1^{c_{j}}$,...,f$_n^{c_{j}}$,{yield receive x; k$_{c_j}$})
 when $p_{m} < p_{r}$
 \end{lstlisting}
 
+\paragraph{Message reception}
+Receiving primitive data types, as integer or floating point values, simply requires to unpack the content of the network message and copy the value in the relative field. Further precautions must be used when receiving entities or lists of entities: in the first case, the client should add the received entity to the set of slave entities and instantiate it with the content of the message; in the second case, the receiver must update the list of entities by computing the set difference between the current version and the one just received. In this way, if a client notifies that one of its master entities was removed, the slave entity of the receiver will be removed as well. On the other hand, if one of the clients instantiate one or more new entities, they will be correctly added to the list. The first case has the following semantics:
+
+\begin{lstlisting}[mathescape = true]
+step(e,{yield receive e';k}) = (e',(E$_{L}$,E$_{R}$ $\cup \lbrace e \rbrace$),k)
+\end{lstlisting}
+
+\noindent
+The second case has the following semantics. We use the simbol $L_{e}'$ do denote the list of received entities and $L_{e}$ do denote the old version of the same list stored in the client:
+\begin{lstlisting}[mathescape = true]
+step(L$_e$,{yield receive L$_e$';k})
+when L$_e$ - L$_e$' $\neq \emptyset$ = (L$_e$',(E$_L$,E$_R$ \ (L$_e$ \ L$_e$')),k)
+
+step(L$_e$,{yield receive L$_e$';k})
+when L$_e$' - L$_e$ $\neq \emptyset$ = (L$_e$',(E$_L$,E$_R$ \cup (L$_e$' \ L$_e$)),k)
+\end{lstlisting}
+
+\noindent
+The first semantics rule applies when the updated list contains less elements than the old list. In this case the sender has deleted some of its master entities, which slave copies must be removed on the receiver. The set of slave entities of the client is then updated by removing the delete entities.
+
+The second semantics rule applies when the updated list contains more elements than the old list. In this case the sender has instantiated more entities that were added to the list, which must be added as slave entities on the client as well. The set of slave entities of the receiver is thus extended to include the generated entities.
+
+\vspace{0.5cm}
+In the next section we show how to extend Casanova 2 to include these semantics rules, by implementing in a meta-compiler called Metacasanova.
