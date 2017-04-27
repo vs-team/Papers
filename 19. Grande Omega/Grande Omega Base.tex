@@ -1,0 +1,73 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{graphicx}
+\usepackage{comment}
+\usepackage{pifont}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{authblk}
+\usepackage[font=small,labelfont=bf]{caption}
+
+\newcommand{\email}[1]{\texttt{\{#1\}}}
+\renewcommand\Authsep{\\}
+\renewcommand\Authands{\\}
+
+\title{GrandeOmega \\ A didactic model to learn programming}
+\author[1]{Francesco Di Giacomo \email{francesco.digiacomo@unive.it}}
+\author[3]{Mohamed Abbadi \email{abbam@hr.nl}}
+\author[1]{Agostino Cortesi \email{cortesi@unive.it}}
+\author[4]{Pieter Spronck \email{p.spronck@tilburguniversity.edu}}
+\author[2]{Giuseppe Maggiore \email{giuseppe@grandeomega.com}}
+\affil[1]{Universita' Ca' Foscari of Venice}
+\affil[2]{Hoppinger}
+\affil[3]{Hogescool Rotterdam}
+\affil[4]{Tilburg University}
+\date { }
+\lstset
+{
+	basicstyle = \ttfamily\small,
+	breaklines = true,
+	frame = single
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+	Teaching (and learning) how to program is an open problem. Both teachers and students cite a variety of issues, ranging from difficulty bridging the gap between theory and practice, to lack of simple assignments suitable for beginners.
+	We believe that technology can offer a powerful tool in supporting a solution to these problems, but at a high cost in internal complexity. For this reason we have built GrandeOmega: a generic, web-based code-interpreter that can be easily used to build interactive lectures and assignments where students experiment with learning how to program while receiving real-time feedback. The experimental results show that GrandeOmega generally boosts the overall performance of students, increasing in some cases also the pass rate of classes.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+\input{Sections/introduction}
+
+\section{Why is it so hard?}
+\label{sec:problem}
+\input{Sections/problem}
+
+\section{The ingredients and the didactic model}
+\label{sec:solution}
+\input{Sections/solution}
+
+\section{Technical details}
+\label{sec:technical_details}
+\input{Sections/technical_details}
+
+\section{Evaluation}
+\label{sec:evaluation}
+\input{Sections/evaluation}
+
+\section{Conclusion}
+\label{sec:conclusion}
+\input{Sections/conclusion}
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

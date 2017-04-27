@@ -46,6 +46,7 @@ The code interpreter is the beating heart of GrandeOmega. First of all, there is
 
 The code interpreter is based on pattern matching and substitution and it directly mimic the operational semantics \cite{plotkin1981structural} used to describe the formal semantics of computer languages. The operational semantics define a set of rules in the form of logical rules, which means they are made of a (optional) set of premises that, if satisfied, will produce the result defined in the conclusion. If a rule does not contain premises it is called \textit{axiom} (meaning that its evaluation is immediate). Below you find an example of such rules describing the evaluation of the sum of two arithmetic expressions:
 
+\begin{comment}
 \begin{mathpar}
 	\inferrule
 	{ }
@@ -58,6 +59,8 @@ The code interpreter is based on pattern matching and substitution and it direct
 	 \langle \texttt{right} \rangle \; \Rightarrow \; \texttt{Integer y}}
 	{\langle \texttt{left} + \texttt{right} \rangle \; \Rightarrow \; \texttt{Integer (x + y)}}
 \end{mathpar}
+
+\end{comment}
 
 The first rule is an axiom: if the input of the rule is an integer number \texttt{x} then its evaluation simply returns itself. The second rule evaluates the sum of two expressions by recursively calling the evaluation on the left and right expression. If the evaluation succeeds and returns an integer value, then the result of the whole rule is the arithmetic sum of the result of evaluating the two expressions.
 
