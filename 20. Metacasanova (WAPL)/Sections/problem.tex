@@ -1,0 +1,67 @@
+In Section \ref{sec:introduction} we briefly stated that the process of developing a compiler includes several steps that are repetitive, i.e. their behaviour is always the same regardless of the language for which the compiler is built. In this section we show in what way this process is repetitive and what is the common pattern 
+
+\subsection{Type checking}
+Type systems are generally expressed in the form of logical rules \cite{cardelli1996type}, made of a set of premises, that must be verified in order to assign to the language construct the type defined in the conclusion. For example the following rule defines the typing of an \texttt{if-then-else} statement in a functional programming language:\footnote{Note that the type rule of \texttt{if-then-else} in an imperative programming language is different.}
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*{\Gamma \vdash c : bool \quad \Gamma \vdash t : \tau \quad \Gamma \vdash e : \tau}
+	{\Gamma \vdash \text{if \textit{c} then \textit{t} else \textit{e}} : \tau}
+\end{mathpar}
+
+Typing a construct of the language requires to evaluate its corresponding typing rule. In order to do so, the behaviour of each typing rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following
+
+\begin{enumerate}
+	\item Evaluate a premise.
+	\item If the evaluation of the premise fails, then the construct fails the type check and an error is returned.
+	\item Repeat step 1 and 2 until all the premises have been evaluated.
+	\item Assign the type to the construct that is defined in the rule conclusion.
+\end{enumerate}
+
+For instance, if in the example above the condition of the \texttt{if-then-else} is not a boolean expression, the type check will fail returning an error. If the condition is a boolean expression then the type $\tau$ is assigned to the \texttt{if-then-else} construct. The behaviour of the type rule above must be implemented by making use of the host language abstractions; for example in F\# or CamL we would have:
+
+\begin{lstlisting}
+type Expression =
+...
+| If of Expr * Expr * Expr
+
+let eval (expr : Expr) =
+  match expr with
+  ...
+  | If (condition, _then, _else) ->
+      let condType = eval condition
+      let thenType = eval _then
+      let elseType = eval _else
+      if (condType = Bool && thenType = elseType) then
+        thenType
+      else
+        failwith "Error typing if statement"
+\end{lstlisting}
+
+Note that defining the behaviour in this fashion is much more verbose than the type system definition. This behaviour must be emulated for all the type rules of the language type system, but this pattern could be generalized because it requires to always perform the steps above.
+
+\subsection{Semantics}
+Semantics define how the language abstractions behave and can be expressed in different ways, for example with a term-rewriting system \cite{klop1992term} or with the operational semantics \cite{plotkin1981}. For the scope of this work, we choose to rely on the operational semantics. The definition of the operational semantics of a language abstraction is, again, in the form of a logical rule where the conclusion (which is the final behaviour of the construct) is achieved if the evaluation of the premises lead to the desired results. For instance, the operational semantics of a while loop could be the following:
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
+	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{L} ; while \textit{c} do \textit{L} ; \textit{k}} \rangle}
+	
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
+	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle k \rangle}
+\end{mathpar}
+
+Again, the behaviour of the semantics rule must be encoded in the host language in which the compiler is being developed, but the pattern it follows is always the same. This step, depending on the implementation choice, might also require to translate this behaviour into an \textit{intermediate language} representation that is more suitable for the next code generation phase.
+
+\subsection{Discussion}
+The examples above show how the behaviour of the type checking and semantics rules must be hard-coded in the language chosen for the compiler implementation, regardless of the fact that their pattern is constantly repeated in every rule. This pattern can be captured in a meta-language that is able to process the type system and operational semantics definition of the language and produce the code to execute the behaviour of the rules. In this work we describe the meta-language for \textit{Metacasanova}, a meta-compiler that is able to read a program written in terms of type system/operational semantics rules defining a programming language, a program written in that language, and output executable code that mimics the behaviour of the semantics. Such a language relives the programmer from writing boiler-plate code when implementing a compiler for a (Domain-Specific) language. For this reason we formulate the following problem statement:
+
+\vspace{0.2cm}
+\noindent
+\textbf{Problem statement:} \textit{To what extent Metacasanova eases the development speed of a compiler for a Domain-Specific Language, in terms of code length compared to the hard-coded implementation, and what is the performance of the generated code with respect to a hard-coded compiler?}
+
+\subsection{Related work}
+Fill in this section with related work, namely RML, workbenches for Haskell, and Stratego.

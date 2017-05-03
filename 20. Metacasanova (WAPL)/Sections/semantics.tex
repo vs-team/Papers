@@ -1,0 +1,167 @@
+In the previous section we showed that the process of evaluating typing and semantics rules is always the same, regardless of the specific language implementation. We have also discussed how this evaluation must be re-implemented every time in a hard-coded compiler by using the abstractions provided by the host language, which leads to verbose code and the loss of the clarity and simplicity given by the formalisms of the type system and operational semantics. In this section we define the requirements of Metacasanova, we informally present, through an example, how a meta-program works, and we finally propose the syntax and semantics of its meta-language.
+
+\subsection{Requirements of Metacasanova}
+In order to relieve programmers of manually defining the behaviour described in Section \ref{sec:problem} in the back-end of the compiler, we propose the following features for Metacasanova:
+
+\begin{itemize}
+	\item It must be possible to define custom operators (or functions) and data containers. This is needed to define the syntactic structures of the language we are defining.
+	\item It must be typed: each syntactic structure can be associated to a specific type in order to be able to detect meaningless terms (such as adding a string to an integer) and notify the error.
+	\item It must be possible to have polymorphic syntactical structures. This is useful to define equivalent ``roles'' in the language for the same syntactical structure; for instance we can say that an integer literal is both a \textit{Value} and an \textit{Arithmetic expression}.
+	\item It must natively support the evaluation of semantics rules, as those shown above. A \textit{rule},in Metacasanova, in the fashion of a logic rule, is made of a sequence of premises and a conclusion. The premises can be function calls or clauses. Clauses are boolean expressions that are checked in order to proceed with the rule evaluation. The function call will run in order all the rules that contain that function as conclusion. The return value of the first rule that succeeds is taken. A rule returns a value if all the clauses evaluate to \texttt{true} and all the function calls succeed.
+\end{itemize}
+
+We can see that these specifications are compatible with the definition of meta-compiler, as the software takes as input a language definition written in the meta-language, a program for that language, and outputs runnable code that mimics the code that a hard-coded compiler would output.
+
+\subsection{General overview}
+
+A Metacasanova program is made of a set of \texttt{Data} and \texttt{Function} definitions, and a sequence of rules. A data definition specifies the constructor name of the data type (used to construct the data type), its field types, and the type name of the data. Optionally it is possible to specify a priority for the constructor of the data type. For instance this is the definition of the sum of two arithmetic expression
+
+\begin{lstlisting}
+Data Expr -> "+" -> Expr : Expr  Priority 500
+\end{lstlisting}
+
+\noindent
+Note that Metacasanova allows you to specify any kind of notation for data types in the language syntax, depending on the order of definition of the argument types and the constructor name. In the previous example we used an infix notation. The equivalent prefix and postfix notations would be:
+
+\begin{lstlisting}
+Data "+" -> Expr -> Expr : Expr
+Data Expr -> Expr -> "+" : Expr
+\end{lstlisting}
+
+\noindent
+A function definition is similar to a data definition but it also has a return type. For instance the following is the evaluation function definition for the arithmetic expression above:
+
+\begin{lstlisting}
+Func "eval" -> Expr : Evaluator => Value
+\end{lstlisting}
+
+\noindent
+In Metacasanova it is also possible to define polymorphic data in the following way:
+
+\begin{lstlisting}
+Value is Expr
+\end{lstlisting}
+
+\noindent
+In this way we are saying that an atomic value is also an expression and we can pass both a composite expression and an atomic value to the evaluation function defined above.
+
+Metacasanova also allows to embed C\# code into the language by using double angular brackets. This code can be used to embed .NET types when defining data or functions, or to run C\# code in the rules. For example in the following snippets we define a floating point data which encapsulates a floating point number of .NET to be used for arithmetic computations:
+
+\begin{lstlisting}
+Data "$f" -> <<float>> : Value
+\end{lstlisting}
+
+\noindent
+A rule in Metacasanova, as explained above, may contain a sequence of function calls and clauses. In the following snippet we have the rule to evaluate the sum of two floating point numbers:
+
+\begin{lstlisting}
+eval a => $f c
+eval b => $f d
+<<c + d>> => res
+------------------------
+eval (a + b) => $f res
+\end{lstlisting}
+
+\noindent
+Note that if one of the two expressions does not return a floating point value, then the entire rule evaluation fails. Also note that we can embed C\# code to perform the actual arithmetic operation. Metacasanova selects a rule by means of pattern matching in order of declaration on the function arguments. This means that both of the following rules will be valid candidates to evaluate the sum of two expressions:
+
+\begin{lstlisting}
+...
+---------------
+eval expr => res
+
+...
+----------------
+eval (a + b) => res
+\end{lstlisting} 
+
+Finally the language supports expression bindings with the following syntax:
+
+\begin{lstlisting}
+x := $f 5
+\end{lstlisting}
+
+\subsection{Syntax in BNF}
+The following is the syntax of Metacasanova in Backus-Naur form. Note that, for brevity, we omit the definitions of typical syntactical elements of programming languages, such as literals or identifiers:
+
+\begin{lstlisting}
+<program> ::= 
+{<include>} {<import>} {<data>} <function> {<function>} {<alias>} <rule> {<rule>}
+<premise> ::= 
+<clause> | <functionCall> | <binding>
+<binding> ::= 
+id ":=" <constructor>
+<rule> ::= 
+{premise} "-" {"-"} <functionCall>
+<clause> ::= //typical boolean expression
+<functionCall> ::= 
+<id> {<argument>} <arrow> <argument> | 
+{<argument>} <id> {<argument>} <arrow> <argument> | 
+<id> {<argument>} <arrow> <argument>
+<arrow> ::= "=>" | "==>"
+<constructor> ::= 
+<id> {<argument>} | 
+{<argument>} <id> {<argument>} | 
+{<argument>} <id>
+<external> ::= "<<" <csharpexpr> ">>"
+<csharpexpr> ::= //all available C# expressions
+<argument> ::= 
+["("] 
+(<id> | 
+<external> | 
+<literal> | 
+<constructor>) 
+[")"]
+<literal> ::= //typical literals such as integer, float, string, ...
+<import> ::= import id {"." id}
+<include> ::= include id {.id}
+<alias> ::= <typeDef> is <typeDef>
+<typeDef> ::= id | "<<" id ">>"
+<typeArguments> :: = 
+'"' <id> '"' {"->" <typeDef>} ":" <typeDef> |
+<typeDef> {"->" <typeDef>} "->" '"' <id> '"' {"->" <typeDef>} ":" <typeDef> |
+<typeDef> {"->" typeDef} "->" '"' <id> '"' ":" <typeDef> 
+<function> ::= Func <typeArguments> "=>" <typeDef> [Priority <literal>]
+<data> ::= Data <typeArguments> [Priority <literal>]
+\end{lstlisting}
+
+\subsection{Semi-formal Semantics}
+In what follows we assume that the pattern matching of the function arguments in a rule succeeds, otherwise a rule will fail to return a result.
+The informal semantics of the rule evaluation in Metacasanova is the following:
+\begin{enumerate}
+	\item[R1] A rule with no clauses or function calls always returns a result.
+	\item[R2] A rule returns a result if all the clauses evaluate to \texttt{true} and all the function calls in the premise return a result.
+	\item[R3] A rule fails if at least one clause evaluates to \texttt{false} or one of the function calls fails (returning no results).
+\end{enumerate}
+We will express the semantics, as usual, in the form of logical rules, where the conclusion is obtained when all the premises are true.
+In what follows we consider a set of rules defined in the Metacasanova language $R$. Each rule has a set of function calls $F$ and a set of clauses (boolean expressions) $C$. We use the notation $f^{r}$ to express the application of the function $f$ through the rule $r$. We will define the semantics by using the notation $\langle expr \rangle$ to mark the evaluation of an expression, for example $\langle f^{r} \rangle$ means evaluating the application of $f$ through $r$. Note that in R2 the evaluation returns a set of result because there might be more than one rule that can successfully evaluate the premise. The following is the formal semantics of the rule evaluation in Metacasanova, based on the informal rules defined above:
+
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*[left=R1:]
+	{C = \emptyset \\\\ F = \emptyset}
+	{\langle f^{r} \rangle \Rightarrow x} \\
+	
+	\mprset{flushleft}
+	\inferrule*[left=R2:]
+	{\forall c_{i} \in C \;, \langle c_{i} \rangle \Rightarrow true \\\\
+		\forall f_{j} \in F \; \exists r_{k} \in R \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \lbrace x_{k_{1}}, x_{k_{2}}, ..., x_{k_{m}} \rbrace}
+	{\langle f^{r} \rangle \Rightarrow \lbrace x_{1}, x_{2}, ..., x_{n} \rbrace} \\
+	
+	\mprset{flushleft}
+	\inferrule*[left=R3(a):]
+	{\exists c_{i} \in C \; | \; \langle c_{i} \rangle \Rightarrow false}
+	{\langle f^{r} \rangle \Rightarrow \emptyset} \\
+	
+	\mprset{flushleft}
+	\inferrule*[left=R3(b)]
+	{\forall r_{k} \in R \; \exists f_{j} \in F \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \emptyset}
+	{\langle f^{r} \rangle \Rightarrow \emptyset}
+\end{mathpar}
+
+R1 says that, when both $C$ and $F$ are empty (we do not have any clauses or function calls), the rule in Metacasanova returns a result. R2 says that, if all the clauses in $C$ evaluates to true and, for all the function calls in $F$ we can find a rule that returns a result (all the function applications return a result for at least one rule of the program), then the current rules return a result. R3(a) and R3(b) specify when a rule fails to return a result: this happens when at least one of the clauses in $C$ evaluates to false, or when one of the function applications does not return a result for any of the rules defined in the program.
+
+\vspace{0.2cm}
+\noindent
+In the following section we describe how the code generation process works, namely how the \texttt{Data} types of Metacasanova are mapped in the target language, and how the rule evaluation is implemented.
