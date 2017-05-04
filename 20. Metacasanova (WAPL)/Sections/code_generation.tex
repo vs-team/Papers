@@ -172,7 +172,7 @@ c = __tmp3.__arg0;
 When all premises correctly output the expected result, the rule can output the final result. In order to do that, the generated code must copy the right part of the conclusion (the result) into the \texttt{\tu\tu res} variable of the function class. If the right part of the conclusion is, again, an explicit data argument, then the data object must first be instantiated and then copied into the result. For example the result of the rule above is generated as follows:
 
 \begin{lstlisting}
-res = c / d;
+res = c + d;
 __opDollari __tmp7 = new __opDollari();
 __tmp7.__arg0 = res;
 __res.HasValue = true;
