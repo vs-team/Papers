@@ -84,7 +84,7 @@ x := $f 5
 \subsection{Syntax in BNF}
 The following is the syntax of Metacasanova in Backus-Naur form. Note that, for brevity, we omit the definitions of typical syntactical elements of programming languages, such as literals or identifiers:
 
-\begin{lstlisting}
+\begin{lstlisting}[basicstyle = \ttfamily\tiny]
 <program> ::= 
 {<include>} {<import>} {<data>} <function> {<function>} {<alias>} <rule> {<rule>}
 <premise> ::= 
@@ -134,7 +134,7 @@ The informal semantics of the rule evaluation in Metacasanova is the following:
 	\item[R3] A rule fails if at least one clause evaluates to \texttt{false} or one of the function calls fails (returning no results).
 \end{enumerate}
 We will express the semantics, as usual, in the form of logical rules, where the conclusion is obtained when all the premises are true.
-In what follows we consider a set of rules defined in the Metacasanova language $R$. Each rule has a set of function calls $F$ and a set of clauses (boolean expressions) $C$. We use the notation $f^{r}$ to express the application of the function $f$ through the rule $r$. We will define the semantics by using the notation $\langle expr \rangle$ to mark the evaluation of an expression, for example $\langle f^{r} \rangle$ means evaluating the application of $f$ through $r$. Note that in R2 the evaluation returns a set of result because there might be more than one rule that can successfully evaluate the premise. The following is the formal semantics of the rule evaluation in Metacasanova, based on the informal rules defined above:
+In what follows we consider a set of rules defined in the Metacasanova language $R$. Each rule has a set of function calls $F$ and a set of clauses (boolean expressions) $C$. We use the notation $f^{r}$ to express the application of the function $f$ through the rule $r$. We will define the semantics by using the notation $\langle expr \rangle$ to mark the evaluation of an expression, for example $\langle f^{r} \rangle$ means evaluating the application of $f$ through $r$. Note that in R2 the evaluation returns a set of results because there might be more than one rule that can successfully evaluate the premise. The following is the formal semantics of the rule evaluation in Metacasanova, based on the informal behaviour defined above:
 
 
 \begin{mathpar}
