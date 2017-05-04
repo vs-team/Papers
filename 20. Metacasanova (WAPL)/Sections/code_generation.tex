@@ -183,3 +183,17 @@ break;
 \noindent
 After this step, the rule evaluation successfully returns a result.
 
+Note that one could argue the choice of using a class to mimic the function execution instead of generating a static method and passing the function arguments as method arguments. This implementation choice derives because we plan to support partial function applications, thus, when a function is partially applied, there is the need to store the values of the arguments that were partially given. This could still be implemented with static methods and lambdas in C\#, but not all programming languages natively support lambda abstractions, so we chose to have a set-up that allows us to change the target language without altering the logic of the code generation.
+
+\subsection{Discussion}
+Metacasanova has been evaluated in \cite{DiGiacomo2017} by re-building the DSL for game development Casanova \cite{abbadi2015casanova}. Even though the size of the code required to implement the language has been drastically reduced (almost 1/5 shorter), the performance dropped dramatically. Even though the meta-compiler adds a complexity layer for which it might be difficult to achieve the same performance as a dedicated optimized compiler, we identified a main problem with the implementation.
+
+In order to encode a symbol table in the meta-compiler in the current implementation (used for example to store the variables defined in the local scope of a control structure or to model a class/record data structure r), we are left with two options: (\textit{i}) define a custom data structure made of a list of pairs, containing the field/variable name as a string and its value, in the following way
+
+\begin{lstlisting}
+Data "table" -> List[Tuple[string, Value]] : SymbolTable
+\end{lstlisting}
+
+\noindent
+or use a dictionary data structure coming from .NET, such as \texttt{ImmutableDictionary}, which was the implementation choice done for Casanova. In both cases, the behaviour of the language implemented in Metacasanova will be that of a dynamic language, because whenever the value of a variable or class field must be read, the evaluation rule must look uo the symbol table at run time to retrieve the value, which complexity will be $O(n)$ with the list implementation and $O(\log n)$ with the dictionary implementation. In the next section we propose an extension to Metacasanova in order to overcome this problem by inlining the code to access the appropriate variable at compile time.
+
