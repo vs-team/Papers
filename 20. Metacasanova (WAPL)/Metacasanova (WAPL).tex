@@ -60,7 +60,7 @@ Email: p.spronck@tilburguniversity.edu, \\abbam@hr.nl,\\ giuseppemag@gmail.com}
 \maketitle
 
 \begin{abstract}
-	Implementing Domain-Specific Languages (DSL's) is desirable in several situations, as they offer language-level abstractions, which  General-purpose languages do not offer, that speed up the implementation of the solution of problems limited to a specific domain. Developers are left with the choice of developing a DSL by building an interpreter/compiler for it, which is a hard an time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, which meta-language is based on operational semantics, with a further optimization based on functors. We show how this optimization leads to better performance by re-implementing Casanova, a DSL for game development, and by comparing it with its old, unoptimized implementation.
+	Implementing Domain-Specific Languages (DSL's) is desirable in several situations, as they offer language-level abstractions, which  General-purpose languages do not offer, that speed up the implementation of the solution of problems limited to a specific domain. Developers are left with the choice of developing a DSL by building an interpreter/compiler for it, which is a hard and time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, which meta-language is based on operational semantics, with a further optimization based on functors. We show how this optimization leads to better performance by re-implementing Casanova, a DSL for game development, and by comparing it with its old, unoptimized implementation.
 \end{abstract}
 
 \section{Introduction}
@@ -81,6 +81,7 @@ Email: p.spronck@tilburguniversity.edu, \\abbam@hr.nl,\\ giuseppemag@gmail.com}
 
 \section{Compile-time inlining with Functors}
 \label{sec:functors}
+\input{Sections/functors}
 
 \section{Evaluation}
 \label{sec:evaluation}

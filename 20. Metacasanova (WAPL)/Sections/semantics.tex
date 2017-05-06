@@ -7,7 +7,7 @@ In order to relieve programmers of manually defining the behaviour described in 
 	\item It must be possible to define custom operators (or functions) and data containers. This is needed to define the syntactic structures of the language we are defining.
 	\item It must be typed: each syntactic structure can be associated to a specific type in order to be able to detect meaningless terms (such as adding a string to an integer) and notify the error.
 	\item It must be possible to have polymorphic syntactical structures. This is useful to define equivalent ``roles'' in the language for the same syntactical structure; for instance we can say that an integer literal is both a \textit{Value} and an \textit{Arithmetic expression}.
-	\item It must natively support the evaluation of semantics rules, as those shown above. A \textit{rule},in Metacasanova, in the fashion of a logic rule, is made of a sequence of premises and a conclusion. The premises can be function calls or clauses. Clauses are boolean expressions that are checked in order to proceed with the rule evaluation. The function call will run in order all the rules that contain that function as conclusion. The return value of the first rule that succeeds is taken. A rule returns a value if all the clauses evaluate to \texttt{true} and all the function calls succeed.
+	\item It must natively support the evaluation of semantics rules, as those shown above.
 \end{itemize}
 
 We can see that these specifications are compatible with the definition of meta-compiler, as the software takes as input a language definition written in the meta-language, a program for that language, and outputs runnable code that mimics the code that a hard-coded compiler would output.

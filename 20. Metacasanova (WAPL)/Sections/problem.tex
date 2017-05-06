@@ -18,28 +18,6 @@ Typing a construct of the language requires to evaluate its corresponding typing
 	\item Assign the type to the construct that is defined in the rule conclusion.
 \end{enumerate}
 
-For instance, if in the example above the condition of the \texttt{if-then-else} is not a boolean expression, the type check will fail returning an error. If the condition is a boolean expression then the type $\tau$ is assigned to the \texttt{if-then-else} construct. The behaviour of the type rule above must be implemented by making use of the host language abstractions; for example in F\# or CamL we would have:
-
-\begin{lstlisting}
-type Expression =
-...
-| If of Expr * Expr * Expr
-
-let eval (expr : Expr) =
-  match expr with
-  ...
-  | If (condition, _then, _else) ->
-      let condType = eval condition
-      let thenType = eval _then
-      let elseType = eval _else
-      if (condType = Bool && thenType = elseType) then
-        thenType
-      else
-        failwith "Error typing if statement"
-\end{lstlisting}
-
-Note that defining the behaviour in this fashion is much more verbose than the type system definition. This behaviour must be emulated for all the type rules of the language type system, but this pattern could be generalized because it requires to always perform the steps above.
-
 \subsection{Semantics}
 Semantics define how the language abstractions behave and can be expressed in different ways, for example with a term-rewriting system \cite{klop1992term} or with the operational semantics \cite{plotkin1981}. For the scope of this work, we choose to rely on the operational semantics. The definition of the operational semantics of a language abstraction is, again, in the form of a logical rule where the conclusion (which is the final behaviour of the construct) is achieved if the evaluation of the premises lead to the desired results. For instance, the operational semantics of a while loop could be the following:
 
@@ -64,4 +42,4 @@ The examples above show how the behaviour of the type checking and semantics rul
 \textbf{Problem statement:} \textit{To what extent Metacasanova eases the development speed of a compiler for a Domain-Specific Language, in terms of code length compared to the hard-coded implementation, and what is the performance of the generated code with respect to a hard-coded compiler?}
 
 \subsection{Related work}
-Fill in this section with related work, namely RML, workbenches for Haskell, and Stratego.
+\textbf{Fill in this section with related work, namely RML, workbenches for Haskell, and Stratego.}
