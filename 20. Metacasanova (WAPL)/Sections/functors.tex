@@ -229,6 +229,6 @@ get (x,xs) -> x
 \end{lstlisting}
 
 \noindent
-Note that the second premise of \texttt{getPos} will immediately call the \texttt{get} generated at the previous step. The case of \texttt{setPos} is analogous except the setter takes an additional argument.
+Note that the second premise of \texttt{getPos} will immediately call the \texttt{get} generated in this step. The case of \texttt{setPos} is analogous except the setter takes an additional argument.
 
 We want to point out that this optimization has been presented on the specific case of records, but can be generalized for any situations where you would use a symbol table. Indeed any symbol table can be expressed with the representation above as a sequence of pair where the first item is the value of the current variable, and the second item is the continuation of the symbol table.

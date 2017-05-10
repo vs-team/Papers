@@ -1,11 +1,11 @@
-In the previous section we showed that the process of evaluating typing and semantics rules is always the same, regardless of the specific language implementation. We have also discussed how this evaluation must be re-implemented every time in a hard-coded compiler by using the abstractions provided by the host language, which leads to verbose code and the loss of the clarity and simplicity given by the formalisms of the type system and operational semantics. In this section we define the requirements of Metacasanova, we informally present, through an example, how a meta-program works, and we finally propose the syntax and semantics of its meta-language.
+In the previous section we showed that the process of evaluating typing and semantics rules is always the same, regardless of the specific language implementation. We have also discussed how this evaluation must be re-implemented every time in a hard-coded compiler by using the abstractions provided by the host language, which leads to verbose code and the loss of the clarity and simplicity originally encoded in the type rules and semantics. In this section we define the requirements of Metacasanova, we informally present, through an example, how a meta-program works, and we finally propose the syntax and semantics of its meta-language.
 
 \subsection{Requirements of Metacasanova}
 In order to relieve programmers of manually defining the behaviour described in Section \ref{sec:problem} in the back-end of the compiler, we propose the following features for Metacasanova:
 
 \begin{itemize}
 	\item It must be possible to define custom operators (or functions) and data containers. This is needed to define the syntactic structures of the language we are defining.
-	\item It must be typed: each syntactic structure can be associated to a specific type in order to be able to detect meaningless terms (such as adding a string to an integer) and notify the error.
+	\item It must be typed: each syntactic structure can be associated to a specific type in order to be able to detect meaningless terms (such as adding a string to an integer) and notify the error to the user.
 	\item It must be possible to have polymorphic syntactical structures. This is useful to define equivalent ``roles'' in the language for the same syntactical structure; for instance we can say that an integer literal is both a \textit{Value} and an \textit{Arithmetic expression}.
 	\item It must natively support the evaluation of semantics rules, as those shown above.
 \end{itemize}
@@ -45,7 +45,7 @@ Value is Expr
 \noindent
 In this way we are saying that an atomic value is also an expression and we can pass both a composite expression and an atomic value to the evaluation function defined above.
 
-Metacasanova also allows to embed C\# code into the language by using double angular brackets. This code can be used to embed .NET types when defining data or functions, or to run C\# code in the rules. For example in the following snippets we define a floating point data which encapsulates a floating point number of .NET to be used for arithmetic computations:
+Metacasanova also allows to embed C\# code \footnote{See Section \ref{sec:code_generation} for the motivation.} into the language by using double angular brackets. This code can be used to embed .NET types when defining data or functions, or to run C\# code in the rules. For example in the following snippets we define a floating point data which encapsulates a floating point number of .NET to be used for arithmetic computations:
 
 \begin{lstlisting}
 Data "$f" -> <<float>> : Value
@@ -63,7 +63,7 @@ eval (a + b) => $f res
 \end{lstlisting}
 
 \noindent
-Note that if one of the two expressions does not return a floating point value, then the entire rule evaluation fails. Also note that we can embed C\# code to perform the actual arithmetic operation. Metacasanova selects a rule by means of pattern matching in order of declaration on the function arguments. This means that both of the following rules will be valid candidates to evaluate the sum of two expressions:
+Note that if one of the two expressions does not return a floating point value, then the entire rule evaluation fails. Also note that we can embed C\# code to perform the actual arithmetic operation. Metacasanova selects a rule by means of pattern matching (in order of declaration of rules) on the function arguments. This means that both of the following rules will be valid candidates to evaluate the sum of two expressions:
 
 \begin{lstlisting}
 ...
@@ -81,6 +81,7 @@ Finally the language supports expression bindings with the following syntax:
 x := $f 5
 \end{lstlisting}
 
+\begin{comment}
 \subsection{Syntax in BNF}
 The following is the syntax of Metacasanova in Backus-Naur form. Note that, for brevity, we omit the definitions of typical syntactical elements of programming languages, such as literals or identifiers:
 
@@ -124,6 +125,7 @@ id ":=" <constructor>
 <function> ::= Func <typeArguments> "=>" <typeDef> [Priority <literal>]
 <data> ::= Data <typeArguments> [Priority <literal>]
 \end{lstlisting}
+\end{comment}
 
 \subsection{Semi-formal Semantics}
 In what follows we assume that the pattern matching of the function arguments in a rule succeeds, otherwise a rule will fail to return a result.

@@ -9,14 +9,7 @@ Type systems are generally expressed in the form of logical rules \cite{cardelli
 	{\Gamma \vdash \text{if \textit{c} then \textit{t} else \textit{e}} : \tau}
 \end{mathpar}
 
-Typing a construct of the language requires to evaluate its corresponding typing rule. In order to do so, the behaviour of each typing rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following
-
-\begin{enumerate}
-	\item Evaluate a premise.
-	\item If the evaluation of the premise fails, then the construct fails the type check and an error is returned.
-	\item Repeat step 1 and 2 until all the premises have been evaluated.
-	\item Assign the type to the construct that is defined in the rule conclusion.
-\end{enumerate}
+Typing a construct of the language requires to evaluate its corresponding typing rule. In order to do so, the behaviour of each typing rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following : (\textit{i}) evaluate a premise, (\textit{ii}) if the evaluation of the premise fails then the construct fails the type check and an error is returned, (\textit{iii}) repeat step 1 and 2 until all the premises have been evaluated, and (\textit{iv}) assign the type to the construct that is defined in the rule conclusion.
 
 \subsection{Semantics}
 Semantics define how the language abstractions behave and can be expressed in different ways, for example with a term-rewriting system \cite{klop1992term} or with the operational semantics \cite{plotkin1981}. For the scope of this work, we choose to rely on the operational semantics. The definition of the operational semantics of a language abstraction is, again, in the form of a logical rule where the conclusion (which is the final behaviour of the construct) is achieved if the evaluation of the premises lead to the desired results. For instance, the operational semantics of a while loop could be the following:
@@ -32,14 +25,28 @@ Semantics define how the language abstractions behave and can be expressed in di
 	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle k \rangle}
 \end{mathpar}
 
-Again, the behaviour of the semantics rule must be encoded in the host language in which the compiler is being developed, but the pattern it follows is always the same. This step, depending on the implementation choice, might also require to translate this behaviour into an \textit{intermediate language} representation that is more suitable for the next code generation phase.
+Again, the behaviour of the semantics rule must be encoded in the host language in which the compiler is being developed, but the pattern it follows is always the same. This step, depending on the implementation choice, might also require to translate this behaviour into an \textit{intermediate language} representation that is more suitable for the subsequent code generation phase.
 
 \subsection{Discussion}
-The examples above show how the behaviour of the type checking and semantics rules must be hard-coded in the language chosen for the compiler implementation, regardless of the fact that their pattern is constantly repeated in every rule. This pattern can be captured in a meta-language that is able to process the type system and operational semantics definition of the language and produce the code to execute the behaviour of the rules. In this work we describe the meta-language for \textit{Metacasanova}, a meta-compiler that is able to read a program written in terms of type system/operational semantics rules defining a programming language, a program written in that language, and output executable code that mimics the behaviour of the semantics. Such a language relives the programmer from writing boiler-plate code when implementing a compiler for a (Domain-Specific) language. For this reason we formulate the following problem statement:
+The examples above show how the behaviour of the type checking and semantics rules must be hard-coded in the language chosen for the compiler implementation, regardless of the fact that their pattern is constantly repeated in every rule. This pattern can be captured in a meta-language that is able to process the type system and operational semantics definition of the language and produce the code to execute the behaviour of the rules. In this work we describe the meta-language for \textit{Metacasanova}, a meta-compiler that is able to read a program written in terms of type system/operational semantics rules defining a programming language, a program written in that language, and output executable code that mimics the behaviour of the semantics. Such a language relives the programmer from writing boiler-plate code when implementing a compiler for a (Domain-Specific) language. For this reason we formulate the following research question:
 
 \vspace{0.2cm}
 \noindent
-\textbf{Problem statement:} \textit{To what extent Metacasanova eases the development speed of a compiler for a Domain-Specific Language, in terms of code length compared to the hard-coded implementation, and what is the performance of the generated code with respect to a hard-coded compiler?}
+\textbf{Research question 1:} \textit{To what extent Metacasanova eases the development speed of a compiler for a Domain-Specific Language, in terms of code length compared to the hard-coded implementation, and how much does the abstraction layer of the Metacompiler affect the performance of the generated code?}
+
+\vspace{0.2cm}
+Another problem that arises when using meta-compilers is the performance decay given by the introduction of their additional abstraction layer. One of the reasons for this performance decay (see Section \ref{subsec:code_generation_discussion}) is that the meta-language (and thus the meta-type system) is unaware of the type system and the memory model of the language implemented in the meta-compiler. For this reason, checking the types and accessing the memory requires to dynamically look up a symbol table defined with the abstractions provided by the meta-language. The need for performance is for Metacasanova important because it is being used to extend the DSL for games \textit{Casanova} \cite{abbadi2015casanova, abbadithesis2017}. Thus, we formulate a second research question:
+
+\vspace{0.2cm}
+\noindent
+\textbf{Research question 2:} \textit{In what way we can embed the type system of the implemented language in Metacasanova in order to get rid of the dynamic lookups at runtime and what is the performance gain of this optimization?}
+
+\vspace{0.2cm}
+We try to answer these two research questions by using a two-steps methodology: (\textit{i}) we present an architecture for Metacasanova aimed to automate the process of code generation, and then (\textit{ii}) we propose a language extension to embed the implemented language type system in the meta-type system of Metacasanova.
 
 \subsection{Related work}
-\textbf{Fill in this section with related work, namely RML, workbenches for Haskell, and Stratego.}
+\textit{RML} \cite{pettersson1996compiler} is a meta-compiler based on operational semantics that is similar to Metacasanova. Its syntax is very close to that of ML and it generates C code. A notable effort was done to optimize the tail calls in the generated code for the rules, but the problem arisen by Research Question 2 is not addressed.
+
+\textit{Stratego} \cite{bravenboer2008stratego} is a meta-compiler based on a transformation system. A transformation language consists of a series of constructor calls to construct the terms of the grammar and functions that specify how to evaluate the terms. Stratego is not a typed language, so it does not ensure that the terms and transformation functions are used consistently.
+
+A language extension for Haskell involving \textit{template meta-programming} exists \cite{sheard2002template}. This approach suffers of the drawbacks presented in Section \ref{sec:introduction} and it is not suitable for game development DSL's due to the wide use of monads a lambda abstractions that greatly affect the performance and the lazy nature of Haskell that affects the memory usage.

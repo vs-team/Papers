@@ -13,7 +13,7 @@
 \IEEEoverridecommandlockouts 
 %% The usage of the following packages is recommended
 %% to insert graphics
-\usepackage[dvips]{graphicx}
+\usepackage{graphicx}
 % to typeset algorithms
 \usepackage{algorithmic}
 \usepackage{algorithm}
@@ -28,11 +28,12 @@
 \usepackage{url}
 % for vertical merging table cells
 \usepackage{multirow}
+\usepackage{comment}
 \usepackage{mathpartir}
 
 \lstset
 {
-	basicstyle = \ttfamily\small,
+	basicstyle = \ttfamily\footnotesize,
 	breaklines = true,
 	frame = single
 }
@@ -60,7 +61,7 @@ Email: p.spronck@tilburguniversity.edu, \\abbam@hr.nl,\\ giuseppemag@gmail.com}
 \maketitle
 
 \begin{abstract}
-	Implementing Domain-Specific Languages (DSL's) is desirable in several situations, as they offer language-level abstractions, which  General-purpose languages do not offer, that speed up the implementation of the solution of problems limited to a specific domain. Developers are left with the choice of developing a DSL by building an interpreter/compiler for it, which is a hard and time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, which meta-language is based on operational semantics, with a further optimization based on functors. We show how this optimization leads to better performance by re-implementing Casanova, a DSL for game development, and by comparing it with its old, unoptimized implementation.
+	Domain-Specific Languages (DSL's) offer language-level abstractions that General-purpose languages do not offer, thereby speeding up the implementation of the solution of problems within a specific domain. Developers have the choice of developing a DSL by building an interpreter/compiler for it, which is a hard and time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a dedicated compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, which meta-language is based on operational semantics, with a further optimization based on functors. Our result shows that Metacasanova drastically reduces the code lines required to develop a compiler, and that the running time of the Meta-program is improved with the use of functors in the meta-language.
 \end{abstract}
 
 \section{Introduction}
@@ -85,9 +86,11 @@ Email: p.spronck@tilburguniversity.edu, \\abbam@hr.nl,\\ giuseppemag@gmail.com}
 
 \section{Evaluation}
 \label{sec:evaluation}
+\input{Sections/evaluation}
 
-\section{Conclusion and future work}
+\section{Conclusion}
 \label{sec:conclusion}
+\input{Sections/conclusion}
 
 \bibliography{references}
 \bibliographystyle{plain}
