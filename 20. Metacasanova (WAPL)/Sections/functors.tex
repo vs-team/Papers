@@ -1,4 +1,4 @@
-In Section \ref{sec:semantics} and Section \ref{sec:code_generation} we presented the semantics of Metacasanova and we showed how the meta-compiler generates the code necessary to represent the elements of the language and the evaluation of the rules expressed in terms of operational semantics. In Section \ref{subsec:code_generation_discussion} we highlighted the problem of performance degradation, due to the additional abstraction layer of the meta-compiler, and identified a possible cause in how the language manages the memory representation. For now, the memory can only be expressed with a dynamic symbol table that must be looked up at run-time in order to retrieve the value of a variable or of a class/record field. In this section we propose an extension to Metacasanova with \textit{Modules} and \textit{Functors}\footnote{We use the term \textit{functor} with the same meaning used in the scope of the language \texttt{CamL}} that will allow to inline the access to record fields at compile time. In order to provide additional clarity to the explanation, we introduce, in the next section, an example that we use as reference across the whole section.
+In Section \ref{sec:semantics} and Section \ref{sec:code_generation} we presented the semantics of Metacasanova and we showed how the meta-compiler generates the code necessary to represent the elements of the language and the evaluation of the rules expressed in terms of operational semantics. In Section \ref{subsec:code_generation_discussion} we highlighted the problem of performance degradation, due to the additional abstraction layer of the meta-compiler, and identified a possible cause in how the language manages the memory representation. For now, the memory can only be expressed with a dynamic symbol table that must be looked up at run-time in order to retrieve the value of a variable or of a class/record field. In this section we propose an extension to Metacasanova with \textit{Modules} and \textit{Functors}\footnote{We use the term \textit{functor} with the same meaning used in the scope of the language \texttt{CamL}} that will allow to inline the access to record fields at compile time and to embed an arbitrary type system into the meta-type system of Metacasanova. In order to provide additional clarity to the explanation, we introduce, in the next section, an example that we use as reference across the whole section.
 
 \subsection{Case study}
 Assume that we want to represent a physical body with a \texttt{Position} and a \texttt{Velocity} in a 2D space. This can be defined as a data structure containing two fields for its physical properties (the example below is written in F\#). 
@@ -114,7 +114,7 @@ RecordField name type r = Record {
 
 \noindent
 Note that the return type of \texttt{cons} is to be intended as calling \texttt{RecordType} of the current module, so as it were \texttt{this.RecordType}.
-The getter of a field must be able to lookup the record data structure in search and generate a function to get the value from it. For this reason, the functor instantiates two separate modules, depending of the name of the current field we are examining.
+The getter of a field must be able to lookup the record data structure in search of the field and generate a function to get the value from it. For this reason, the functor instantiates two separate modules, depending on the name of the field that we are currently examining.
 
 \begin{lstlisting}
 name = fieldName
@@ -176,7 +176,7 @@ SetField lt (RecordField name type r) => Setter name thisRecord{
 \end{lstlisting}
 
 \subsection{Functor result inlining}
-If a premise or a conclusion contains a call to a functor, this calls is evaluated at compile time, rather than at runtime. Metacasanova has been extended with an interpreter which is able to evaluate the result of the functor calls. The behaviour of the interpreter follows the same logic explained when presenting the code generation steps in Section \ref{sec:code_generation}, thus here we do not present the details for brevity. When a rule outputs the instantiation of the module, the generated code will contain only rules of the modules which conclusion contains a function (i.e. functions that output values, not functors). In this way the generated code will contain a different version of those functions depending on the instantiation parameters of the module.
+If a premise or a conclusion contains a call to a functor, this call is evaluated at compile time, rather than at runtime. Metacasanova has been extended with an interpreter which is able to evaluate the result of the functor calls. The behaviour of the interpreter follows the same logic explained when presenting the code generation steps in Section \ref{sec:code_generation}, thus here we do not present the details for brevity. When a rule outputs the instantiation of the module, the generated code will contain only rules of the modules which conclusion contains a function (i.e. functions that output values, not functors). In this way the generated code will contain a different version of those functions depending on the instantiation parameters of the module.
 
 We now show how to use the implementation of the records given in Section \ref{subsec:record_implementation} for the physical body presented as a case study.
 The definition of the record type for the physical body is done through a functor
@@ -197,7 +197,7 @@ Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
 cons x xs -> (x,xs)
 \end{lstlisting}
 
-This because the functor will call the evaluation rule for \texttt{RecordField} with the argument \texttt{(Recordfield "Velocity" Vector2 (EmptyRecord))}. This rule generates the function \texttt{cons} by evaluating the result of the functors \texttt{EmptyRecord.RecordType} e \texttt{this.RecordType}, which in turn produce \texttt{unit} and \texttt{Tuple[Vector2,unit]}.
+This because the functor will call the evaluation rule for \texttt{RecordField} with the argument \texttt{(Recordfield "Velocity" Vector2 (EmptyRecord))}. This rule generates the function \texttt{cons} by evaluating the result of the functors \texttt{EmptyRecord.RecordType} e \texttt{RecordField.RecordType}, which respectively produce \texttt{unit} and \texttt{Tuple[Vector2,unit]}.
 
 Instantiating a physical body will just require to build a function that returns the type of the physical body, which is obtained by calling the functor \texttt{PhysicalBodyType}.
 
