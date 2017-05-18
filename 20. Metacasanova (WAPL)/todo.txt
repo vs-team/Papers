@@ -1,0 +1,23 @@
+TITLE:
+- Focus on the type system of Metacasanova and functors and also in the Abstract.
+
+SECTION 2:
+- Add an explanation about the typing rule and the semantics rule.
+- Check out papers published at the conference to see if it is really necessary.
+
+SECTION 3:
+- Remove the Priority clause because it is never used.
+- Add a comma in the premise of R2 and R3(B) before "there exists".
+
+SECTION 5:
+- Explain what a functor is in the introduction.
+- GetAnotherField is misspelled in page 8 left column bottom.
+
+SECTION 6:
+- Explain better the evaluation and its results.
+- Try to fit the tables and picture in the same page as the evaluation.
+- Split the table into 3 tables for each amount of records in the test and add a percentage with the improvement ratio.
+- Add the code for the if-then-else and the C# version.
+
+CONCLUSION:
+- Add a summary about the novelty of Metacasanova vs the rest.
