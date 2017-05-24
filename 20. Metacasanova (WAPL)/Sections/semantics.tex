@@ -17,7 +17,7 @@ We can see that these specifications are compatible with the definition of meta-
 A Metacasanova program is made of a set of \texttt{Data} and \texttt{Function} definitions, and a sequence of rules. A data definition specifies the constructor name of the data type (used to construct the data type), its field types, and the type name of the data. Optionally it is possible to specify a priority for the constructor of the data type. For instance this is the definition of the sum of two arithmetic expression
 
 \begin{lstlisting}
-Data Expr -> "+" -> Expr : Expr  Priority 500
+Data Expr -> "+" -> Expr : Expr
 \end{lstlisting}
 
 \noindent
@@ -148,7 +148,7 @@ In what follows we consider a set of rules defined in the Metacasanova language 
 	\mprset{flushleft}
 	\inferrule*[left=R2:]
 	{\forall c_{i} \in C \;, \langle c_{i} \rangle \Rightarrow true \\\\
-		\forall f_{j} \in F \; \exists r_{k} \in R \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \lbrace x_{k_{1}}, x_{k_{2}}, ..., x_{k_{m}} \rbrace}
+		\forall f_{j} \in F \; , \exists r_{k} \in R \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \lbrace x_{k_{1}}, x_{k_{2}}, ..., x_{k_{m}} \rbrace}
 	{\langle f^{r} \rangle \Rightarrow \lbrace x_{1}, x_{2}, ..., x_{n} \rbrace} \\
 	
 	\mprset{flushleft}
@@ -158,7 +158,7 @@ In what follows we consider a set of rules defined in the Metacasanova language 
 	
 	\mprset{flushleft}
 	\inferrule*[left=R3(b)]
-	{\forall r_{k} \in R \; \exists f_{j} \in F \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \emptyset}
+	{\forall r_{k} \in R \; , \exists f_{j} \in F \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \emptyset}
 	{\langle f^{r} \rangle \Rightarrow \emptyset}
 \end{mathpar}
 

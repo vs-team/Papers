@@ -1,40 +1,51 @@
-An extensive evaluation of Casanova implemented in Metacasanova, which we omit for brevity, can be found in \cite{DiGiacomo2017}. The implementation of Casanova operational semantics in Metacasanova is almost 5 times shorter than the corresponding F\# implementation in the hard-coded compiler. In addition to Casanova, we have implemented a subset of the C language called C-{}-. This language supports \texttt{if-then-else}, \texttt{while-loop}, and \texttt{for} statements, as well as local scoping of variables. The total length of the language definition in Metacasanova is 353 lines of code. The corresponding C\# code to implement the operational semantics of the language is 3123 lines, thus the code reduction with Metacasanova is roughly 8.84 times. For comparison, in Table \ref{tab:cmm} it is possible to see the code length to implement three different statements, both in Metacasanova and C\#. We tested C -{}- against Python by computing the average running time to compute the factorial of a number. C-{}- results to be 2 orders of magnitude slower than Python. This result is worse than what we obtained with Casanova, because in order to emulate the interruptible rule mechanism of Casanova in Python you must rely on coroutines that are slower than a program containing simple statements. Moreover, we tested the performance improvement of the optimization using Functors to represent records against the standard one using dynamic symbol tables. The test was run using records with a number of fields ranging from 1 to 10 and updating from 10000 to 1000000 instances of such records. The results can be seen in Table \ref{tab:functors} and Figure \ref{fig:chart}: the optimization using Functors leads to a performance increase on average of one order of magnitude over the implementation with dictionaries. In Figure \ref{fig:chart} we can also see that the performance of the dynamic table degrades considerably when increasing the number of fields, while the performance of the implementation with Functors is almost constant.  Note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET. If the symbol table is represented as a meta-data structure in the language the performance would be even worse, since it has to be encoded a list of pairs with the field name and its value.
+An extensive evaluation of Casanova implemented in Metacasanova, which we omit for brevity, can be found in \cite{DiGiacomo2017}. The implementation of Casanova operational semantics in Metacasanova is almost 5 times shorter than the corresponding F\# implementation in the hard-coded compiler. In addition to Casanova, we have implemented a subset of the C language called C-{}-. This language supports \texttt{if-then-else}, \texttt{while-loop}, and \texttt{for} statements, as well as local scoping of variables. The total length of the language definition in Metacasanova is 353 lines of code. The corresponding C\# code to implement the operational semantics of the language is 3123 lines, thus the code reduction with Metacasanova is roughly 8.84 times. For comparison, in Table \ref{tab:cmm} it is possible to see the code length to implement three different statements, both in Metacasanova and C\#. We tested C -{}- against Python by computing the average running time to compute the factorial of a number. C-{}- results to be 2 orders of magnitude slower than Python. This result is worse than what we obtained with Casanova, because in order to emulate the interruptible rule mechanism of Casanova in Python you must rely on coroutines that are slower than a program containing simple statements. Moreover, we tested the performance improvement of the optimization using Functors to represent records against the standard one using dynamic symbol tables. The test was run using records with a number of fields ranging from 1 to 10 and updating from 10000 to 1000000 instances of such records. In Table \ref{tab:functors}, we can see that the optimization using Functors leads to a performance increase on average of one order of magnitude over the implementation with dictionaries, with peaks of two orders of magnitude. Figure \ref{fig:chart} shows a chart of the overall performance of the two techniques (the data points are taken from Table \ref{tab:functors}). The horizontal axis contains the amount of fields per record, while the vertical axis contains the number of records that are being updated. We can see that the performance of the dynamic table degrades considerably when increasing the number of fields, and that the higher the amount of records is, the steeper the curve is. On the other hand, the performance of the implementation with Functors is almost constant, regardless of the amount of fields or records that are being updated. Moreover, note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET, which can access the entries in $O(\log n)$. If the symbol table is represented as a meta-data structure in the language the performance would be even worse, since it has to be encoded a list of pairs with the field name and its value, and its manipulation would be affected by the evaluation rules that should implement this behaviour.
 
 \begin{table}	
-	\caption{Running time with the functor optimization and the dynamic table.}
+	\caption{Running time with the functor optimization and the dynamic table with differen amount of records and fields per record.}
 	\begin{tabular}{|c|c|c|c|}
 		\hline
 		\textbf{FIELDS}& \textbf{RECORDS}& \textbf{Functors (ms)}&\textbf{Dynamic Table (ms)}\\ \hline
-		1&	10000&	1.00E-05& 5.00E-06\\ \hline
-		1&	100000&	9.60E-05& 6.30E-05\\ \hline
-		1&	1000000&	0.000947& 0.000729\\ \hline
-		2&	10000&	9.00E-06& 1.30E-05\\ \hline
-		2&	100000&	9.40E-05&0.000159\\ \hline
-		2&	1000000&	0.000951&0.001783\\ \hline
-		3&	10000&	9.00E-06&2.70E-05\\ \hline
-		3&	100000&	9.50E-05&0.000304\\ \hline
-		3&	1000000&	0.00095&0.003332\\ \hline
-		4&	10000&	9.00E-06&4.50E-05\\ \hline
-		4&	100000&	9.60E-05&0.000503\\ \hline
-		4&	1000000&	0.00096&0.00543\\ \hline
-		5&	10000&	9.00E-06&7.00E-05\\ \hline
-		5&	100000&	9.60E-05&0.000752\\ \hline
-		5&	1000000&	0.000965&0.008027\\ \hline
-		6&	10000&	9.00E-06&9.90E-05\\ \hline
-		6&	100000&	9.60E-05&0.001051\\ \hline
-		6&	1000000&	0.000971&0.01111\\ \hline
-		7&	10000&	9.00E-06&0.000133\\ \hline
-		7&	100000&	9.70E-05&0.001413\\ \hline
-		7&	1000000&	0.000975&0.014739\\ \hline
-		8&	10000&	9.00E-06&0.000175\\ \hline
-		8&	100000&	9.80E-05&0.001822\\ \hline
-		8&	1000000&	0.000982&0.018931\\ \hline
-		9&	10000&	9.00E-06&0.00022\\ \hline
-		9&	100000&	9.90E-05&0.002294\\ \hline
-		9&	1000000&	0.000992&0.023666\\ \hline
-		10&	10000&	9.00E-06&0.00027\\ \hline
-		10&	100000&	0.0001&	0.002805\\ \hline
-		10&	1000000& 0.001004&	0.028732\\ \hline		
+		1&	10000&	1.00E-05&	5.00E-06\\ \hline
+		2&	10000&	9.00E-06&	1.30E-05\\ \hline
+		3&	10000&	9.00E-06&	2.70E-05\\ \hline
+		4&	10000&	9.00E-06&	4.50E-05\\ \hline
+		5&	10000&	9.00E-06&	7.00E-05\\ \hline
+		6&	10000&	9.00E-06&	9.90E-05\\ \hline
+		7&	10000&	9.00E-06&	1.33E-04\\ \hline
+		8&	10000&	9.00E-06&	1.75E-04\\ \hline
+		9&	10000&	9.00E-06&	2.20E-04\\ \hline
+		10&	10000&	9.00E-06&	2.70E-04\\ \hline			
+	\end{tabular}
+	\vspace{0.15cm}
+	\begin{tabular}{|c|c|c|c|}
+		\hline
+		\textbf{FIELDS}& \textbf{RECORDS}& \textbf{Functors (ms)}&\textbf{Dynamic Table (ms)}\\ \hline
+		1&	100000&	9.60E-05&	6.30E-05\\ \hline
+		2&	100000&	9.40E-05&	1.59E-04\\ \hline
+		3&	100000&	9.50E-05&	3.04E-04\\ \hline
+		4&	100000&	9.60E-05&	5.03E-04\\ \hline
+		5&	100000&	9.60E-05&	7.52E-04\\ \hline
+		6&	100000&	9.60E-05&	1.05E-03\\ \hline
+		7&	100000&	9.70E-05&	1.41E-03\\ \hline
+		8&	100000&	9.80E-05&	1.82E-03\\ \hline
+		9&	100000&	9.90E-05&	2.29E-03\\ \hline
+		10&	100000&	1.00E-04&	2.81E-03\\ \hline				
+	\end{tabular}
+	\vspace{0.15cm}
+	\begin{tabular}{|c|c|c|c|}
+		\hline
+		\textbf{FIELDS}& \textbf{RECORDS}& \textbf{Functors (ms)}&\textbf{Dynamic Table (ms)}\\ \hline
+		1&	1000000&	9.47E-04&	7.29E-04\\ \hline
+		2&	1000000&	9.51E-04&	1.78E-03\\ \hline
+		3&	1000000&	9.50E-04&	3.33E-03\\ \hline
+		4&	1000000&	9.60E-04&	5.43E-03\\ \hline
+		5&	1000000&	9.65E-04&	8.03E-03\\ \hline
+		6&	1000000&	9.71E-04&	1.11E-02\\ \hline
+		7&	1000000&	9.75E-04&	1.47E-02\\ \hline
+		8&	1000000&	9.82E-04&	1.89E-02\\ \hline
+		9&	1000000&	9.92E-04&	2.37E-02\\ \hline
+		10&	1000000&	1.00E-03&	2.87E-02\\ \hline
+					
 	\end{tabular}
 	\label{tab:functors}
 \end{table}
@@ -53,6 +64,8 @@ An extensive evaluation of Casanova implemented in Metacasanova, which we omit f
 		\texttt{For} & 11 & 81\\
 		\hline
 	\end{tabular}
+	
+	\vspace{0.15cm}
 	\begin{tabular}{|c|c|}
 		\hline
 		\textbf{C-{}-} & \textbf{Python} \\
@@ -64,7 +77,7 @@ An extensive evaluation of Casanova implemented in Metacasanova, which we omit f
 \end{table}
 
 \begin{figure}
-	\label{fig:chart}
 	\includegraphics[width = \columnwidth]{Figures/chart.jpg}
 	\caption{Execution time of the different memory models}
+	\label{fig:chart}
 \end{figure}

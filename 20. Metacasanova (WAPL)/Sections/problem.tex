@@ -9,6 +9,9 @@ Type systems are generally expressed in the form of logical rules \cite{cardelli
 	{\Gamma \vdash \text{if \textit{c} then \textit{t} else \textit{e}} : \tau}
 \end{mathpar}
 
+\noindent
+In this rule $\Gamma$ is the environment. The type rule first evaluates the premises, which means that if the condition of the \texttt{if-then-else} has type \texttt{bool} and both \texttt{then} and \texttt{else} blocks have the same type, then the whole \texttt{if-then-else} has the type of either blocks.
+
 Typing a construct of the language requires to evaluate its corresponding typing rule. In order to do so, the behaviour of each typing rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following : (\textit{i}) evaluate a premise, (\textit{ii}) if the evaluation of the premise fails then the construct fails the type check and an error is returned, (\textit{iii}) repeat step 1 and 2 until all the premises have been evaluated, and (\textit{iv}) assign the type to the construct that is defined in the rule conclusion.
 
 \subsection{Semantics}
