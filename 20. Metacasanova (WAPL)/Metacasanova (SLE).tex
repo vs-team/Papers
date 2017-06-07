@@ -1,7 +1,7 @@
 %% For double-blind review submission
-\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true}
+%\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true}
 %% For single-blind review submission
-%\documentclass[sigplan,10pt,review]{acmart}\settopmatter{printfolios=true}
+\documentclass[sigplan,10pt,review]{acmart}\settopmatter{printfolios=true}
 %% For final camera-ready submission
 %\documentclass[sigplan,10pt]{acmart}\settopmatter{}
 
@@ -11,31 +11,45 @@
 
 
 %% Some recommended packages.
+\usepackage[T1]{fontenc}
 \usepackage{booktabs}   %% For formal tables:
                         %% http://ctan.org/pkg/booktabs
 \usepackage{subcaption} %% For complex figures with subfigures/subcaptions
                         %% http://ctan.org/pkg/subcaption
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{multirow}
+\usepackage{comment}
+\usepackage{mathpartir}
+\usepackage{listings}
+
+\lstset
+{
+	basicstyle = \ttfamily\footnotesize,
+	breaklines = true,
+	frame = single
+}
 
 
 \makeatletter\if@ACM@journal\makeatother
 %% Journal information (used by PACMPL format)
 %% Supplied to authors by publisher for camera-ready submission
-\acmJournal{PACMPL}
-\acmVolume{1}
-\acmNumber{1}
-\acmArticle{1}
-\acmYear{2017}
-\acmMonth{1}
-\acmDOI{10.1145/nnnnnnn.nnnnnnn}
-\startPage{1}
+%\acmJournal{PACMPL}
+%\acmVolume{1}
+%\acmNumber{1}
+%\acmArticle{1}
+%\acmYear{2017}
+%\acmMonth{1}
+%\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+%\startPage{1}
 \else\makeatother
 %% Conference information (used by SIGPLAN proceedings format)
 %% Supplied to authors by publisher for camera-ready submission
-\acmConference[PL'17]{ACM SIGPLAN Conference on Programming Languages}{January 01--03, 2017}{New York, NY, USA}
-\acmYear{2017}
-\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
-\acmDOI{10.1145/nnnnnnn.nnnnnnn}
-\startPage{1}
+\acmConference[SLE'17]{10th ACM SIGPLAN International Conference on Software Language Engineering}{October 23--24, 2017}{Vancouver, Canada}
+%\acmYear{2017}
+%\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+%\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+%\startPage{1}
 \fi
 
 
@@ -50,7 +64,6 @@
 
 
 %% Bibliography style
-\bibliographystyle{ACM-Reference-Format}
 %% Citation style
 %% Note: author/year citations are required for papers published as an
 %% issue of PACMPL.
@@ -71,14 +84,14 @@
 \begin{document}
 
 %% Title information
-\title[Short Title]{Full Title}         %% [Short Title] is optional;
+\title[Metacasanova]{Metacasanova: an optimized meta-compiler for Domain-Specific Languages}         %% [Short Title] is optional;
                                         %% when present, will be used in
                                         %% header instead of Full Title.
-\titlenote{with title note}             %% \titlenote is optional;
+%\titlenote{with title note}             %% \titlenote is optional;
                                         %% can be repeated if necessary;
                                         %% contents suppressed with 'anonymous'
-\subtitle{Subtitle}                     %% \subtitle is optional
-\subtitlenote{with subtitle note}       %% \subtitlenote is optional;
+%\subtitle{Subtitle}                     %% \subtitle is optional
+%\subtitlenote{with subtitle note}       %% \subtitlenote is optional;
                                         %% can be repeated if necessary;
                                         %% contents suppressed with 'anonymous'
 
@@ -94,94 +107,72 @@
 %% extraction tools.
 
 %% Author with single affiliation.
-\author{First1 Last1}
-\authornote{with author1 note}          %% \authornote is optional;
-                                        %% can be repeated if necessary
-\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\author{Francesco Di Giacomo}
 \affiliation{
-  \position{Position1}
-  \department{Department1}              %% \department is recommended
-  \institution{Institution1}            %% \institution is required
-  \streetaddress{Street1 Address1}
-  \city{City1}
-  \state{State1}
-  \postcode{Post-Code1}
-  \country{Country1}
+  \institution{Unviersit\`{a} Ca' Foscari}            %% \institution is required
+  \city{Venice}
+  \country{Italy}
 }
-\email{first1.last1@inst1.edu}          %% \email is recommended
+\email{francesco.digiacomo@unive.it}          %% \email is recommended
 
-%% Author with two affiliations and emails.
-\author{First2 Last2}
-\authornote{with author2 note}          %% \authornote is optional;
-                                        %% can be repeated if necessary
-\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\author{Mohamed Abbadi}
 \affiliation{
-  \position{Position2a}
-  \department{Department2a}             %% \department is recommended
-  \institution{Institution2a}           %% \institution is required
-  \streetaddress{Street2a Address2a}
-  \city{City2a}
-  \state{State2a}
-  \postcode{Post-Code2a}
-  \country{Country2a}
+	\institution{Hogeschool Rotterdam}            %% \institution is required
+	\city{Rotterdam}
+	\country{Netherlands}
 }
-\email{first2.last2@inst2a.com}         %% \email is recommended
+\email{abbam@hr.nl}          %% \email is recommended
+
+\author{Agostino Cortesi}
 \affiliation{
-  \position{Position2b}
-  \department{Department2b}             %% \department is recommended
-  \institution{Institution2b}           %% \institution is required
-  \streetaddress{Street3b Address2b}
-  \city{City2b}
-  \state{State2b}
-  \postcode{Post-Code2b}
-  \country{Country2b}
+	\institution{Unviersit\`{a} Ca' Foscari}            %% \institution is required
+	\city{Venice}
+	\country{Italy}
 }
-\email{first2.last2@inst2b.org}         %% \email is recommended
+\email{cortesi@unive.it}          %% \email is recommended
 
+\author{Pieter Spronck}
+\affiliation{
+	\institution{Tilburg University}            %% \institution is required
+	\city{Tilburg}
+	\country{Netherlands}
+}
+\email{p.spronck@tilburguniversity.edu}          %% \email is recommended
 
-%% Paper note
-%% The \thanks command may be used to create a "paper note" ---
-%% similar to a title note or an author note, but not explicitly
-%% associated with a particular element.  It will appear immediately
-%% above the permission/copyright statement.
-\thanks{with paper note}                %% \thanks is optional
-                                        %% can be repeated if necesary
-                                        %% contents suppressed with 'anonymous'
+\author{Giuseppe Maggiore}
+\affiliation{
+	\institution{Hogeschool Rotterdam}            %% \institution is required
+	\city{Rotterdam}
+	\country{Netherlands}
+}
+\email{giuseppemag@gmail.com}          %% \email is recommended
+
+\renewcommand{\shortauthors}{F. Di Giacomo et al.}
 
 
 %% Abstract
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-Text of abstract \ldots.
+	Domain-Specific Languages (DSL's) offer language-level abstractions that General-purpose languages do not offer, thereby speeding up the implementation of the solution of problems within a specific domain. Developers have the choice of developing a DSL by building an interpreter/compiler for it, which is a hard and time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a dedicated compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, whose meta-language is based on operational semantics. We then propose a language extension with functors and modules that allows to embed the type system of a language definition inside the meta-type system of Metacasanova and improves the performance of manipulating data structures at run-time. Our result shows that Metacasanova drastically reduces the code lines required to develop a compiler, and that the running time of the Meta-program is improved by embedding the host Language type system in the meta-type system with the use of functors in the meta-language.
 \end{abstract}
 
 
 %% 2012 ACM Computing Classification System (CSS) concepts
 %% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
 \begin{CCSXML}
-<ccs2012>
-<concept>
-<concept_id>10011007.10011006.10011008</concept_id>
-<concept_desc>Software and its engineering~General programming languages</concept_desc>
-<concept_significance>500</concept_significance>
-</concept>
-<concept>
-<concept_id>10003456.10003457.10003521.10003525</concept_id>
-<concept_desc>Social and professional topics~History of programming languages</concept_desc>
-<concept_significance>300</concept_significance>
-</concept>
-</ccs2012>
+ \begin{CCSXML}
+	<ccs2012>
+	<concept>
+	<concept_id>10011007.10011006.10011041.10011046</concept_id>
+	<concept_desc>Software and its engineering~Translator writing systems and compiler generators</concept_desc>
+	<concept_significance>500</concept_significance>
+	</concept>
+	</ccs2012>
 \end{CCSXML}
 
-\ccsdesc[500]{Software and its engineering~General programming languages}
-\ccsdesc[300]{Social and professional topics~History of programming languages}
-%% End of generated code
-
-
-%% Keywords
-%% comma separated list
-\keywords{keyword1, keyword2, keyword3}  %% \keywords is optional
+\ccsdesc[500]{Software and its engineering~Translator writing systems and compiler generators}
+\keywords{meta-compiler, functors, optimization, operational semantics}  %% \keywords is optional
 
 
 %% \maketitle
@@ -190,38 +181,35 @@ Text of abstract \ldots.
 %% environment and commands, and keywords command.
 \maketitle
 
-
 \section{Introduction}
+\label{sec:introduction}
+\input{Sections/introduction}
 
-Text of paper \ldots
+\section{Repetitive steps in compilers development}
+\label{sec:problem}
+\input{Sections/problem}
 
+\section{Metacasanova syntax and semantics}
+\label{sec:semantics}
+\input{Sections/semantics}
 
-%% Acknowledgments
-\begin{acks}                            %% acks environment is optional
-                                        %% contents suppressed with 'anonymous'
-  %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
-  %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
-  %% acknowledge financial support and will be used by metadata
-  %% extraction tools.
-  This material is based upon work supported by the
-  \grantsponsor{GS100000001}{National Science
-    Foundation}{http://dx.doi.org/10.13039/100000001} under Grant
-  No.~\grantnum{GS100000001}{nnnnnnn} and Grant
-  No.~\grantnum{GS100000001}{mmmmmmm}.  Any opinions, findings, and
-  conclusions or recommendations expressed in this material are those
-  of the author and do not necessarily reflect the views of the
-  National Science Foundation.
-\end{acks}
+\section{Code generation}
+\label{sec:code_generation}
+\input{Sections/code_generation}
 
+\section{Compile-time inlining with Functors}
+\label{sec:functors}
+\input{Sections/functors}
 
-%% Bibliography
-%\bibliography{bibfile}
+\section{Evaluation}
+\label{sec:evaluation}
+\input{Sections/evaluation}
 
+\section{Conclusion}
+\label{sec:conclusion}
+\input{Sections/conclusion}
 
-%% Appendix
-\appendix
-\section{Appendix}
-
-Text of appendix \ldots
+\bibliography{references}
+\bibliographystyle{ACM-Reference-Format}
 
 \end{document}

@@ -197,7 +197,7 @@ Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
 cons x xs -> (x,xs)
 \end{lstlisting}
 
-This because the functor will call the evaluation rule for \texttt{RecordField} with the argument \texttt{(Recordfield "Velocity" Vector2 (EmptyRecord))}. This rule generates the function \texttt{cons} by evaluating the result of the functors \texttt{EmptyRecord.RecordType} e \texttt{RecordField.RecordType}, which respectively produce \texttt{unit} and \texttt{Tuple[Vector2,unit]}.
+This because the functor will call the evaluation rule for \texttt{RecordField} with the argument \texttt{(Recordfield "Velocity" Vector2 (EmptyRecord))}. This rule generates the function \texttt{cons} by evaluating the result of the functors\\ \texttt{EmptyRecord.RecordType} and \texttt{RecordField.RecordType}, which respectively produce \texttt{unit} and \texttt{Tuple[Vector2,unit]}.
 
 Instantiating a physical body will just require to build a function that returns the type of the physical body, which is obtained by calling the functor \texttt{PhysicalBodyType}.
 

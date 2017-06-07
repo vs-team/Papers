@@ -1,7 +1,7 @@
 In Section \ref{sec:semantics} we defined the syntax and semantics of Metacasanova. In this section we explain how the abstractions of the language are compiled into the generated code. We chose C\# as target language because the development of Metacasanova started with the idea of expanding the DSL for game development Casanova with further functionalities. Casanova hard-coded compiler generated C\# code as well because it is compatible with game engines such as Unity3D and Monogame. At the same time, C\# grants decent performance without having to manually manage the memory such as for lower-level languages like C/C++. Code generation in different target languages is possible but still an ongoing project (see Section \ref{sec:conclusion}).
 
 \subsection{Data structures code generation}
-The type of each data structure is generated as an interface in C\#. Each data structure defined in Metacasanova is mapped to a \texttt{class} in C\# that implements such interface. The class contains as many fields as the number of arguments the data structure contains. Each field is given an automatic name \texttt{\tu\tu argC} where \texttt{C} is the index of the argument in the data structure definition. The data structure symbols used in the definition might be pre-processed and replaced in order to avoid illegal characters in the C\# class definition. The class contains an additional field that stores the original name of the data structure before the replacement is performed, used for its ``pretty print''. For example the data structure
+The type of each data structure is generated as an interface in C\#. Each data structure defined in Metacasanova is mapped to a \texttt{class} in C\# that implements such interface. The class contains as many fields as the number of arguments the data structure contains. Each field is given an automatic name \texttt{argC} where \texttt{C} is the index of the argument in the data structure definition. The data structure symbols used in the definition might be pre-processed and replaced in order to avoid illegal characters in the C\# class definition. The class contains an additional field that stores the original name of the data structure before the replacement is performed, used for its ``pretty print''. For example the data structure
 
 \begin{lstlisting}
 Data "$i" -> int : Value
@@ -124,7 +124,7 @@ a = __tmp0.__arg0;
 b = __tmp0.__arg1;
 \end{lstlisting}
 
-Note that the type conversion from the polymorphic type \texttt{Expr} into \texttt{\tu\tu opPlus} is now safe because we have already checked during the pattern matching that we actually have \texttt{\tu\tu opPlus}.
+Note that the type conversion from the polymorphic type \texttt{Expr} into \texttt{opPlus} is now safe because we have already checked during the pattern matching that we actually have \texttt{opPlus}.
 
 \subsubsection{Generation of premises}
 Before evaluating each premise, we must instantiate the class for the function that they are invoking. The input arguments of the function call must be copied into the fields of the instantiated object. If one of the arguments is an explicit data argument, then it must be instantiated and then its arguments should be initialized, and then the whole data argument must be assigned to the respective function object field. After this step, it is possible to invoke the \texttt{Run} method of the function to start its execution. The first premise of the example above then becomes (the generation of the second is analogous):
@@ -169,7 +169,7 @@ c = __tmp3.__arg0;
 \end{lstlisting}
 
 \subsubsection{Generation of the result}
-When all premises correctly output the expected result, the rule can output the final result. In order to do that, the generated code must copy the right part of the conclusion (the result) into the \texttt{\tu\tu res} variable of the function class. If the right part of the conclusion is, again, an explicit data argument, then the data object must first be instantiated and then copied into the result. For example the result of the rule above is generated as follows:
+When all premises correctly output the expected result, the rule can output the final result. In order to do that, the generated code must copy the right part of the conclusion (the result) into the \texttt{res} variable of the function class. If the right part of the conclusion is, again, an explicit data argument, then the data object must first be instantiated and then copied into the result. For example the result of the rule above is generated as follows:
 
 \begin{lstlisting}
 res = c + d;
