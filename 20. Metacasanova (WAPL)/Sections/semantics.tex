@@ -32,7 +32,7 @@ Data Expr -> Expr -> "+" : Expr
 A function definition is similar to a data definition but it also has a return type. For instance the following is the evaluation function definition for the arithmetic expression above:
 
 \begin{lstlisting}
-Func "eval" -> Expr : Evaluator => Value
+Func "eval" -> Expr : Value
 \end{lstlisting}
 
 \noindent
@@ -136,7 +136,7 @@ The informal semantics of the rule evaluation in Metacasanova is the following:
 	\item[R3] A rule fails if at least one clause evaluates to \texttt{false} or one of the function calls fails (returning no results).
 \end{enumerate}
 We will express the semantics, as usual, in the form of logical rules, where the conclusion is obtained when all the premises are true.
-In what follows we consider a set of rules defined in the Metacasanova language $R$. Each rule has a set of function calls $F$ and a set of clauses (boolean expressions) $C$. We use the notation $f^{r}$ to express the application of the function $f$ through the rule $r$. We will define the semantics by using the notation $\langle expr \rangle$ to mark the evaluation of an expression, for example $\langle f^{r} \rangle$ means evaluating the application of $f$ through $r$. Note that in R2 the evaluation returns a set of results because there might be more than one rule that can successfully evaluate the premise. The following is the formal semantics of the rule evaluation in Metacasanova, based on the informal behaviour defined above:
+In what follows we consider a set of rules defined in the Metacasanova language $R$. Each rule has a set of function calls $F$ and a set of clauses (boolean expressions) $C$. We use the notation $f^{r}$ to express the application of the function $f$ through the rule $r$. We will define the semantics by using the notation $\langle expr \rangle$ to mark the evaluation of an expression, for example $\langle f^{r} \rangle$ means evaluating the application of $f$ through $r$. The following is the formal semantics of the rule evaluation in Metacasanova, based on the informal behaviour defined above:
 
 
 \begin{mathpar}
@@ -148,8 +148,8 @@ In what follows we consider a set of rules defined in the Metacasanova language 
 	\mprset{flushleft}
 	\inferrule*[left=R2:]
 	{\forall c_{i} \in C \;, \langle c_{i} \rangle \Rightarrow true \\\\
-		\forall f_{j} \in F \; , \exists r_{k} \in R \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \lbrace x_{k_{1}}, x_{k_{2}}, ..., x_{k_{m}} \rbrace}
-	{\langle f^{r} \rangle \Rightarrow \lbrace x_{1}, x_{2}, ..., x_{n} \rbrace} \\
+		\forall f_{j} \in F \; , \exists r_{k} \in R \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \lbrace x_{r^{k}} \rbrace}
+	{\langle f^{r} \rangle \Rightarrow \lbrace x_{r} \rbrace} \\
 	
 	\mprset{flushleft}
 	\inferrule*[left=R3(a):]

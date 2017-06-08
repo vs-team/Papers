@@ -62,7 +62,7 @@ Module "Setter" => (name : string) => (r : Record ) {
 \noindent
 These two modules respectively define a functor to retrieve the type of the record field, and a function to get or set its value. Note that in the function definitions \texttt{get} and \texttt{set} we are calling the functor of the \texttt{Record} module to generate the appropriate type for the signature. This is allowed, since the result of a functor is indeed a type.
 
-A record meta-type (i.e. its representation at meta-language level) is recursively defined as a list of pairs $(field,type)$, which termination is given by \texttt{EmptyField}. We thus define the following functors:
+A record meta-type (i.e. its representation at meta-language level) is recursively defined as a sequence of pairs $(field,type)$, whose termination is given by \texttt{EmptyField}. We thus define the following functors:
 
 \begin{lstlisting}
 Functor "EmptyRecord" : Record
@@ -103,20 +103,20 @@ The function \texttt{cons} defines a constructor for the record, which, in the c
 ------------------
 RecordField name type r = Record {
   Func "cons" -> type -> r.RecordType : RecordType
-  Functor * => "*" => * : Tuple[*,*]
   
-  -------------------------
-  RecordType => (type * r.RecordType)
+  ---------------------------------------
+  RecordType => Tuple[type,r.RecordType]
   
   -------------------
   cons x xs -> (x,xs)} 
 \end{lstlisting}
 
 \noindent
-Note that the return type of \texttt{cons} is to be intended as calling \texttt{RecordType} of the current module, so as it were \texttt{this.RecordType}.
+Note that the return type of \texttt{cons} is to be intended as calling \texttt{RecordType} of the current module, so as it were \\ \texttt{this.RecordType}.
 The getter of a field must be able to lookup the record data structure in search of the field and generate a function to get the value from it. For this reason, the functor instantiates two separate modules, depending on the name of the field that we are currently examining.
 
-\begin{lstlisting}
+\begin{lstlisting}[caption = Module instantiations for getters, label = code:getters]
+//Rule 1
 name = fieldName
 thisRecord := RecordField name type r
 -----------------
@@ -126,6 +126,7 @@ GetField fieldName (RecordField name type r) => Getter name thisRecord {
   ---------------
   get (x,xs) -> x}
 
+//Rule 2
 name <> fieldName
 thisRecord := RecordField name type r
 ------------------
@@ -140,14 +141,15 @@ GetField fieldName (RecordField name type r) => Getter name type thisRecord{
   GetType => g.GetType
   
   GetAnotherField => getter
+  getter.get xs -> v
   -------------------
-  get (x,xs) -> getter.get xs}
+  get (x,xs) -> v }
 \end{lstlisting}
 
 \noindent
 Analogously, the setter of a field instantiates two separate module whether the current field is the one we want to set or not.
 
-\begin{lstlisting}
+\begin{lstlisting}[caption = Module instantiations for setters, label = code:setters]
 name = lt
 thisRecord := RecordField name type r
 ----------
@@ -158,7 +160,7 @@ SetField lt (RecordField name type r) => Setter name thisRecord{
   
   -------------------
   set (x,xs) v -> (v,xs)}
-  
+
 name <> lt
 thisRecord := RecordField name type r
 ------------
@@ -169,10 +171,12 @@ SetField lt (RecordField name type r) => Setter name thisRecord{
   SetAnotherField => SetField lt r
   
   ----------------------------
-  SetType => SetAnotherField.SetType
+  SetType => type
   
+  SetAnotherField => setter
+  setter.set xs v -> xs'
   ----------------------------------
-  set (x,xs) v -> SetAnotherField.set xs v}
+  set (x,xs) v -> (x,xs') }
 \end{lstlisting}
 
 \subsection{Functor result inlining}
@@ -184,11 +188,14 @@ The definition of the record type for the physical body is done through a functo
 \begin{lstlisting}
 Functor "PhysicalBodyType" : Record
 
------------
-PhysicalBodyType => RecordField "Position" Vector2 (RecordField "Velocity" Vector 2 (EmptyRecord))
+EmptyRecord => empty
+RecordField "Velocity" Vector2 empty => velocity
+RecordField "Position" Vector2 velocity => body
+--------------------------
+PhysicalBodyType => body
 \end{lstlisting}
 
-This rule is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate
+This rule is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate\footnote{Note that here we give a high-level representation of the generated rule that are actually directly generated as C\# code.}
 
 \begin{lstlisting}
 Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
@@ -219,10 +226,10 @@ getter.get PhysicalBody -> p
 getPos -> p
 \end{lstlisting}
 
-The result of the premise \texttt{GetField} will be evaluated at compile time and will instantiate a module containing the following function definition and rule.
+The result of the premise \texttt{GetField} will be evaluated at compile time through the code in Listing \ref{code:getters} and will instantiate a module containing the following function definition and rule.
 
 \begin{lstlisting}
-Func "get" -> Tuple[Vector2,Tuple[Vector2,unit]] -> Vector2
+Func "get" -> Tuple[Vector2,Tuple[Vector2,unit]] : Vector2
 
 -------------------------
 get (x,xs) -> x
@@ -230,5 +237,34 @@ get (x,xs) -> x
 
 \noindent
 Note that the second premise of \texttt{getPos} will immediately call the \texttt{get} generated in this step. The case of \texttt{setPos} is analogous except the setter takes an additional argument.
+
+Reading \texttt{Velocity} analogously uses a functor call to generate a getter:
+
+\begin{lstlisting}
+Func "getVel" -> PhysicalBodyType : Vector2
+
+GetField "Velocity" PhysicalBodyType => getter
+getter.get PhysicalBody -> p
+-------------------------------
+getVel -> p
+\end{lstlisting}
+
+\noindent
+This time the functor will generate two different functions in two separate modules. The first time the record is processed, \texttt{Rule 2} in Listing \ref{code:getters} will be activated (because the first field in the Record is \texttt{Position}). This rule will instantiate an additional module when evaluating the functor call in its premise, which in turn is able to get the \texttt{Velocity} field. The rule for \texttt{get} in the first module will contain in its premise a call to  \texttt{get} of the second module.
+
+\begin{lstlisting}
+//Code for module1
+Func "get" -> Tuple[Vector2,Tuple[Vector2,unit]] : Vector2
+
+module2.get xs -> v
+-------------------------
+get (x,xs) -> v
+
+//Code for module2 generated by evaluating the functor in the premise of Rule 2
+Func "get" -> Tuple[Vector2,unit] : Vector2
+
+------------------
+get (x,xs) -> x
+\end{lstlisting}
 
 We want to point out that this optimization has been presented on the specific case of records, but can be generalized for any situations where you would use a symbol table. Indeed any symbol table can be expressed with the representation above as a sequence of pair where the first item is the value of the current variable, and the second item is the continuation of the symbol table.
