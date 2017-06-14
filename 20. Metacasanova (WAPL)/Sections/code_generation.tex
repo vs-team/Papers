@@ -30,7 +30,7 @@ Each rule contains a set of premises that in general call different functions to
 
 \begin{enumerate}
 	\item Generate a data structure for each function defined in the meta-program.
-	\item For each function $f$ extract all the rules which conclusion contains $f$.
+	\item For each function $f$ extract all the rules whose conclusion contains $f$.
 	\item Create a \texttt{switch} statement with a case for each rule that is able to execute the function (the function is in its conclusion).
 	\item In the case block of each rule, define the local variables defined in the rule.
 	\item Apply pattern matching to the arguments of the function contained in the conclusion of the rule. If it fails, jump immediately to the next case (rule).
@@ -127,7 +127,7 @@ b = __tmp0.__arg1;
 Note that the type conversion from the polymorphic type \texttt{Expr} into \texttt{opPlus} is now safe because we have already checked during the pattern matching that we actually have \texttt{opPlus}.
 
 \subsubsection{Generation of premises}
-Before evaluating each premise, we must instantiate the class for the function that they are invoking. The input arguments of the function call must be copied into the fields of the instantiated object. If one of the arguments is an explicit data argument, then it must be instantiated and then its arguments should be initialized, and then the whole data argument must be assigned to the respective function object field. After this step, it is possible to invoke the \texttt{Run} method of the function to start its execution. The first premise of the example above then becomes (the generation of the second is analogous):
+Before evaluating each premise, we must instantiate the class for the function that they are invoking. The input arguments of the function call must be copied into the fields of the instantiated object. If one of the arguments is an explicit data argument, then it must be instantiated and its arguments should be initialized, and then the whole data argument must be assigned to the respective function field. After this step, it is possible to invoke the \texttt{Run} method of the function to start its execution. The first premise of the example above then becomes (the generation of the second is analogous):
 
 \begin{lstlisting}
 eval a -> $i c
@@ -183,7 +183,7 @@ break;
 \noindent
 After this step, the rule evaluation successfully returns a result.
 
-This implementation choice derives is due to the fact that we plan to support partial function applications, thus, when a function is partially applied, there is the need to store the values of the arguments that were partially given. This could still be implemented with static methods and lambdas in C\#, but not all programming languages natively support lambda abstractions, so we chose to have a set-up that allows us to change the target language without dramatically altering the logic of code generation.
+This implementation choice is due to the fact that we plan to support partial function applications, thus, when a function is partially applied, there is the need to store the values of the arguments that were partially given. This could still be implemented with static methods and lambdas in C\#, but not all programming languages natively support lambda abstractions, so we chose to have a set-up that allows us to change the target language without dramatically altering the logic of code generation.
 
 \subsection{Discussion}
 \label{subsec:code_generation_discussion}

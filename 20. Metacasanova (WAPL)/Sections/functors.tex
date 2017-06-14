@@ -147,7 +147,7 @@ GetField fieldName (RecordField name type r) => Getter name type thisRecord{
 \end{lstlisting}
 
 \noindent
-Analogously, the setter of a field instantiates two separate module whether the current field is the one we want to set or not.
+Analogously, the setter of a field instantiates two separate modules whether the current field is the one we want to set or not.
 
 \begin{lstlisting}[caption = Module instantiations for setters, label = code:setters]
 name = lt
@@ -195,7 +195,7 @@ RecordField "Position" Vector2 velocity => body
 PhysicalBodyType => body
 \end{lstlisting}
 
-This rule is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate\footnote{Note that here we give a high-level representation of the generated rule that are actually directly generated as C\# code.}
+This rule is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate\footnote{Note that here we give a high-level representation of the generated rules that are actually directly generated as C\# code.}
 
 \begin{lstlisting}
 Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
@@ -212,10 +212,10 @@ Instantiating a physical body will just require to build a function that returns
 Func "PhysicalBody" : PhysicalBodyType.RecordType
 
 -----------------------
-PhysicalBody -> PhysicalBodyType.cons((Vector3.Zero,(Vector3.zero,())))
+PhysicalBody -> PhysicalBodyType.cons((Vector2.Zero,(Vector2.Zero,())))
 \end{lstlisting}
 
-Defining the setter and getter of a field, requires to use the functor \texttt{GetField} to generate the appropriate getter function. After the module has been correctly generated, we can use the getter for the field. For example, in order to get the velocity field, we use the following function.
+Defining the setter and getter of a field, requires to use the functor \texttt{GetField} to generate the appropriate getter function. After the module has been correctly generated, we can use the getter for the field. For example, in order to get the position field, we use the following function.
 
 \begin{lstlisting}
 Func "getPos" -> PhysicalBodyType : Vector2

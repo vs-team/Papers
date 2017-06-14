@@ -127,7 +127,7 @@ id ":=" <constructor>
 \end{lstlisting}
 \end{comment}
 
-\subsection{Semi-formal Semantics}
+\subsection{Formalization}
 In what follows we assume that the pattern matching of the function arguments in a rule succeeds, otherwise a rule will fail to return a result.
 The informal semantics of the rule evaluation in Metacasanova is the following:
 \begin{enumerate}
@@ -143,7 +143,7 @@ In what follows we consider a set of rules defined in the Metacasanova language 
 	\mprset{flushleft}
 	\inferrule*[left=R1:]
 	{C = \emptyset \\\\ F = \emptyset}
-	{\langle f^{r} \rangle \Rightarrow x} \\
+	{\langle f^{r} \rangle \Rightarrow \lbrace x \rbrace} \\
 	
 	\mprset{flushleft}
 	\inferrule*[left=R2:]
@@ -162,7 +162,7 @@ In what follows we consider a set of rules defined in the Metacasanova language 
 	{\langle f^{r} \rangle \Rightarrow \emptyset}
 \end{mathpar}
 
-R1 says that, when both $C$ and $F$ are empty (we do not have any clauses or function calls), the rule in Metacasanova returns a result. R2 says that, if all the clauses in $C$ evaluates to true and, for all the function calls in $F$ we can find a rule that returns a result (all the function applications return a result for at least one rule of the program), then the current rules return a result. R3(a) and R3(b) specify when a rule fails to return a result: this happens when at least one of the clauses in $C$ evaluates to false, or when one of the function applications does not return a result for any of the rules defined in the program.
+R1 says that, when both $C$ and $F$ are empty (we do not have any clauses or function calls), the rule in Metacasanova returns a result. R2 says that, if all the clauses in $C$ evaluates to true and, for all the function calls in $F$ we can find a rule that returns a result (all the function applications return a result for at least one rule of the program), then the current rule returns a result. R3(a) and R3(b) specify when a rule fails to return a result: this happens when at least one of the clauses in $C$ evaluates to false, or when one of the function applications does not return a result for any of the rules defined in the program.
 
 \vspace{0.2cm}
 \noindent
