@@ -79,7 +79,7 @@ Functor "GetField" => string => Record : Getter
 Functor "SetField" => string => Record : Setter
 \end{lstlisting}
 
-The behaviour of functor is expressed, as for normal functions, through a rule in the meta-program. A rule that evaluates a functor returns an instantiation of a module. Note that, inside a module instantiation, it is possible to define and implement functions other than those in the module definition, i.e. the module instantiation must implement \textit{at least} all the functors and functions of the definition. For instance, the following is the type rule instantiating the module for \texttt{EmptyRecord}:
+The behaviour of functor is expressed, as for normal functions, through a rule in the meta-program. A rule that evaluates a functor returns an instantiation of a module or a type. Note that, inside a module instantiation, it is possible to define and implement functions other than those in the module definition, i.e. the module instantiation must implement \textit{at least} all the functors and functions of the definition. For instance, the following is the type rule instantiating the module for \texttt{EmptyRecord}:
 
 \begin{lstlisting}
 -------------------
@@ -120,7 +120,9 @@ The getter of a field must be able to lookup the record data structure in search
 name = fieldName
 thisRecord := RecordField name type r
 -----------------
-GetField fieldName (RecordField name type r) => Getter name thisRecord {
+GetField fieldName (RecordField name type r) => Getter fieldName thisRecord {
+
+  ----------------
   GetType => type
   
   ---------------
@@ -130,7 +132,7 @@ GetField fieldName (RecordField name type r) => Getter name thisRecord {
 name <> fieldName
 thisRecord := RecordField name type r
 ------------------
-GetField fieldName (RecordField name type r) => Getter name type thisRecord{
+GetField fieldName (RecordField name type r) => Getter fieldName thisRecord{
   Functor "GetAnotherField" : Getter
   
   ---------------
@@ -150,10 +152,10 @@ GetField fieldName (RecordField name type r) => Getter name type thisRecord{
 Analogously, the setter of a field instantiates two separate modules whether the current field is the one we want to set or not.
 
 \begin{lstlisting}[caption = Module instantiations for setters, label = code:setters]
-name = lt
+name = fieldName
 thisRecord := RecordField name type r
 ----------
-SetField lt (RecordField name type r) => Setter name thisRecord{
+SetField fieldName (RecordField name type r) => Setter fieldName thisRecord{
   
   -----------------
   SetType => type
@@ -161,17 +163,18 @@ SetField lt (RecordField name type r) => Setter name thisRecord{
   -------------------
   set (x,xs) v -> (v,xs)}
 
-name <> lt
+name <> fieldName
 thisRecord := RecordField name type r
 ------------
-SetField lt (RecordField name type r) => Setter name thisRecord{
-  TypeFunc "SetAnotherField" : Setter
+SetField fieldName (RecordField name type r) => Setter fieldName thisRecord{
+  Functor "SetAnotherField" : Setter
   
   -------------------------
-  SetAnotherField => SetField lt r
+  SetAnotherField => SetField fieldName r
   
+  SetAnotherField => s
   ----------------------------
-  SetType => type
+  SetType => s.SetType
   
   SetAnotherField => setter
   setter.set xs v -> xs'
@@ -218,7 +221,7 @@ PhysicalBody -> PhysicalBodyType.cons((Vector2.Zero,(Vector2.Zero,())))
 Defining the setter and getter of a field, requires to use the functor \texttt{GetField} to generate the appropriate getter function. After the module has been correctly generated, we can use the getter for the field. For example, in order to get the position field, we use the following function.
 
 \begin{lstlisting}
-Func "getPos" -> PhysicalBodyType : Vector2
+Func "getPos" : Vector2
 
 GetField "Position" PhysicalBodyType => getter
 getter.get PhysicalBody -> p
@@ -241,7 +244,7 @@ Note that the second premise of \texttt{getPos} will immediately call the \textt
 Reading \texttt{Velocity} analogously uses a functor call to generate a getter:
 
 \begin{lstlisting}
-Func "getVel" -> PhysicalBodyType : Vector2
+Func "getVel" : Vector2
 
 GetField "Velocity" PhysicalBodyType => getter
 getter.get PhysicalBody -> p
