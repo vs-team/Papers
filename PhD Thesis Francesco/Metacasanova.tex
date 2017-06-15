@@ -10,6 +10,9 @@
 \usepackage{graphicx}
 \usepackage{epigraph}
 \usepackage{comment}
+\usepackage{mathpartir}
+\usepackage{subcaption}
+\usepackage{multirow}
 \usepackage[chapter]{algorithm}
 \usepackage{algpseudocode}
 \usepackage[font=small,labelfont=bf]{caption}
@@ -67,116 +70,30 @@ Describe extensively the structure of all the modules of a compiler.
 
 Describe what it is existing in literature.
 	
-\chapter{Meta-casanova}		
-\section{Meta-casanova language}
-	\begin{itemize}[noitemsep]
-		\item Informal description of the grammar and rule evaluation.
-		\item Example: Small example (like Peano numbers)
-	\end{itemize}
-	
-Take the description from the INTETAIN paper and extend it with more examples and informal details.
-
-\section{Meta-casanova compiler architecture}
-	\begin{itemize}[noitemsep]
-		\item Formal syntax.
-		\item Formal rule evaluation.
-		\item Code generation.
-	\end{itemize}
-	
-Take the syntax from ACM concept paper and the formal evaluation of rules. Explain how the Yacc parser is built and the parser utility support and operator precedence handling. Explain how the code generation part is handled.
-
-\section{Example language in the meta-compiler}
-	\begin{itemize}[noitemsep]
-		\item Overview of C--
-		\item Memory representation.
-		\item Scoping.
-	\end{itemize}
-	
-Explain the case study of C--. Explain how the memory representation is built and how the scoping is handled. Discuss in detail the implementation in Meta-Casanova.
-
-\section{Casanova 2}
-\begin{itemize}[noitemsep]
-	\item Language structure and definition.
-	\item Example of program in Casanova 2.
-	\item Advantages of Casanova 2 as a DSL.
-	\item Difficulty in code generation and type checking due to the state machine generation and interface with .NET.
-\end{itemize}
-
-Explain how Casanova 2 language is defined. Give a small example of a program in Casanova 2 (maybe the patrol sample). 
-	
-\section{Casanova 2.5 in Meta-Casanova}
-\begin{itemize}[noitemsep]
-	\item World and Entity representation
-	\item Casanova rule evaluation
-	\item Interruption as Continuation Passing Style
-	\item Evaluation
-\end{itemize}
-	
-Entities as records implemented with Maps and Casanova rules. Explanation of the tick function (extend the paper). Interruption of control structures with Continuation Passing Style in Metacasanova with example.
-Using custom .NET libraries in Metacasanova. Performance decays due to the extensive use of Maps for memory access and wrappers around primitive data structures of .NET.
+\chapter{Metacasanova}
+\input{Chapters/metacasanova}		
+\label{ch:metacasanova}
 
 \chapter{Meta-casanova optimization}
-\input{Chapters/mcnv_optimization}
+\input{Chapters/functors}
 
-\section{Improve the performance of Metacasanova}
-Here explain the reasons behind performance decay and how this could be avoided. Show that in entities the fields are always in the same order and the structure is never changed, so we could inline directly the getter and setter for the field without using a Map.
-
-\section{Type functions}
-\begin{itemize}[noitemsep]
-	\item Overview of type classes in Haskell and modules in Caml.
-	\item Higher kinded polymorphism
-\end{itemize}
-
-Explain the background about type functions.
-
-\section{Type functions in Meta-casanova}
-\begin{itemize}[noitemsep]
-	\item Explain how to extend Metacasanova with type functions.
-	\item Explain the idea behind the type function inlining.
-	\item Extend the semantics of rule evaluation to include module generation and type function evaluation.
-	\item Records with type functions.
-\end{itemize}
-
-\section{Type function interpeter}
+\section{Functor interpeter}
 Here describe how the inlining process is implemented in the meta-compiler with the type function interpreter
 
 \section{C-- optimization}
-Show how to optimize the current C-- implementation by using Type Functions to populate the symbol table.
+Show how to optimize the current C-- implementation by using functors to populate the symbol table.
 
 \section{Casanova 2.5 optimization}
 \begin{itemize}[noitemsep]
-	\item Entity definition with Type Functions.
-	\item Entity traversal with Type Functions (?)
-	\item Rule update definition with Type Functions.
+	\item Entity definition with functors.
+	\item Entity traversal with functors (?)
+	\item Rule update definition with functors.
 	\item Evaluation.
 \end{itemize}
-Show how to use type functions to define an entity as a Record and how to inline the getter and setter of fields in rules.
+Show how to use functors to define an entity as a Record and how to inline the getter and setter of fields in rules.
 	
 \chapter{Networking primitives in Casanova 2}
-\section{General idea}
-	\begin{itemize}[noitemsep]
-		\item Overview of networking architecture with partially synchronized local game states.
-		\item P2P architecture with \textit{master} and \textit{slave} execution.
-	\end{itemize}
-	
-	There is no ``real'' game state: every client sees an approximation of the real game state containing only data that matters for networking synchronization. The rest is approximated locally. A client controls directly a portion of the game state (master), the rest is requested remotely to other clients (slave).
-\section{Syntax and semantics}
-	\begin{itemize}[noitemsep]
-		\item Connection.
-		\item Master and slave rules.
-		\item Semantics of slave rules.
-	\end{itemize}
-	
-	Propagating creation of entities during the connection. Execution of rules depending on the locality of the portion of game state: if the entity is master then we execute the master block, otherwise the slave block.
-\section{Send and receive primitives in Casanova 2}
-	\begin{itemize}[noitemsep]
-		\item Sending and receiving basic data types.
-		\item Entity synchronization at connection.
-		\item Sending and receiving updates on entities.
-		\item Sending and updating lists.
-	\end{itemize}
-	
-	Basic data types send and receive (should be expanded with custom-defined types). Maps for entities and entity references. Explain how remote copies of entities are handled. Problems with references in a distributed environment. Handling entities updates with a dictionary to overcome this problem. Creating and updating lists in a distributed environment with incremental updates.
+\input{Chapters/networking}
 
 \section{Meta-compiler implementation of networking operators}
 	
@@ -190,5 +107,8 @@ Show how to use type functions to define an entity as a Record and how to inline
 
 \chapter{Discussion and conclusion}
 Here it would be wise to discuss about the fact that you still need to define a program for a language implemented in Metacasanova in term of syntax of Metacasanova itself. Remark that it is trivial to solve this problem by writing a parser, for example in Yacc, that maps the proper syntax of the language into the syntax of Metacasanova, but we do not implement it because it has no scientific value.
+
+\bibliographystyle{plain}
+\bibliography{references}
 
 \end{document}
