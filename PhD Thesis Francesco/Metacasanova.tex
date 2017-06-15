@@ -76,34 +76,9 @@ Describe what it is existing in literature.
 
 \chapter{Meta-casanova optimization}
 \input{Chapters/functors}
-
-\section{Functor interpeter}
-Here describe how the inlining process is implemented in the meta-compiler with the type function interpreter
-
-\section{C-- optimization}
-Show how to optimize the current C-- implementation by using functors to populate the symbol table.
-
-\section{Casanova 2.5 optimization}
-\begin{itemize}[noitemsep]
-	\item Entity definition with functors.
-	\item Entity traversal with functors (?)
-	\item Rule update definition with functors.
-	\item Evaluation.
-\end{itemize}
-Show how to use functors to define an entity as a Record and how to inline the getter and setter of fields in rules.
 	
 \chapter{Networking primitives in Casanova 2}
 \input{Chapters/networking}
-
-\section{Meta-compiler implementation of networking operators}
-	
-\chapter{Final evaluation}
-\section{Performance evaluation of unoptimized Meta-casanova}
-	Evaluation from the INTETAIN paper. Comparison with Python. 
-
-\section{Performance evaluation of optimized Meta-casanova}
-
-\section{Networking evaluation}
 
 \chapter{Discussion and conclusion}
 Here it would be wise to discuss about the fact that you still need to define a program for a language implemented in Metacasanova in term of syntax of Metacasanova itself. Remark that it is trivial to solve this problem by writing a parser, for example in Yacc, that maps the proper syntax of the language into the syntax of Metacasanova, but we do not implement it because it has no scientific value.
