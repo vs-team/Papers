@@ -1,0 +1,51 @@
+\section{Architectural overview of a compiler}
+\label{sec:ch_background_compiler_architecture}
+Compilers are software that read as input a program written in a programming language, called \textit{source language}, and translate it into an equivalent program expressed with another programming language, called \textit{target language}. Usually the target language is machine code, but this is not mandatory. A special kind of compilers are interpreted, that directly execute the program written in the source language rather than translating it into a target language. Some languages, like Java, use a hybrid approach, that is they compile the program into an intermediate language that is later interpreted by a \textit{virtual machine}. Another approach involves the translation into a target high-level language [...].
+
+Although the architecture of a compiler may slightly vary depending on the specific implementation, the translation process usually consists of the following steps:
+
+\begin{enumerate}
+	\item \textbf{Lexical analysis:} this phase is performed by a module called \textit{lexer} that is able to process the text and identify the syntactical elements of the language, called \textit{tokens}.
+	\item \textbf{Syntactical analysis:} this phase is performed by a module called \textit{parser}, that checks whether the program written in the source language is compliant to the formal syntax of the language. The parser is tightly coupled with the lexer, as it needs to identify the tokens of the language to correctly process the syntax rules. The parser outputs a representation of the program, called \textit{Abstract Syntax Tree}, for later use.
+	\item \textbf{Type checking:} this phase is performed by the \textit{type checker} that uses the rules defined by a \textit{type system} to assign a property to the elements of the language called \textit{type}. The types are used to determine whether the abstractions of the language, in a program that is syntactically correct, are used in a meaningful way.
+	\item \textbf{Code generation:} the code generation phase requires to choose one or more target languages to emit. In the latter case, the code generator must have a modular structure to allow to interchange the output language. For this reason this step is usually preceded by an \textit{intermediate code generation} step, that converts the source program into an intermediate representation close to the target language. This phase can later be followed by different kinds of code optimization phases.
+\end{enumerate}
+
+In what follows we extensively describe each module that was summarized above.
+
+\section{Lexer}
+\label{sec:ch_background_compiler_lexer}
+As stated above, the lexer task is to recognize the \textit{words} or \textit{tokens} of the source language. In order to perform this task the token structure must be expressed in a formal way. Below we present such formalization and we describe the algorithm that actually recognize the token.
+
+Let us consider a finite alphabet $\Sigma$, a \textit{language} is a set of strings, intended as sequences of characters in $\Sigma$.
+
+\begin{definition}
+	A string in a language $L$ in the alphabet $\Sigma$ is a tuple of characters $\mathbf{a} \in \Sigma^{n}$.
+\end{definition}
+
+ A notable difference between  languages in this context and human-spoken languages is that, in the former, we do not associate a meaning to the words but we are only interested to define which words are part of the language and which are not. Regular expressions are used to define sets of strings:
+
+\begin{definition}
+	\label{def:ch_background_regexp}
+	 The following are the possible ways to define regular expressions:
+	\begin{itemize}[noitemsep]
+		\item \textit{Empty:} The regular expression $\varepsilon$ is a language containing only the empty string.
+		\item \textit{Symbol:} $\forall a \in \Sigma$, $\mathbf{a}$ is a string containing the character $a$.
+		\item \textit{Alternation:} Given two regular expressions $M$ and $N$, a string in the language of $M | N$, called alternation, is the sets of strings in the language of $M$ or $N$.
+		\item \textit{Concatenation:} Given two regular expressions $M$ and $N$, a string in the language of $M \cdot N$ is the language of strings $\mathbf{\alpha \cdot \beta}$ such as $\mathbf{\alpha} \in M$ and $\mathbf{\alpha} \in N$.
+		\item \textit{Repetition:} Given a regular expression $M$, its Kleene Closure $M^{*}$ is formed by the concatenation of zero or more strings in the language $M$.
+	\end{itemize}
+\end{definition}
+
+The regular expressions defined in Definition \ref{def:ch_background_regexp} can be combined to define tokens in a language.
+\section{Parser}
+\label{sec:ch_background_parser}
+
+\section{Type systems and type checking}
+\label{sec:ch_background_type_checking}
+
+\section{Intermediate code}
+\label{sec:ch_background_intermediate_code}
+
+
+

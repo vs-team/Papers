@@ -1,6 +1,7 @@
 \documentclass[8pt,a5paper]{extbook}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
+\usepackage{amsthm}
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
@@ -31,6 +32,10 @@
 	captionpos=b
 }
 
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+
+
 
 \makeindex
 \begin{document}
@@ -48,6 +53,9 @@
 	
 
 \chapter{Background}
+\epigraph{Trying to outsmart a compiler defeats much of the purpose of using one.}{Kernighan and Plauger - \textit{The Elements of Programming Style}.}
+\input{Chapters/background}
+\label{ch:background}
 \section{Compilers}
 
 \begin{itemize}[noitemsep]
