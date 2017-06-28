@@ -15,7 +15,7 @@ In what follows we extensively describe each module that was summarized above.
 
 \section{Lexer}
 \label{sec:ch_background_compiler_lexer}
-As stated above, the lexer task is to recognize the \textit{words} or \textit{tokens} of the source language. In order to perform this task the token structure must be expressed in a formal way. Below we present such formalization and we describe the algorithm that actually recognize the token.
+As stated above, the lexer task is to recognize the \textit{words} or \textit{tokens} of the source language. In order to perform this task the token structure must be expressed in a formal way. Below we present such formalization and we describe the algorithm that actually recognizes the token.
 
 Let us consider a finite alphabet $\Sigma$, a \textit{language} is a set of strings, intended as sequences of characters in $\Sigma$.
 
@@ -23,13 +23,13 @@ Let us consider a finite alphabet $\Sigma$, a \textit{language} is a set of stri
 	A string in a language $L$ in the alphabet $\Sigma$ is a tuple of characters $\mathbf{a} \in \Sigma^{n}$.
 \end{definition}
 
- A notable difference between  languages in this context and human-spoken languages is that, in the former, we do not associate a meaning to the words but we are only interested to define which words are part of the language and which are not. Regular expressions are used to define sets of strings:
+ A notable difference between  languages in this context and human-spoken languages is that, in the former, we do not associate a meaning to the words but we are only interested to define which words are part of the language and which are not. Regular expressions are a convenient formalization to define the structure of sets of strings:
 
 \begin{definition}
 	\label{def:ch_background_regexp}
 	 The following are the possible ways to define regular expressions:
 	\begin{itemize}[noitemsep]
-		\item \textit{Empty:} The regular expression $\varepsilon$ is a language containing only the empty string.
+		\item \textit{Empty:} The regular expression $\epsilon$ is a language containing only the empty string.
 		\item \textit{Symbol:} $\forall a \in \Sigma$, $\mathbf{a}$ is a string containing the character $a$.
 		\item \textit{Alternation:} Given two regular expressions $M$ and $N$, a string in the language of $M | N$, called alternation, is the sets of strings in the language of $M$ or $N$.
 		\item \textit{Concatenation:} Given two regular expressions $M$ and $N$, a string in the language of $M \cdot N$ is the language of strings $\mathbf{\alpha \cdot \beta}$ such as $\mathbf{\alpha} \in M$ and $\mathbf{\alpha} \in N$.
@@ -38,6 +38,62 @@ Let us consider a finite alphabet $\Sigma$, a \textit{language} is a set of stri
 \end{definition}
 
 The regular expressions defined in Definition \ref{def:ch_background_regexp} can be combined to define tokens in a language.
+
+Regular expressions can be processed by using a finite state automaton. Informally a finite state automaton is made of a finite set of states, an alphabet $\Sigma$ of which it is able to process the symbols, and a set of symbol-labelled edges that connect two states and define how to transition from one state to another. Automata can be divided into two categorise: \textit{non-deterministic finite state automata (NFA)} and \textit{deterministic finite state automata (DFA)}. Formally we have the following definitions:
+
+\begin{definition}
+	A non-deterministic finite state automaton (NFA) is made of:
+	
+	\begin{itemize}[noitemsep]
+		\item A finite set of states S.
+		\item An alphabet $\Sigma$ of input symbols.
+		\item A state $s_{0} \in S$ that is the starting state of the automaton.
+		\item A set of states $F \subset S$ called final or accepting states.
+		\item A transition function
+			\begin{equation*}
+				\begin{array}{l}
+					\tau : S \times \Sigma \cup \lbrace \epsilon \rbrace \rightarrow S\\
+					\tau(s_{i},c) = s_{j}
+				\end{array}
+			\end{equation*}
+			
+			that returns the next state $s_{j}$ that the automaton can reach after processing the symbol $c$ starting from the state $s_{i}$.
+	\end{itemize}
+\end{definition}
+
+\begin{definition}
+	A deterministic finite state automaton (DFA) is a NFA where $\tau : S \times \Sigma \rightarrow S$ and $\tau(s,c_{1}) = \tau(s,c_{2}) \Rightarrow c_{1} = c_{2}$
+\end{definition}
+
+Informally, in NFA's there might be two transitions from the same state that can process the same symbol, while in DFA's for the same state there exists one and only one transition able to process a symbol and no transition processes the empty string. Regular expressions can be converted in NFA by using translation rules. The formalization of the algorithm can be found in \cite{mcnaughton1960regular}, here we just show an informal overview for brevity.
+
+\subsection{Finite state automata for regular expressions}
+\label{subsec:ch_background_automata}
+In this section we present an informal overview of the translation rules for regular expressions into NFA's, and an algorithm to convert an NFA into a DFA.
+
+\paragraph{Conversion for Symbols}
+A regular expression containing just one symbol $a \in \Sigma$ can be converted by creating a transition $\tau(s_{i},a) = s_{j}$.
+
+\paragraph{Conversion for concatenation}
+The conversion for concatenation is recursive: the base case of the recursion is the symbol conversion. The conversion of a concatenation of $n$ symbols $a_{1}a_{2}, ..., a_{n}$ is obtained by adding a transition from the last state of the conversion for the first $n - 1$ symbols into a new state through a transition processing the n-th symbol, $\tau(s_{n - 1},a_{n}) = s_{n}$.
+
+\paragraph{Conversion for alternation}
+The alternation $M | N$ is obtained by creating an automata with a $\epsilon$-transition into a new state, that we call $s_{\epsilon}$. From $s_{\epsilon}$ we recursively generate the automata for both $M$ and $N$. Both automata can finally reach the same state through an $\epsilon$-transition.
+
+\paragraph{Conversion for Kleene closure}
+The Kleene Closure $M^{*}$ is obtained by initially creating an $\epsilon$-transition into a state $s_{\epsilon}$. $s_{\epsilon}$ can recursively transition to the automaton for $M$, which in turn transitions through an $\epsilon$-transition to $s_{\epsilon}$.
+
+\paragraph{Conversion for $\mathbf{M^{+}}$}
+The regular expression $M^{+}$ contains the concatenation of one or more strings in $M$. This can be translated by translating $M \cdot M^{*}$.
+
+\paragraph{Conversion for $\mathbf{M?}$}
+The regular expression $M?$ is a shortcut for $M|\epsilon$, thus it can be translated by using the conversion rule for the alternation.
+
+\subsection{Conversion of a NFA into a DFA}
+As stated in Section \ref{sec:ch_background_compiler_lexer}, a NFA might have, for the same state, a set of transitions that process the same symbol (including the empty string since $\epsilon$-transitions are allowed). This means that a NFA must be able to guess which transition to follow when trying to process a token. This is not efficient to implement in a computer, thus it is better to use a DFA where there can be only one way of processing a symbol for a given state. An algorithm to automate such conversion exists and is presented in \cite{aho2007compilers} but there exists an algorithm to directly convert regular expressions into DFA's, as shown in \cite{aho1986compilers}. Below we present the algorithm to convert NFA's into DFA's.
+
+
+
 \section{Parser}
 \label{sec:ch_background_parser}
 
