@@ -92,16 +92,235 @@ The regular expression $M?$ is a shortcut for $M|\epsilon$, thus it can be trans
 \subsection{Conversion of a NFA into a DFA}
 As stated in Section \ref{sec:ch_background_compiler_lexer}, a NFA might have, for the same state, a set of transitions that process the same symbol (including the empty string since $\epsilon$-transitions are allowed). This means that a NFA must be able to guess which transition to follow when trying to process a token. This is not efficient to implement in a computer, thus it is better to use a DFA where there can be only one way of processing a symbol for a given state. An algorithm to automate such conversion exists and is presented in \cite{aho2007compilers} but there exists an algorithm to directly convert regular expressions into DFA's, as shown in \cite{aho1986compilers}. Below we present the algorithm to convert NFA's into DFA's.
 
+The informal idea behind the algorithm is the following: since a DFA cannot contain $\epsilon$-transitions or transitions from one state into another containing the same symbols, we have to construct an automaton that skips the $\epsilon$-transitions and pre-calculates the calculation of the sets of states in advance. In order to do so, we need to be able to compute the \textit{closure} of a set of states. Informally the closure of a set of states $S$ is the sates that can be reached by one of the states of $S$ through an $\epsilon$-transition. The formal definition is given below:
 
+\begin{definition}
+	The closure $\mathcal{C}(S)$ of a set of states $S$ is defined as
+	\begin{itemize}[noitemsep]
+		\item 
+				$\displaystyle \mathcal{C}(S) = S \cup \left(\bigcup_{s \in T} \tau(s,\epsilon)	\right)$
+		\item if $\exists \; \mathcal{C}'(S) \; | \; \mathcal{C}(S) \subseteq \mathcal{C}'(S) \Rightarrow \mathcal{C}'(S) = \mathcal{C}(S)$.
+	\end{itemize}	
+	
+\end{definition}
+
+\begin{algorithm}
+	\caption{Closure of $S$}
+	\label{alg:ch_background_closure}
+	\begin{algorithmic}
+		\State $T \gets S$
+		\Repeat
+			\State $T' \gets T$
+			\State $T \gets \cup \left( \bigcup_{s \in  T'}\tau(s,\epsilon) \right)$
+		\Until {$T = T'$}
+	\end{algorithmic}
+\end{algorithm}
+
+Algorithm \ref{alg:ch_background_closure} computes the closure of a set of states. Note that the algorithm termination is granted because we are considering finite-state automata.
+
+At this point we can build the set of all possible states reachable by consuming a specific character. We call this set \textit{edge} of a set of states $d$. 
+
+\begin{definition}
+	Let $d$ be a set of states, then the \textit{edge} of $d$ is defined as
+	\begin{equation*}
+		\mathcal{E}(d,c) = \mathcal{C}\left(\bigcup_{s \in d}\tau(s,c)\right)
+	\end{equation*}
+\end{definition}
+
+\noindent
+Now we can use the \textit{closure} and \textit{edge} to build the DFA from a NFA.
+
+\begin{algorithm}
+	\caption{NFA into DFA conversion}
+	\label{alg:ch_background_dfa}
+	\begin{algorithmic}
+		\State $states[0] \gets \emptyset$
+		\State $states[1] \gets \mathcal{C}(s_{1})$
+		\State $p \gets 1$
+		\State $j \gets 0$
+		\While {$j \leq p$}
+			\ForAll {$c \in \Sigma$}
+				\State $e \gets \mathcal{E}(states[j],c)$
+				\If {$\exists \; i \leq p \; | \; e = states[i]$}
+					\State $trans[j,c] \gets i$
+				\Else
+					\State $p \gets p + 1$
+					\State $states[p] \gets e$
+					\State $trans[j,c] \gets p$
+				\EndIf
+			\EndFor
+			\State $j \gets j + 1$
+		\EndWhile
+	\end{algorithmic}
+\end{algorithm}
+
+\noindent
+Algorithm \ref{alg:ch_background_dfa} performs the conversion into a DFA but we need to adjust it in order to mark the final states of the automaton. A state $d$ is final in the DFA if it is final if any of the states in $state[d]$ is final. In addition to marking final states, we must also keep track of what token is produced in that final state.
 
 \section{Parser}
 \label{sec:ch_background_parser}
+Regular expressions are a concise declarative way to define the lexical structure of the terms of a language, but they are insufficient to describe its syntax, i.e. how to combine tokens together to  make ``sentences''. A compiler uses the parser module to check the syntactical structure of a program. As we will see more in depth below, the parser is tightly coupled with the lexer, which is used by it to recognize tokens. In order to present the structure of the parser, it is first necessary to introduce \textit{context-free grammars}.
+
+As before we consider a language as a set of tuples of characters taken from a finite alphabet $\Sigma$. Informally, a context-free grammar is a set of productions of the form $symbol \rightarrow symbol_{1} \; symbol_{2} \; ... symbol_{n}$, where the left argument can be replaced by the sequence of symbols contained in the right argument. Some productions are \textit{terminal}, meaning that they cannot be replaced any longer, while the others are \textit{non-terminal}. Terminal symbols can only appear on the right side, while non-terminals can appear on both sides. Formally a context free grammar is defined as follows
+
+\begin{definition}
+	\label{def:ch_background_grammar}
+	A \textit{context-free grammar} is made of the following elements:
+	
+	\begin{itemize}[noitemsep]
+		\item A set of non-terminal symbols $N$.
+		\item A finite set of terminal symbols $\Sigma$, called \textit{alphabet}.
+		\item A non-terminal symbol $S \in N$ called \textit{starting symbol}.
+		\item A set of productions $P$ in the form $N \rightarrow (N \cup \Sigma)^{*}$.
+	\end{itemize}
+\end{definition}
+
+\noindent
+Note that Definition \ref{def:ch_background_grammar} allows \textit{context-free} grammars to process also regular expression, thus context-free grammars are more expressive then regular expressions. In what follows we assume that the terminal symbols are treated as tokens with regular expressions that can be processed by a lexer, but in general a context-free grammar does not require a lexer DFA to process terminal symbols.
+
+In order to check if a sentence is valid in the grammar defined for a language, we perform a process called \textit{derivation}: starting from the symbol $S$ of the grammar, we recursively replace non-terminal symbols with the right side of their production. The derivation can be done in different ways: we can start expanding the leftmost non-terminal in the production or the rightmost one. The result of the derivation usually generates a data structure called \textit{parse tree} or \textit{abstract syntax tree}, which connects a non-terminal symbol to the symbols obtained through the derivation; the leaves of the tree are terminal symbols.
+
+\subsection{LR(k) parsers}
+Simple grammars can be parsed by using \textit{left-to-right parse, leftmost-derivation, k-tokens lookahead}, meaning that the parser processes a symbol by performing a derivation starting from the leftmost symbol of the production, and looking at the first \textit{k} tokens of a string of the language. The weakness of this technique is that the parser must predict which production to use only knowing the first k tokens of the right side of the production. For instance, consider the two expression
+
+\begin{equation*}
+	\begin{array}{l}
+		(15 * 3 + 4) - 6\\
+		(15 * 3 + 4)
+	\end{array}
+\end{equation*}
+
+\noindent
+and the grammar
+
+\begin{equation*}
+	\begin{array}{l}
+		S \rightarrow E \; eof\\
+		E \rightarrow E + T\\
+		E \rightarrow E - T\\
+		E \rightarrow T * F\\
+		E \rightarrow T / F\\
+		E \rightarrow T\\
+		T \rightarrow F\\
+		F \rightarrow id\\
+		F \rightarrow num\\
+		F \rightarrow ( E )	
+	\end{array}
+\end{equation*}
+
+\noindent
+In the first case the parser should use the production $E \rightarrow E - T$ while in the second it should use the production $E \rightarrow T$. This grammar cannot be parsed by a LL(k) parser because it is not possible to decide which of the two productions must be used just by looking at the first k leftmost tokens. Indeed expressions of that form could have arbitrary length and the lookahead is, in general, insufficient. In general LL(k) grammars are context-free, but not all context-free grammars are LL(k), so such a parser is unable to parse all context-free grammars.
+
+A more powerful parser is the \textit{left-to-right parse, rightmost-derivation, k-tokens lookahead} or LR(k). This parse maintains a \textit{stack} and an \textit{input} (which is the sentence to parse). The first k tokens of the input are the \textit{lookahead}. The parser uses the stack and the lookahead to perform two different actions:
+
+\begin{itemize}
+	\item \textit{Shift}: The parser moves the first input token to the top of the stack.
+	\item \textit{Reduce}: The parser chooses a grammar production $N_{i} \rightarrow s_{1} \; s_{2} \; ... s_{j}$ and pop $s_{j}, s_{j - 1}, ... , s_{1}$ from the top of the stack. It then pushes $N_{i}$ at the top of the stack.
+\end{itemize}
+
+\noindent
+The parser uses a DFA to know when to apply a shift action or a reduce action. The DFA is insufficient to process the input, as DFA's are not capable of processing context-free grammars, but it is applied to the stack. The DFA contains edges labelled by the symbols that can appear in the stack, while states contain one of the following actions:
+
+\begin{itemize}[noitemsep]
+	\item $s_{n}$: shift the symbol and go to state $n$.
+	\item $g_{n}$: go to state $n$.
+	\item $r_{k}$: reduce using the production $k$ in the grammar.
+	\item $a$: accept, i.e. shift the end-of-file symbol.
+	\item $error$: invalid state, meaning that the sentence is invalid in the grammar.
+\end{itemize}
+
+\noindent
+The automaton is usually represented with a tabular structure, which is called \textit{parsing table}. The element $p_{i,s}$ in the table represents the transition from state $i$ when the symbol at the top of the stack is $s$.
+
+In order to generate the parsing table (or equivalently the DFA for the parser) we need two support functions, one to generate the possible states the automaton can reach by using grammar productions, and one to generate the actions to advance past the current state. We introduce an additional notation to represent the situation where the parser has reached a certain position while deriving a production.
+
+\begin{definition}
+	An \textit{item} is any production in the form $N \rightarrow \alpha.X\beta$, meaning that the parser is at the position indicated by the dot where $X$ is a grammar symbol.
+\end{definition}
+
+At this point we are able to define the \textit{Closure} function, that adds more items to a set of items when the dot is before a non-terminal symbol, which is shown in Algorithm \ref{alg:ch_background_parser_closure}. Note that, for brevity, we present the version to generate a LR(0) parser, for a LR(1) parser a minor adjustment must be made.
+
+\begin{algorithm}
+	\caption{Closure function for a LR(0) parser}
+	\label{alg:ch_background_parser_closure}
+	\begin{algorithmic}
+		\Function {Closure} {$I$}
+			\Repeat
+				\ForAll {$N \rightarrow \alpha.X\beta \; \in I$}
+					\ForAll {$X \rightarrow \gamma$}
+						\State $I \gets I \cup \left\lbrace X \rightarrow .\gamma \right\rbrace$
+					\EndFor
+				\EndFor
+			\Until  {$I' \neq I$}
+			\State \Return $I$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The algorithm starts with an initial set of items $I$ and adds all grammar productions that contain $X$ as left argument as items with the dot at the beginning of their right argument, meaning that the symbols of the production must still be completely parsed.
+ 
+Now we need a function that, given a set of items, is able to advance the state of the parser past the symbol $X$. This is shown in Algorithm \ref{alg:ch_background_parser_goto}.
+
+\begin{algorithm}
+	\caption{Goto function for a LR(0) parser}
+	\label{alg:ch_background_parser_goto}
+	\begin{algorithmic}
+		\Function {Goto} {$I, X$}
+			\State $J \gets \emptyset$
+			\ForAll {$N \rightarrow \alpha.X\beta \; \in I$}
+				\State $J \gets J \cup \left\lbrace N \rightarrow \alpha X.\beta \right\rbrace$
+			\EndFor
+			\State \Return \Call {Closure} {$J$}
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+The algorithm starts with a set of items and a symbol $X$ and creates a new set of items where the parser position has been moved past the symbol $X$. It then compute the closure of this new set of items a returns it.
+
+We can now proceed to define the algorithm to generate the LR(0) parser, which is shown in Algorithm \ref{alg:ch_background_lr0_parser}. The initial state is made of all the productions where the left side is the starting symbol, which is equivalent to compute the closure of $S' \rightarrow .S \; eof$. It then proceeds to expand the set of states and the set of actions to perform. Note that we never compute GOTO$(I,eof)$ but we simply generate an \textit{accept} action. Now, for all actions in $E$ where $X$ is a terminal, we generate a shift action at position $(I,X)$, for all actions where $X$ is non-terminal we put a goto action at position $(I,X)$, and finally for a state containing an item $N_{k} \rightarrow \gamma.$ (the parser is at the end of the production) we generate a $r_{k}$ action at $(I,Y)$ for every token $Y$. 
+
+In general parsing tables can be very large, for this reason it is usually wise to implement a variant of LR(k) parsers called LALR(k) parsers, where all states that contain the same actions but different lookaheads are merged into one, thus reducing the size of the parsing table. LR(1) and LALR(1) parsers are very common, since most of the programming languages can be defined by a LR(1) grammar. For instance, the popular family of parser generators \texttt{Yacc} produces LALR(1) parsers.
+
+\begin{algorithm}
+	\caption{LR(0) parser generation}
+	\label{alg:ch_background_lr0_parser}
+	\begin{algorithmic}
+		\State $T \gets $ \Call {Closure} {$\left\lbrace S' \rightarrow .S \; eof \right\rbrace$}
+		\State $E \gets \emptyset$
+		\Repeat
+			\State $T' \gets T$
+			\State $E' \gets E$
+			\ForAll {$I \in T$}
+				\ForAll {$N \rightarrow \alpha.X\beta \; \in I$}
+					\State $J \gets $ \Call {Goto} {$I,X$}
+					\State $T \gets T \cup \lbrace J \rbrace$
+					\State $E \gets E \cup \lbrace I \xrightarrow{X} J \rbrace$
+				\EndFor
+			\EndFor
+		\Until {$E' = E \text{\textbf{ and }} T' = T$}
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Monadic parsers}
+
+\subsection{Parser generators}
 
 \section{Type systems and type checking}
 \label{sec:ch_background_type_checking}
 
-\section{Intermediate code}
-\label{sec:ch_background_intermediate_code}
+\section{Operational semantics}
+\label{sec:ch_background_semantics}
+
+\section{Meta-compilers}
+
+\begin{itemize}[noitemsep]
+	\item General overview
+	\item META-languages overview.
+	\item RML overview.
+	\item Possibly other meta-compilers (?)
+\end{itemize}
+
+Describe what it is existing in literature.
 
 
 

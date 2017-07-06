@@ -16,6 +16,7 @@
 \usepackage{multirow}
 \usepackage[chapter]{algorithm}
 \usepackage{algpseudocode}
+\usepackage{algorithmicx}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage[top=2cm,bottom=2cm,left=2cm,right=3cm]{geometry}
 \author{Francesco Di Giacomo}
@@ -56,33 +57,16 @@
 \epigraph{Trying to outsmart a compiler defeats much of the purpose of using one.}{Kernighan and Plauger - \textit{The Elements of Programming Style}.}
 \input{Chapters/background}
 \label{ch:background}
-\section{Compilers}
-
-\begin{itemize}[noitemsep]
-	\item General architecture overview.
-	\item Lexing/Parsing
-	\item Type checking
-	\item Code generation
-\end{itemize}
-
-Describe extensively the structure of all the modules of a compiler.
-
-\section{Meta-compilers}
-
-\begin{itemize}[noitemsep]
-	\item General overview
-	\item META-languages overview.
-	\item RML overview.
-	\item Possibly other meta-compilers (?)
-\end{itemize}
-
-Describe what it is existing in literature.
 	
 \chapter{Metacasanova}
 \input{Chapters/metacasanova}		
 \label{ch:metacasanova}
 
-\chapter{Meta-casanova optimization}
+\chapter{Language design in Metacasanova}
+\input{Chapters/mcnv_languages}
+\label{ch:languages}
+
+\chapter{Metacasanova optimization}
 \input{Chapters/functors}
 	
 \chapter{Networking primitives in Casanova 2}
