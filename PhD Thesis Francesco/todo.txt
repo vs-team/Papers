@@ -7,6 +7,7 @@ CHAPTER 1
 - Add a chapter about the thesis
 
 CHAPTER 2
+- Add an example about why regular expressions are insufficient to parse context-free grammars and a reference for this claim.
 - Add a section on DSL's.
 - Networking in games.
 
