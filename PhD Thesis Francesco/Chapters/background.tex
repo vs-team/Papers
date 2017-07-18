@@ -422,11 +422,111 @@ let rec word (w:List<char>) : Parser<List<char>, 'ctxt> =
         return []
   }
 \end{lstlisting}
+
 \section{Type systems and type checking}
 \label{sec:ch_background_type_checking}
+Being able to verify the correctness of a program is a crucial aspect of programming. When dealing with low-level languages is generally difficult to verify and grant the correctness of a program since a language such assembly does not provide abstractions for the purpose. Modern high-level programming languages, on the other hand, generally provide a way to type their constructs. A type system is a syntactic method that assigns a property called \textit{type} to the constructs of a programming language, in order to prove that a program does not have certain unwanted behaviours \cite{pierce2002types}. Type systems are generally expressed in the form of inference rules \cite{cardelli1996type, pierce2002types}, made of a set of premises, that must be verified in order to assign to the language construct the type defined in the conclusion. An inference rule is a logical rule in the form:
 
-\section{Operational semantics}
+\begin{mathpar}
+\mprset{flushleft}
+\inferrule*{premise_{1}\\\\premise_{2}\\\\ \vdots \\\\premise_{n}}
+{conclusion}
+\end{mathpar}
+
+\noindent
+where all the premises must be true in order to evaluate the conclusion. Usually the type rules make use of a \textit{typing environment}, which is an association between language constructs and types. For example the following rule defines the typing of an \texttt{if-then-else} and a \texttt{while-do} statement in an imperative language.
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*{\Gamma \vdash c : bool \quad \Gamma \vdash t \quad \Gamma \vdash e}
+	{\Gamma \vdash \text{if \textit{c} then \textit{t} else \textit{e}}}
+\end{mathpar}
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*{\Gamma \vdash c : bool \quad \Gamma \vdash w}
+	{\Gamma \vdash \text{while \textit{c} do \textit{w}}}
+\end{mathpar}
+
+\noindent
+In these rules $\Gamma$ is the environment. The type rule first evaluates the premises, which means that if the condition of the \texttt{if-then-else} has type \texttt{bool} and the evaluation of the \texttt{then} and \texttt{else} block succeeds, then the whole \texttt{if-then-else} is correctly typed. Analogously, for the \texttt{while-do}, if the condition has type \texttt{bool} and the evaluation of the while block is correctly typed, then the whole \texttt{while-do} is correctly typed. Note that control structures code blocks are usually not given a type, rather they are considered correct if all their statements are correctly typed. An equivalent way of expressing this is using a special type called \textit{unit} for constructs that do not return a value. This expedient is widely used in hybrid functional programming languages such as F\# or CamL. The equivalent rules for the construct above would be:
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*{\Gamma \vdash c : bool \quad \Gamma \vdash t : unit \quad \Gamma \vdash e : unit}
+	{\Gamma \vdash \text{if \textit{c} then \textit{t} else \textit{e} : unit}}
+\end{mathpar}
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*{\Gamma \vdash c : bool \quad \Gamma \vdash w : unit}
+	{\Gamma \vdash \text{while \textit{c} do \textit{w} : unit}}
+\end{mathpar}
+
+Typing a construct of the language requires to evaluate its corresponding typing rule. Unlike for parsers, there exist no tools capable of automatically generate a type checker given the type rules definition, thus the behaviour of each type rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following : (\textit{i}) evaluate a premise, (\textit{ii}) if the evaluation of the premise fails then the construct fails the type check and an error is returned, (\textit{iii}) repeat step 1 and 2 until all the premises have been evaluated, and (\textit{iv}) assign the type to the construct that is defined in the rule conclusion.
+
+During this process the compiler generates a data structure called \textit{symbol table}, which contains information about the type checking process and maintains the type environment.
+
+At the end of the type check, the program is correct with respect to types. At this point, depending on the chosen target language, the compiler might discard or keep the information about the typing process. Usually when targeting a high-level programming language, the information about the types is kept because they are necessary during the code generation process in order to, for instance, generate the proper variable declaration statements. On the other hand, when targeting a low-level untyped programming language, such as assembly, the type information can be discarded.
+
+
+\section{Semantics and code generation}
 \label{sec:ch_background_semantics}
+Semantics define how the language abstractions behave and can be expressed in different ways, for example with a term-rewriting system \cite{klop1992term}, reduction semantics \cite{FELLEISEN1992235} or with the operational semantics \cite{plotkin1981}. Below we provide a description of these three possible representations for the semantics:
+
+\paragraph{Term-rewriting semantics}
+Term-rewriting semantics define a set of rewriting rules that take as input a construct of the language and define how to rewrite it into another form. The rewriting process usually ends when a rewrite rule is replaced by itself. For example the \texttt{if-then-else} statements and \texttt{while-do} statements can be rewritten with these rules (the \texttt{;} symbol denotes a sequence of statements):
+
+\begin{lstlisting}[mathescape = true]
+if true then t else e ; k $\rightarrow$ t;k
+if false then t else e ; k $\rightarrow$ e;k
+while (c = true) do w ; k $\rightarrow$ w ; while (c) do w ; k
+while (c = false) do w; k $\rightarrow$ k 
+\end{lstlisting}
+
+\paragraph{Reduction semantics}
+Reduction semantics use a \textit{reduction context}, which is a program or a fragment of program with a \textit{hole} (denoted by the symbol $\Box$) as placeholder to mark where the next computational step is taking place. For example the \texttt{if-then-else} and \texttt{while-do} statements semantics can be represented in the following way\footnote{\texttt{skip} is a statement that simply skips to the next statement in a sequence of statements}:
+
+\begin{lstlisting}[mathescape = true]
+if $\Box$ then s1 else s2 ; k
+if true then t else e  $\rightarrow$ t
+if false then t else e $\rightarrow$ e
+while $\Box$ do w
+while true do w $\rightarrow$ w ; while $\Box$ do w
+while false do w $\rightarrow$ skip
+\end{lstlisting}
+
+
+\paragraph{Operational semantics}
+Operational semantics define the behaviour of language constructs in terms of logical rules similar to those used for type systems. For instance, the \texttt{if-then-else} and \texttt{while-do} semantics are expressed as
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
+	{\langle \text{if \textit{c} then \textit{T} else \textit{E} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{T} ; \textit{k}} \rangle}
+\end{mathpar}
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
+	{\langle \text{if \textit{c} then \textit{T} else \textit{E} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{E} ; \textit{k}} \rangle}
+\end{mathpar}
+
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
+	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{L} ; while \textit{c} do \textit{L} ; \textit{k}} \rangle}
+\end{mathpar}
+\begin{mathpar}	
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
+	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle k \rangle}
+\end{mathpar}
+
+Regardless of the formal representation chosen for the semantics, this must be encoded in the abstractions of the target language during the code generation phase. When choosing a high-level target language encoding the operational semantics of a similar high-level language might be trivial, but generating for instance the code for a functional programming language into an imperative language might prove difficult. For this reason, the code generation step might be preceded by an intermediate code generation step. The intermediate language is usually a simple programming language close to the target language. Notable examples of this are the \textit{three-address code} \cite{aho2007compilers}, and the intermediate language used in the \textit{Glasgow Haskell Compiler} \cite{hall1993glasgow} and Utrecht Haskell Compiler \cite{dijkstra2009architecture}.
 
 \section{Meta-compilers}
 
