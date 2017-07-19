@@ -48,31 +48,34 @@
 
 
 \chapter{Introduction}
+\label{ch:introduction}
 \epigraph{About the use of language: it is impossible to sharpen a pencil with a blunt axe. It is equally vain to try to do it with ten blunt axes instead.}{Edsger Dijkstra}
 \input{Chapters/introduction}
-\label{ch:introduction}
 	
 
 \chapter{Background}
+\label{ch:background}
 \epigraph{Trying to outsmart a compiler defeats much of the purpose of using one.}{Kernighan and Plauger - \textit{The Elements of Programming Style}.}
 \input{Chapters/background}
-\label{ch:background}
 	
 \chapter{Metacasanova}
-\input{Chapters/metacasanova}		
 \label{ch:metacasanova}
+\input{Chapters/metacasanova}		
 
 \chapter{Language design in Metacasanova}
-\input{Chapters/mcnv_languages}
 \label{ch:languages}
+\input{Chapters/mcnv_languages}
 
 \chapter{Metacasanova optimization}
+\label{ch:functors}
 \input{Chapters/functors}
 	
 \chapter{Networking primitives in Casanova 2}
+\label{ch:networking}
 \input{Chapters/networking}
 
 \chapter{Discussion and conclusion}
+\label{ch:discussion}
 Here it would be wise to discuss about the fact that you still need to define a program for a language implemented in Metacasanova in term of syntax of Metacasanova itself. Remark that it is trivial to solve this problem by writing a parser, for example in Yacc, that maps the proper syntax of the language into the syntax of Metacasanova, but we do not implement it because it has no scientific value.
 
 \bibliographystyle{plain}

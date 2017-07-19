@@ -1,3 +1,7 @@
+This chapter provides background information on compiler construction and the existing knowledge on meta-compiles. The goal of this chapter is dual: (\textit{i}) it provides the reader with sufficient information to understand the implementation choices done when developing Metacasanova, and (\textit{ii}) outlines the complexity of the process of designing and implementing a compiler, thus giving further motivation to this research work.
+
+In Section \ref{sec:ch_background_compiler_architecture} we outline the general architecture of a compiler by giving a short descriptions of all its components and how they work. In Section \ref{sec:ch_background_compiler_lexer} we give a detailed explanation about \textit{regular expressions} necessary to define the ``words"" of a language, and the lexer, showing how to implement one. In Section \ref{sec:ch_background_parser} we introduce the notion of \textit{context-free grammars} and we show how to implement a parser able to process the grammatical rules of such grammar. In Section \ref{sec:ch_background_parser_generators} we present a parser generator for the language F\# that has been used for the implementation of Metacasanova. In Section \ref{sec:ch_background_parser_monad} we show an alternative to standard parsers in functional programming languages. In Section \ref{sec:ch_background_type_checking} and \ref{sec:ch_background_semantics} we explain how a type system and semantics of a language is expressed.
+
 \section{Architectural overview of a compiler}
 \label{sec:ch_background_compiler_architecture}
 Compilers are software that read as input a program written in a programming language, called \textit{source language}, and translate it into an equivalent program expressed with another programming language, called \textit{target language}. Usually the target language is machine code, but this is not mandatory. A special kind of compilers are interpreted, that directly execute the program written in the source language rather than translating it into a target language. Some languages, like Java, use a hybrid approach, that is they compile the program into an intermediate language that is later interpreted by a \textit{virtual machine}. Another approach involves the translation into a target high-level language [...].
@@ -158,7 +162,22 @@ Algorithm \ref{alg:ch_background_dfa} performs the conversion into a DFA but we 
 
 \section{Parser}
 \label{sec:ch_background_parser}
-Regular expressions are a concise declarative way to define the lexical structure of the terms of a language, but they are insufficient to describe its syntax, i.e. how to combine tokens together to  make ``sentences''. A compiler uses the parser module to check the syntactical structure of a program. As we will see more in depth below, the parser is tightly coupled with the lexer, which is used by it to recognize tokens. In order to present the structure of the parser, it is first necessary to introduce \textit{context-free grammars}.
+Regular expressions are a concise declarative way to define the lexical structure of the terms of a language, but they are insufficient to describe its syntax, i.e. how to combine tokens together to  make ``sentences'' \cite{appel2002javacompiler, aho2007compilers}. For example, trying to define an arithmetic expression with chained sums would lead to the following (recursive) regular expression:
+
+\begin{lstlisting}
+expr = "(" expr "+" expr ")" | digits
+\end{lstlisting}
+
+Now we would need to replace the regular expression with itself, thus obtaining
+
+\begin{lstlisting}
+expr = "(" "(" expr "+" expr ")" | digits "+" "(" expr "+" expr ")" | digits ")" | digits
+\end{lstlisting}
+
+\noindent
+It is easy to see that this substitution would never end, as the regular expression keeps growing at each replacement.
+
+A compiler uses the parser module to check the syntactical structure of a program. As we will see more in depth below, the parser is tightly coupled with the lexer, which is used by it to recognize tokens. In order to present the structure of the parser, it is first necessary to introduce \textit{context-free grammars}.
 
 As before we consider a language as a set of tuples of characters taken from a finite alphabet $\Sigma$. Informally, a context-free grammar is a set of productions of the form $symbol \rightarrow symbol_{1} \; symbol_{2} \; ... symbol_{n}$, where the left argument can be replaced by the sequence of symbols contained in the right argument. Some productions are \textit{terminal}, meaning that they cannot be replaced any longer, while the others are \textit{non-terminal}. Terminal symbols can only appear on the right side, while non-terminals can appear on both sides. Formally a context free grammar is defined as follows
 
@@ -301,6 +320,137 @@ In general parsing tables can be very large, for this reason it is usually wise 
 \end{algorithm}
 
 \subsection{Parser generators}
+\label{sec:ch_background_parser_generators}
+The process of creating a parser can be automated by using a \textit{Parser Generator}. A Parser generator is a programming language that accepts the definition of the grammar of a language and generates a parser (and a lexer) for it. As programming languages generally have a LALR(1) grammar \cite{appel2002javacompiler}, most of parser generators produce a LALR(1) parser. Since in this research work we used F\# as a development language, in this section we present the F\# lexer and parser generators, belonging to the Yacc generator family, known ans \textit{FsLex} and \textit{FsYacc}.
+
+\subsubsection{Definition of a lexer in FsLex}
+FsLex allows to define the tokens with the regular expression syntax. Each FsLex program begins with a header, where the programmer can specify auxiliary modules and functions to use in the lexer. After the header, it is possible to specify relevant regular expressions that are used by the lexer to analyse the tokens with the standard let-binding syntax of F\#. The right argument of this binding is a regular expression, which can be composed with the combinators for regular expressions seen in Section \ref{subsec:ch_background_automata}. For example the following regular expression can define the syntax for variable names in a programming language:
+
+\begin{lstlisting}
+let simpleId = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '_' '0'-'9']+
+\end{lstlisting}
+
+Regular expression bindings can be used as alias in the lexer definition. A lexer definition is identified by the keyword \texttt{rule} for the binding. The right side of a lexer definition contains a call to the function \texttt{parse}, which tries to execute one of the rules specified below to parse a token. Each lexer rule generates a result which is a token data structure. Token data structures are specified at parser level (see below). For instance, the following is a lexer able to recognize comparison operators:
+
+\begin{lstlisting}
+rule comparisonOperators = parse
+| "=" { Parser.EQUAL }
+| ">" { Parser.GT }
+| ">=" { Parser.GEQ }
+| "<" { Parser.LT }
+| "<=" { Parser.LEQ }
+| "<>" { Parser.NEQ }
+\end{lstlisting}
+
+Note that, in order to provide useful information about the lexing phase, we might need to acces, for instance, to the position of the lexer (for error reporting) or to get the string read by the lexer (for example to generate literals when reading numbers or strings). This information is provided by the \textit{lexer buffer}, which is a data structure generated automatically by the parser generator. For example, if the token needs to store its row and column position in the file for error reporting, the definition above can be changed in this way (note the use of the header to define the function \texttt{range}):
+
+\begin{lstlisting}
+{
+  module Lexer
+  
+  let range (lexbuf : LexBuffer<_>) = lexbuf.EndPos.Line + 1, lexbuf.EndPos.Column
+}
+
+rule comparisonOperators = parse
+| ">" { Parser.GT (range lexbuf) }
+| ">=" { Parser.GEQ (range lexbuf) }
+| "<" { Parser.LT (range lexbuf) }
+| "<=" { Parser.LEQ (range lexbuf) }
+| "<>" { Parser.NEQ (range lexbuf) }
+\end{lstlisting}
+
+Another useful feature of FsLex is the capability of defining recursive lexers. Let us consider the case of skipping multi-line comments: usually such comments are delimited by a start and end symbol, and the comments spread across multiple lines. For example in \texttt{C++/Java/C\#} a multi-line comment is delimited by the symbols \texttt{/* */}. The lexer must detect the left delimiter of the multi-line comment, and then keep skipping all the symbols until it detects the right delimiter. This means that the lexer must call itself multiple times, using different lexing rules: one to detect the left delimiter, one to handle new lines or characters inside the comment, and one to detect the right delimiter. Furthermore, after handling the comment, the lexer must go back to processing the program normally. The following code shows how to implement such lexer:
+
+\begin{lstlisting}
+{
+  module Lexer
+  
+  let newline (lexbuf : LexBuffer<_>) = lexbuf.EndPos <- lexbuf.EndPos.NextLine
+  let range (lexbuf : LexBuffer<_>) = lexbuf.EndPos.Line + 1, lexbuf.EndPos.Column
+}
+let newline = ('\n' | '\r' '\n')
+
+rule comment = parse
+| "*/"    { programTokens lexbuf }
+| newline            { newline lexbuf; comment lexbuf }
+| _  { comment lexbuf }
+
+and programTokens = parse
+| "/*" { comment lexbuf }
+...
+//other token definitions
+\end{lstlisting}
+Note that \texttt{programTokens} calls \texttt{comment} when it detects the left delimiter of a multi-line comment. \texttt{comment} keeps calling itself until the right delimiter is detected, where it jumps back to \texttt{programTokens}.
+
+\subsubsection{Definition of a parser in FsYacc}
+FsYacc allows to define the grammar of a language in terms of productions of a context free grammar. As for the lexer, the parser definition starts with a header where the programmer can specify custom code and modules to use. The grammar defines terminal symbols as tokens, identified by the keyword \texttt{\%token}. A token specified the name to be used in the grammar productions, and a series of type parameters that are used to store data in a token. For example, the following tokens might be used in a parser for arithmetic expressions:
+
+\begin{lstlisting}
+%token PLUS MINUS MUL DIV LPAR RPAR
+%token <double> NUMBER
+\end{lstlisting}
+
+\noindent
+Whenever a terminal symbol is encountered during the parsing phase, the parser calls the lexer to generate the data structure for the token. The lexer tries to match the string provided by the parser by using one of its rule and, if it succeeds, it returns the appropriate token data structure. In this part of the grammar we must also specify the starting symbol. This symbol is defined through the keyword \texttt{\%start}. Since usually we want to generate an abstract syntax tree for the grammar (which must be manually defined), we can specify a return type generated by the parser with the keyword \texttt{\%type}. For an arithmetic expression this would be, for instance
+
+\begin{lstlisting}
+%start start
+%type <Expr> start 
+\end{lstlisting}
+
+\noindent
+In this section it is also possible to define the operators associativity and precedence, through the keywords \texttt{\%left}, \texttt{\%right}, and \texttt{\%nonassoc}. Terms defined in the same associativity line have the same precedence, and the precedence is ordered according to the line number, so if a term associativity is defined below another, it has higher precedence.
+
+After the terminal symbol definitions, the grammar must specify productions. A production is defined in the following way:
+
+\begin{lstlisting}
+productionName:
+| rule_1 { action_1 }
+| rule_2 { action_2 }
+...
+| rule_n { action_n }
+\end{lstlisting}
+
+\noindent
+Each action defines the code that the parser executes when that rule is matched. Usually this part is used to build the nodes of the syntax tree, but there is no restriction in what the action can perform, as long as it is valid F\# code. It is possible to access the result of evaluating a term in the production by using an index preceded by the symbol \texttt{\%}, where \texttt{\%1} refers to the first term in the right hand-side of the production. For example this code might be used to parse an arithmetic expression:
+
+\begin{lstlisting}
+%{
+  open AST
+%}
+
+%token PLUS MINUS MUL DIV LPAR RPAR EOF
+%token <float> NUMBER
+
+%left PLUS MINUS
+%left MUL DIV
+
+%start start
+%type <Expr> start
+
+start : Expression EOF { %1 }
+
+Expression:
+| NUMBER { Number %1 }
+| Expression PLUS Expression { Plus(%1,%3) }
+| Expression MINUS Expression { Minus(%1,%3) }
+| Expression MUL Expression { Mul(%1,%3) }
+| Expression DIV Expression { Div(%1,%3) }
+| LPAR Expression RPAR { Nested(%2) }
+\end{lstlisting}
+
+\begin{lstlisting}
+module AST
+
+type Expression =
+| Number of float
+| Plus of Expression * Expression
+| Minus of Expression * Expression
+| Mul of Expression * Expression
+| Div of Expression * Expression
+| Nested of Expression
+\end{lstlisting}
+
 
 
 \subsection{Monadic parsers}
@@ -323,7 +473,7 @@ Monadic parsing is an alternative to traditional parsers, such as LR(k) and LALR
 \end{definition}
 We now proceed to define a parser monad by defining (\textit{i}) the type constructor for the parser, (\textit{ii}) the unary operator, (\textit{iii}) the binary operator, and (\textit{iv}) parser combinators as an example of the extensibility of the parser monad. Note that below we provide an implementation in F\#, which does not have type classes as Haskell, so the parser monad does not use any type argument and directly defines the operators for this specific instance of monad.
 
-\paragraph{Parser type constructor and monadic operations}
+\subsubsection{Parser type constructor and monadic operations}
 
 A parser is defined in literature as a function that takes as input a text and returns a list of pairs made of the parsing result and the rest of the text to process. The parsing result is usually the syntax tree generated by the parser. The result is a list because the same syntactical structure might be processed in different ways. By convention, an empty list denotes a parser failure. Here we propose a variation of this traditional implementation in order to provide a better error report.
 
@@ -355,7 +505,7 @@ member this.Bind(p:Parser<'a,'ctxt>, k:'a->Parser<'b,'ctxt>) : Parser<'b,'ctxt> 
   | Second err -> Second err ) |> Parser.Make
 \end{lstlisting}
 
-\paragraph{Parser combinators}
+\subsubsection{Parser combinators}
 With the parser monad implemented above, we can implement several parser combinators that can be used to define the grammar of a language. Here we show only a small glimpse of the possible combinators that can be implemented.\\\\
 The first parser combinator that we present is the \textit{choice}. The choice takes as input two parsers and runs the first. If the first parser succeeds than its result is returned, otherwise the second is run. If it succeeds its result is return, otherwise the whole parser outputs an error. This combinator is useful, for instance, when there might be two possible choices for a token in a statement. For instance, in either Java or C\# is possible to exchange the order of the access modifier and the static modifier in the method declaration, thus both \texttt{public static} or \texttt{static public} are valid combinations. This combinator would try to parse the declaration in the first way, and if it fails it will try also the second option. Of course if the syntax of both combinations is wrong the parser will fail completely. The code for the combinator is shown below:
 
@@ -536,8 +686,6 @@ Regardless of the formal representation chosen for the semantics, this must be e
 	\item RML overview.
 	\item Possibly other meta-compilers (?)
 \end{itemize}
-
-Describe what it is existing in literature.
 
 
 

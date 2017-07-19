@@ -259,7 +259,7 @@ In Section \ref{sec:ch1_programming_languages} we showed the advantages of using
 
 \vspace{0.5cm}
 \noindent
-\textbf{Problem statement: } \textit{Is it possible to build a domain-specific language by using a meta-compiler and to reduce the complexity and length of the code needed to generate runnable code for a program written in that language while having acceptable performance?}
+\textbf{Problem statement: } \textit{To what extent does the use of a meta-compiler ease the development of a domain-specific language and what is the performance trade-off?}
 
 \vspace{0.5cm}
 \noindent
@@ -275,18 +275,30 @@ The second parameter we need to evaluate is the eventual performance loss caused
 
 \vspace{0.5cm}
 \noindent
-\textbf{Research question 2: } \textit{How much is the performance loss introduced by the meta-compiler with respect to an implementation written in a language compiled with a traditional compiler? Is this loss acceptable?}
+\textbf{Research question 2: } \textit{How much is the performance loss introduced by the meta-compiler with respect to an implementation written in a language compiled with a traditional compiler and is this loss acceptable?}
 
 \vspace{0.5cm}
 \noindent
-The third parameter we need to evaluate is the gain in terms of code size reduction by using a meta-compiler with respect to a hand-made implementation of a compiler for the same language, which is evaluated through the following research question:
+In case of a performance loss, we need to identify the cause of this performance loss and if an improvement is possible. This leads to the following research question:
 
 \vspace{0.5cm}
 \noindent
-\textbf{Research question 3: } \textit{What is the advantage of using a meta-compiler in term of code reduction with rispect to a hand-made implementation?}
+\textbf{Research question 3: } \textit{What is the cause of the performance degradation when employing a meta-compiler and how can this be improved?}
 
 \vspace{0.5cm}
 \noindent
 
 \section{Thesis structure}
-%fill in when the structure is more or less final
+This thesis describes the architecture of Metacasanova, a meta-compiler whose meta-language is based on operational semantics, and a possible optimization for such meta-compiler. It also shows its the capabilities by implementing a small imperative language and re-implementing the existing domain-specific language for games \textit{Casanova 2}, extending it with abstractions to express network operations for multiplayer games.
+
+In Chapter \ref{ch:background} we provide background information in order to understand the choices made for this work. The chapter presents the state of the art in designing and implementing compilers and existing research on meta-compilers.
+
+In Chapter \ref{ch:metacasanova} we present the architecture of Metacasanova by extensively describing the implementation of all its modules.
+
+In Chapter \ref{ch:languages} we show how to use Metacasanova to implement two languages: a small imperative language, and \textit{Casanova 2}, a language for game development. At the end of the chapter we provide an evaluation of the performance of the two languages and their implementation length with respect to existing compilers, thus answering to Research Question 1 and 2.
+
+In Chapter \ref{ch:functors} we discuss the performance loss of the implementation of the presented languages and we propose an extension of Metacasanova that aims to improve the performance of the generated code, thus answering Research Question 3.
+
+In Chapter \ref{ch:networking} we propose an extension of Casanova 2 for multiplayer game development by providing both a hard-coded compiler solution and a meta-compiler one. We then compare the two approaches performance-wise and code-length-wise.
+
+In Chapter \ref{ch:discussion} we discuss the result and answer the research questions.
