@@ -40,12 +40,12 @@
 
 \makeindex
 \begin{document}
-\mainmatter
+\frontmatter
 \maketitle
 
 \tableofcontents
 
-
+\mainmatter
 
 \chapter{Introduction}
 \label{ch:introduction}
@@ -77,6 +77,13 @@
 \chapter{Discussion and conclusion}
 \label{ch:discussion}
 Here it would be wise to discuss about the fact that you still need to define a program for a language implemented in Metacasanova in term of syntax of Metacasanova itself. Remark that it is trivial to solve this problem by writing a parser, for example in Yacc, that maps the proper syntax of the language into the syntax of Metacasanova, but we do not implement it because it has no scientific value.
+
+\appendix
+\chapter{List operations with templates}
+\label{app:template}
+\input{Chapters/appendix_template}
+
+\backmatter
 
 \bibliographystyle{plain}
 \bibliography{references}
