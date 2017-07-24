@@ -676,16 +676,259 @@ Operational semantics define the behaviour of language constructs in terms of lo
 	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle k \rangle}
 \end{mathpar}
 
-Regardless of the formal representation chosen for the semantics, this must be encoded in the abstractions of the target language during the code generation phase. When choosing a high-level target language encoding the operational semantics of a similar high-level language might be trivial, but generating for instance the code for a functional programming language into an imperative language might prove difficult. For this reason, the code generation step might be preceded by an intermediate code generation step. The intermediate language is usually a simple programming language close to the target language. Notable examples of this are the \textit{three-address code} \cite{aho2007compilers}, and the intermediate language used in the \textit{Glasgow Haskell Compiler} \cite{hall1993glasgow} and Utrecht Haskell Compiler \cite{dijkstra2009architecture}.
+Regardless of the formal representation chosen for the semantics, this must be encoded in the abstractions of the target language during the code generation phase. When choosing a high-level target language encoding the operational semantics of a similar high-level language might be trivial, but generating for instance the code for a functional programming language into an imperative language might prove difficult. For this reason, the code generation step might be preceded by an intermediate code generation step. The intermediate language is usually a simple programming language close to the target language. Notable examples of this are the \textit{three-address code} \cite{aho2007compilers}, and the intermediate language used in the \textit{Glasgow Haskell Compiler} \cite{hall1993glasgow} and \textit{Utrecht Haskell Compiler} \cite{dijkstra2009architecture}.
 
-\section{Meta-compilers}
+\section{Metaprogramming and metacompilers}
+This section aims to provide the reader with sufficient information to understand the concept of metaprogramming. In this section we explain what metaprogramming is and present existing metacompilation approaches existing in scientific literature. We start by defining what metaprogramming is and we present techniques of metaprogramming in existing programming languages. We then proceed by presenting how different existing metacompilers work.
 
-\begin{itemize}[noitemsep]
-	\item General overview
-	\item META-languages overview.
-	\item RML overview.
-	\item Possibly other meta-compilers (?)
-\end{itemize}
+Metaprogramming is the process of writing computer programs with the ability to treat programs as their data \cite{czarnecki2000generative}. Metaprogramming takes as input a program written in a meta-language to define a programming language called \textit{object language}, a program written in the object language, and outputs executable code able to run the program. Metaprogramming can be achieved in two different ways: (\textit{i}) by using opportune language abstractions provided by a general-purpose programming language, or (\textit{ii}) using a dedicated metacompiler. In what follows we provide examples in both areas.
 
+\subsection{Template metaprogramming}
+Template metaprogramming uses class templates to operate on numbers and types as data. In this section we provide examples in C++ templates, but other languages allow template metaprogramming, with notable examples being Lisp macros and Haskell templates \cite{sheard2002template}. The template language uses template recursion as loop construct and template specialization as decisional construct.
 
+To better understand how this works, we will implement the factorial function with templates. It is well known that, by definition, the factorial of 0 is 1, while the factorial of a number $n$ is $n$ multiplied by the factorial of $n - 1$. Our template meta-program will thus contain two templates: one for the base case of the recursion and one for the recursive step. The base case of the recursion uses template specialization to stop the computation and immediately return 1:
+
+\begin{lstlisting}
+template<>
+struct Factorial<0>
+{
+  enum { RET = 1 };
+};
+\end{lstlisting}
+
+This template contains an enumeration type whose only value is 1. The recursive step will take as input a generic template parameter and recursively call the template definition.
+
+\begin{lstlisting}
+template<int n>
+struct Factorial
+{
+  enum { RET = Factorial<n - 1>::RET * n }
+};
+\end{lstlisting}
+
+\noindent
+When the \texttt{Factorial} template is instantiated with a value different from 0, the non-specialized version is used by the C++ compiler. The enumeration case \texttt{RET} then gets the value of \texttt{RET} for the same template instantiated for \texttt{n - 1} and multiplied by \texttt{n}. The generation of templates and their enumeration cases will stop when the template instantiation will be invoked with \texttt{Factorial<0>}, which will use the specialized version. Note the use of the scope resolution operator to access the value of the enumeration case. This template can be used instantiating the template with an integer constant, for instance:
+
+\begin{lstlisting}
+int main()
+{
+  cout << Factorial<5>::RET << endl;
+}
+\end{lstlisting}
+
+\noindent
+Note that template instantiation is performed at compile-time, so the result of the factorial is actually inlined by the compiler every time the template is instantiated.
+
+A more interesting example is about how to define recursive data structures. Let us consider the implementation of lists in a functional programming language:
+
+\begin{lstlisting}
+type List<'a> =
+| Empty
+| Cons of 'a * List<'a>
+\end{lstlisting}
+
+\noindent
+where the list \texttt{[3,4,5,6]} can be built as \texttt{Cons(3,Cons(4,Cons(5,Cons(6,Empty))))}. This list representation can be defined with template metaprogramming by defining a template specialization for the empty list, and a non-specialized template for a non-empty list.
+
+\begin{lstlisting}
+struct NIL
+{
+  typedef NIL Head;
+  typedef NIL Tail;
+};
+
+template<class T, class Tail_ = NIL>
+struct Cons
+{
+  typedef T Head;
+  typedef Tail_ Tail;
+};
+\end{lstlisting}
+
+\noindent
+Note that the assignment in the template definition specifies an optional template parameter, in the same way as optional method arguments. 
+
+Now let us try to define a function to calculate the length of an arbitrary list. This function will have as a base case the empty list, for which it returns 0, otherwise it returns 1 plus the length of the tail. Again this can be implemented with a specialized template and a non-specialized template.
+
+\begin{lstlisting}
+template<class List>
+struct Length
+{
+  static const unsigned int RET = Length<List::Tail>::RET + 1;
+};
+
+template<>
+struct Length<NIL>
+{
+  static const unsigned int RET = 0;
+};
+\end{lstlisting}
+
+\noindent
+The first template recursively class the \texttt{Length} template with the type of the tail of the list, extracts the RET field and adds 1. The second template is a specialization created with the \texttt{NIL} type and immediately sets the field RET to 0.
+
+In order to test this function we must create a template for a data type (which is a meta-data) that we want to store in the list. In this example we show how to test the function for a list of integers. First of all we must create a template for an integer:
+
+\begin{lstlisting}
+template<int n>
+struct Int
+{
+  static const int Value = n;
+};
+\end{lstlisting}
+
+\noindent
+This is necessary in order to be able to store the values of the list elements. At this point, the list can be created by calling \texttt{Cons} and passing the \texttt{Int} data type as argument and. Length can then be used with the type of the list that has been created and then we can access its \texttt{RET} field.
+
+\begin{lstlisting}
+typedef Cons<Int<3>, Cons<Int<4>, Cons<Int<5>, Cons<Int<6>>>>> testList;
+cout << Length<testList>::RET << endl;
+\end{lstlisting} 
+
+Template metaprogramming complexity can grow exponentially, for example when we want to get the values of the list elements, to the point that a simple function as \texttt{nth} requires six templates.
+%maybe put the code in the appendix
+\subsection{Metacompilers}
+Metacompilers are a special class of compilers used to implement other compilers. A metacompiler takes as input the definition of the syntax, semantics, and possibly the type system of the object language, a program written in the object language, and outputs executable code for it. Metacompilers are written either in a general purpose programming language or in their own meta-language through the process of self-hosting. Self-hosting compilation requires to write a prototypical version of the compiler in another language or an interpreter for it and then use it to compiler the implementation of a subsequent version. In this section we present some examples of existing meta-compilers.
+
+\subsubsection{META-II}
+META-II is one of the earliest metacompilers and, for this reason, quite limited in its capabilities. META-II allows to express the syntax of the object language and actions for the code generation. A meta-program in META-II is made of grammatical symbols, meta-variables, and equations that define the terms of the grammar. A symbol is written as a string surrounded by quotes and beginning with a period, a meta-variable is a string starting with a alphabetical character and followed by an arbitrary amount of alphanumerical characters, and an equation is a sequence of consecutive symbols or ids to indicate concatenation. Alternation is defined with the symbol \texttt{/}, which can be used together with the keyword \texttt{.EMPTY} to define alternation. For instance
+
+\begin{lstlisting}
+BOOLEAN = '.TRUE' / '.FALSE'
+\end{lstlisting}
+
+\noindent
+defines boolean literals. The meta-language is able to recognize built-in symbols such as identifiers, denoted with \texttt{.ID}, strings represented by .STRING, and numbers represented by .NUMBER. These are to be intended as identifiers, strings, and numbers in the object language. For example the family of expressions:
+
+\begin{lstlisting}
+A
+A + B
+A + B * C
+(A + B) * C
+\end{lstlisting}
+
+\noindent
+can be encoded by the following equations in META-II
+
+\begin{lstlisting}
+EX3 = .ID / '(' EX1 ')',
+EX2 = EX3 ('*' EX2 / .EMPTY),
+EX1 = EX2 ('+' EX1 / .EMPTY)
+\end{lstlisting}
+
+\noindent
+Sequences (as in the Kleene closure for regular expressions) can be expressed using the symbol \texttt{\$}. For example
+
+\begin{lstlisting}
+SEQA = $ 'A',
+\end{lstlisting}
+
+\noindent
+represents a sequence containing the letter \texttt{A}.
+META-II allows to associate actions to equation for the code generation. Each action generates assembly code for an interpreter called META-II machine, which is able to execute it. The action of code generation is marked with the keyword \texttt{.OUT}, for instance
+
+\begin{lstlisting}
+EX3 = .ID .OUT('LD ' *) / '(' EX1 ')'
+\end{lstlisting}
+
+\noindent
+generates the literal output and the special symbol found in \texttt{EX3}.
+
+META-II is a self-hosting compiler, i.e. it is implemented in META-II itself.
+
+\subsubsection{RML}
+RML \cite{pettersson1996compiler} (\textit{Relational Meta-Language}) uses a meta-language based on operational semantics. A program in RML consists of data definitions in a syntax similar to CamL discriminate unions, and relations containing axioms and inference rules. An axiom is an inference rule without premises, while an inference rule generates an output if the premises correctly evaluate. For example the following snippet defines the data type for an arithmetic expression and a symbol table for the evaluation.
+
+\begin{lstlisting}
+datatype Expr =
+| INT of int
+| VAR of string
+| ADD of Expr * Expr
+
+type Env = (string * int) list
+\end{lstlisting}
+
+Axioms and inference rules are grouped together into a \textit{relation}. For example, the following relation can be used to evaluate an arithmetic expression:
+
+\begin{lstlisting}
+relation eval =
+  axiom eval(env, INT i) => i
+  
+  rule
+    lookup(env, x) => i
+    ---------------------
+    eval(env, VAR x) => i
+    
+  rule
+    eval (env, left) => i1 &
+    eval (env, right) => i2
+    i1 + i1 => v
+    ---------------------------------
+    eval (env, ADD(left,right)) => v
+\end{lstlisting}
+
+\noindent
+During the code generation phase, each relation is translated into a first-order logic representation, which consists of a series of \texttt{match} structures that check the structure of the arguments. For example the rule above would be translated into:\footnote{We use a prefix notation in Lisp style}
+
+\begin{lstlisting}
+(and (match [(arg1 env)
+             (arg2 ADD(left,right))]))
+(and (call eval [env left] [result1]))
+(and match [result1 i1])
+(and (call eval [env right] [result2]))
+(and match [result2 i2])
+(and call [i1 + i2] [result3])
+(and match [result3 v])
+(return v)
+\end{lstlisting}
+
+\noindent
+This code is later translated into a continuation-passing style form, which is later generated as C code. The compiler performs heavy optimization on tail calls generated code through the use of a technique called \textit{dispatching switches}.
+
+\subsubsection{Stratego}
+Stratego \cite{bravenboer2008stratego} is a metacompiler that uses a term-rewriting semantics as meta-language to define its programs. A stratego program consists of a series of terms in the form
+
+\begin{equation*}
+t := c(t_{1},t_{2},...,t_{n})
+\end{equation*}
+
+\noindent
+where $c$ is a constructor that accepts $n$ other terms as arguments. The syntax of Stratego has been enriched with additional syntax to handle ``traditional'' data structures, such as string, integer, float, constants, and lists:
+
+\begin{equation*}
+pt := s \; | \; i \; | \; | f \; | \; [t_{1},t_{2},...,t_{n}] \; | \; (t_{1},t_{2},...,t_{n}) \; | \; c(t_{1},t_{2},...,t_{n})
+\end{equation*}
+
+\noindent
+Terms can be extended with a list of annotations that are terms themselves:
+
+\begin{equation*}
+t := pt \; | \; pt\left\lbrace t_{1},t_{2},...,t_{n} \right\rbrace
+\end{equation*}
+
+\noindent
+Stratego requires that the meta-program specifies the signature of term constructors. For example simple arithmetic expressions can be defined as
+
+\begin{lstlisting}
+signature
+  sorts Id Expr
+  constructors
+    Var : Id -> Exp
+    Plus : Exp * Exp -> Exp
+    
+\end{lstlisting}
+
+\noindent
+Note that Stratego is an untyped language, so types are not statically checked and the compiler only checks that constructors are declared and have the correct arity.
+
+Rewrite rules define how terms are evaluated, for example the following is a rewrite rule to evaluate a binary operator in an arithmetic expression:
+
+\begin{lstlisting}
+EvalBinOp : Plus(Int(i), Int(j)) -> Int(k) where k := <add>(i, j)
+\end{lstlisting}
+
+\noindent
+Note that rewrite rules support conditionals, i.e. in the rule above we are able to specify that \texttt{k} is the result of adding the numbers \texttt{i} and \texttt{j} given as arguments.
+
+Stratego compiler is a self-hosting compiler, meaning that the Stratego meta-language is defined in the meta-language itself. A first version of Stratego was written in SML, which was then re-used to compile a further iteration written in Stratego. Stratego compiles programs to C, where the code generation transformations were expressed in Stratego itself.
 
