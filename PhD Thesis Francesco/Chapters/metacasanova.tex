@@ -1,19 +1,170 @@
-\section{Repetitive steps in compilers development}
-In Section \ref{sec:introduction} we briefly stated that the process of developing a compiler includes several steps that are repetitive, i.e. their behaviour is always the same regardless of the language for which the compiler is built. In this section we show in what way this process is repetitive and what is the common pattern 
+This chapter presents the language definition and compiler architecture of Metacasanova. 
 
-\subsection{Type checking}
-Type systems are generally expressed in the form of logical rules \cite{cardelli1996type}, made of a set of premises, that must be verified in order to assign to the language construct the type defined in the conclusion. For example the following rule defines the typing of an \texttt{if-then-else} statement in a functional programming language:\footnote{Note that the type rule of \texttt{if-then-else} in an imperative programming language is different.}
 
-\begin{mathpar}
-	\mprset{flushleft}
-	\inferrule*{\Gamma \vdash c : bool \quad \Gamma \vdash t : \tau \quad \Gamma \vdash e : \tau}
-	{\Gamma \vdash \text{if \textit{c} then \textit{t} else \textit{e}} : \tau}
-\end{mathpar}
+\section{Repetitive steps in compiler development}
+\label{sec:ch_metacasanova_intro}
+In Chapter \ref{ch:background} we gave on overview of the necessary steps involved in developing a compiler. We showed that the lexing/parsing phase is simple enough to be automated using a lexer/parser generator. Such software takes as input the grammar and the definitions of regular expressions to define the tokens of the language and produces output code containing that is able to parse a program written in a programming language defined by that grammar. However, the steps involved in the following phases, namely the \textit{type checking} and \textit{operational semantics} implementation follow a recurring pattern, but in general the behaviour of the type system and the code generation reflecting the behaviour of the operational semantics must be hard-coded in the host language in which the compiler is being implemented. Below we present two examples to show how these behaviours can be implemented in two different general purpose programming languages and show that both follow the same pattern.
+
+\subsection{Hard-coded implementation of type rules}
+As shown in Section \ref{sec:ch_background_type_checking}, type rules are expressed in the form of logical rules. Let us consider the type rules for the \texttt{if-then-else} and \texttt{while-do} statements presented in Section \ref{sec:ch_background_type_checking} in the version that assigns the type \textit{unit} to the code blocks for convenience. In a programming language that supports discriminated unions as a language abstraction (like Haskell or F\#), the syntactical element in the abstract syntax tree of the language can be expressed as
+
+\begin{lstlisting}
+type Statement =
+| If of Expr * List<Statement> * List<Statement>
+| While of Expr * List<Statement>
+... //other statements
+\end{lstlisting}
+
+The type checking of the \texttt{if} statement requires that to check that the condition has type \texttt{bool} and that both code blocks have type \texttt{unit} (or \texttt{void}). The type checking of the \texttt{while-do} is analogous, except only one code block is used. We can then define a function \texttt{eval} that, given the environment (here we call it \textit{symbol table}) and a statement as input, returns the type given by the rule or an error if all type rules for that statement fail to correctly evaluate. For the 
+\texttt{if-then-else} the implementation is the following:
+
+\begin{lstlisting}
+let rec evalStmt (symbolTable : SymbolTable) (stmt : Statement) : Type =
+match stmt with
+... //other statements
+| If (condition,_then,_else) ->
+    let conditionType = evalExpr symbolTable condition
+    let thenType = evalStmt symbolTable _then
+    let elseType = evalStmt symbolTable _else
+    if conditionType <> Boolean then
+      failwith "Invalid condition type"
+    elif thenType <> Unit then
+      failwith "The type of then must be unit"
+    elif elseType <> Unit then
+      failwith "The type of else must be unit"
+    else
+      Unit
+... //other statements
+\end{lstlisting}
 
 \noindent
-In this rule $\Gamma$ is the environment. The type rule first evaluates the premises, which means that if the condition of the \texttt{if-then-else} has type \texttt{bool} and both \texttt{then} and \texttt{else} blocks have the same type, then the whole \texttt{if-then-else} has the type of either blocks.
+The function first executes pattern matching on the statement to identify the correct inference rule to use during the typing. It then proceeds to evaluate the premises (type of the condition and of the statement blocks) and to check their result. If all premises evaluate successfully the type contained in the conclusion is returned. Note that the function \texttt{evalExpr} is a function able to evaluate the type rule for expressions and return their type. 
+The implementation of the \texttt{while-do} follows the same logic:
 
-Typing a construct of the language requires to evaluate its corresponding typing rule. In order to do so, the behaviour of each typing rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following : (\textit{i}) evaluate a premise, (\textit{ii}) if the evaluation of the premise fails then the construct fails the type check and an error is returned, (\textit{iii}) repeat step 1 and 2 until all the premises have been evaluated, and (\textit{iv}) assign the type to the construct that is defined in the rule conclusion.
+\begin{lstlisting}
+let rec evalStmt (symbolTable : SymbolTable) (stmt : Statement) : Type =
+match stmt with
+... //other statements
+| While (condition,_do) ->
+  let conditionType = evalExpr symbolTable condition
+  let doType = evalStmt symbolTable stmt
+  if conditionType <> Boolean then
+    failwith "Invalid condition type"
+  elif doType <> Unit then
+    failwith "The type of the do block must be unit"
+  else
+    Unit
+... //other statements
+\end{lstlisting}
+
+In languages that do not provide abstractions such as discriminated unions, the type for statements must exploit polymorphism to implement the same behaviour. A statement will be represented as an interface exhibiting the behaviour of a visitor pattern:
+
+\begin{lstlisting}
+public interface Statement
+{
+  Type Visit(StatementVisitor visitor);
+}
+
+public interface StatementVisitor
+{
+  ... //other statements
+  Type OnIf(Expression condition, List<Statement> _then, List<Statement> _else);
+  Type OnWhile(Expression condition, List<Statement> _do);
+  ... //other statements
+}
+\end{lstlisting}
+
+The behaviour of the inference rule for the \texttt{if-then-else} statement is modelled by a class implementing the \texttt{StatementVisitor} interface. This class contains a method \texttt{OnIf} that implements the behaviour of the type rule itself. 
+
+\begin{lstlisting}
+public class StatementEvaluator : StatementVisitor
+{
+  ... //evaluation of other statements
+  public Type OnIf(Expression condition, List<Statement> _then, List<Statement> _else)
+  {
+    Type conditionType = condition.Eval(new ExpressionEvaluator());
+    Type thenType = _then.Eval(new StatementEvaluator());
+    Type elseType = _else.Eval(new StatementEvaluator());
+    if (!conditionType.Equals(new Boolean()))
+    {
+      throw new TypeException("Invalid condition type");
+    }
+    else if (!thenType.Equals(new Unit()))
+    {
+      throw new TypeException("The type of then must be unit");
+    }
+    else if (!elseType.Equals(new Unit()))
+    {
+      throw new TypeException("The type of else must be unit");
+    }
+    else
+    {
+      return new Unit();
+    }
+  }
+  
+  ... //evaluation of other statements
+}
+
+public class If : Statement
+{
+  Expression Condition;
+  List<Statement>  Then;
+  List<Statement> Else;
+  
+  public Type Visit(StatementVisitor visitor)
+  {
+    return visitor.OnIf(this.Condition, this.Then, this.Else)
+  }
+}
+\end{lstlisting}
+
+Analogously for the \texttt{while-do} we have
+
+\begin{lstlisting}
+public class StatementEvaluator : StatementVisitor
+{
+  ... //evaluation of other statements
+  public Type OnWhile(Expression condition, List<Statement> _do)
+  {
+    Type conditionType = condition.Eval(new ExpressionEvaluator());
+    Type doType = _do.Eval(new StatementEvaluator());
+    if (!conditionType.Equals(new Boolean()))
+    {
+      throw new TypeException("Invalid condition type");
+    }
+    else if (!doType.Equals(new Unit()))
+    {
+      throw new TypeException("The type of do must be unit");
+    }
+    else
+    {
+      return new Unit();
+    }
+  }
+  ... //evaluation of other statements
+}
+
+public class While : Statement
+{
+  Expression Condition;
+  List<Statement> Do;
+  
+  public Type Visit(StatementVisitor visitor)
+  {
+    return visitor.OnWhile(this.Condition, this.Do);
+  }
+}
+\end{lstlisting}
+
+In general, for a language abstraction $\alpha$ (like statements) having a syntactical structure $\sigma_{i}$ having a certain amount of syntactical elements of type $\epsilon_{\sigma_{i_1}}, ..., \epsilon_{\sigma_{i_m}}$ (such as the condition or the statement block in a control structure), the general representation of a hard-coded type rule in a language with discriminated unions is obtained by creating a union type $\alpha$ having a case $\sigma_{i}$ with arguments $\epsilon_{\sigma_{i_j}}$ for each syntactical element.
+
+\begin{lstlisting}[mathescape = true]
+type $\alpha$ =
+|$\sigma_1$ of $\epsilon_{\sigma_{1_1}} * ... * \epsilon_{\sigma_{1_m}}$
+...
+|$\sigma_1$ of $\epsilon_{\sigma_{n_1}} * ... * \epsilon_{\sigma_{n_m}}$
+\end{lstlisting}
 
 \subsection{Semantics}
 Semantics define how the language abstractions behave and can be expressed in different ways, for example with a term-rewriting system \cite{klop1992term} or with the operational semantics \cite{plotkin1981}. For the scope of this work, we choose to rely on the operational semantics. The definition of the operational semantics of a language abstraction is, again, in the form of a logical rule where the conclusion (which is the final behaviour of the construct) is achieved if the evaluation of the premises lead to the desired results. For instance, the operational semantics of a while loop could be the following:
@@ -47,15 +198,6 @@ Another problem that arises when using meta-compilers is the performance decay g
 
 \vspace{0.2cm}
 We try to answer these two research questions by using a two-steps methodology: (\textit{i}) we present an architecture for Metacasanova aimed to automate the process of code generation, and then (\textit{ii}) we propose a language extension to embed the implemented language type system in the meta-type system of Metacasanova.
-
-\subsection{Related work}
-\textit{RML} \cite{pettersson1996compiler} is a meta-compiler based on operational semantics that is similar to Metacasanova. Its syntax is very close to that of ML and it generates C code. A notable effort was done to optimize the tail calls in the generated code for the rules, but the problem arisen by Research Question 2 is not addressed.
-
-\textit{Stratego} \cite{bravenboer2008stratego} is a meta-compiler based on a transformation system. A transformation language consists of a series of constructor calls to construct the terms of the grammar and functions that specify how to evaluate the terms. Stratego is not a typed language, so it does not ensure that the terms and transformation functions are used consistently.
-
-A language extension for Haskell involving \textit{template meta-programming} exists \cite{sheard2002template}. Although a valuable and elegant approach, using Haskell language extensions is not suitable for domain-specific languages for games due to the wide use of monads a lambda abstractions, which greatly affect the performance, and the lazy nature of Haskell that affects the memory usage. In Section \ref{sec:code_generation} we underline how this project was born to ease the extension of a domain-specific language for game development, thus this was not a suitable choice for our initial goals.
-
-Syntax Macro meta-programming \cite{campbell1978compiler} is an approach that operates during the parsing phase. Macros are used to produce an abstract syntax tree that is replaced when the macro is invoked. One notable example of this kind of \\meta-programming can be found in the language Lisp. Macros guarantee syntactic safety \cite{weise1993programmable} but not semantics safety, since no meta-type system is available for macros.
 
 \subsection{Requirements of Metacasanova}
 In order to relieve programmers of manually defining the behaviour described in Section \ref{sec:problem} in the back-end of the compiler, we propose the following features for Metacasanova:
