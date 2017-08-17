@@ -653,14 +653,14 @@ Operational semantics define the behaviour of language constructs in terms of lo
 	\mprset{flushleft}
 	\inferrule*
 	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
-	{\langle \text{if \textit{c} then \textit{T} else \textit{E} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{T} ; \textit{k}} \rangle}
+	{\langle \text{if \textit{c} then \textit{T} else \textit{E} ; \textit{k}} \rangle \Rightarrow \text{\textit{T} ; \textit{k}}}
 \end{mathpar}
 
 \begin{mathpar}
 	\mprset{flushleft}
 	\inferrule*
 	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
-	{\langle \text{if \textit{c} then \textit{T} else \textit{E} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{E} ; \textit{k}} \rangle}
+	{\langle \text{if \textit{c} then \textit{T} else \textit{E} ; \textit{k}} \rangle \Rightarrow \text{\textit{E} ; \textit{k}}}
 \end{mathpar}
 
 
@@ -668,12 +668,12 @@ Operational semantics define the behaviour of language constructs in terms of lo
 	\mprset{flushleft}
 	\inferrule*
 	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
-	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{L} ; while \textit{c} do \textit{L} ; \textit{k}} \rangle}
+	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \text{\textit{L} ; while \textit{c} do \textit{L} ; \textit{k}}}
 \end{mathpar}
 \begin{mathpar}	
 	\inferrule*
 	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
-	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle k \rangle}
+	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow k }
 \end{mathpar}
 
 Regardless of the formal representation chosen for the semantics, this must be encoded in the abstractions of the target language during the code generation phase. When choosing a high-level target language encoding the operational semantics of a similar high-level language might be trivial, but generating for instance the code for a functional programming language into an imperative language might prove difficult. For this reason, the code generation step might be preceded by an intermediate code generation step. The intermediate language is usually a simple programming language close to the target language. Notable examples of this are the \textit{three-address code} \cite{aho2007compilers}, and the intermediate language used in the \textit{Glasgow Haskell Compiler} \cite{hall1993glasgow} and \textit{Utrecht Haskell Compiler} \cite{dijkstra2009architecture}.

@@ -82,9 +82,9 @@ public class StatementEvaluator : StatementVisitor
   ... //evaluation of other statements
   public Type OnIf(Expression condition, List<Statement> _then, List<Statement> _else)
   {
-    Type conditionType = condition.Eval(new ExpressionEvaluator());
-    Type thenType = _then.Eval(new StatementEvaluator());
-    Type elseType = _else.Eval(new StatementEvaluator());
+    Type conditionType = condition.visit(new ExpressionEvaluator());
+    Type thenType = _then.Visit(new StatementEvaluator());
+    Type elseType = _else.Visit(new StatementEvaluator());
     if (!conditionType.Equals(new Boolean()))
     {
       throw new TypeException("Invalid condition type");
@@ -127,8 +127,8 @@ public class StatementEvaluator : StatementVisitor
   ... //evaluation of other statements
   public Type OnWhile(Expression condition, List<Statement> _do)
   {
-    Type conditionType = condition.Eval(new ExpressionEvaluator());
-    Type doType = _do.Eval(new StatementEvaluator());
+    Type conditionType = condition.Visit(new ExpressionEvaluator());
+    Type doType = _do.Visit(new StatementEvaluator());
     if (!conditionType.Equals(new Boolean()))
     {
       throw new TypeException("Invalid condition type");
@@ -157,30 +157,249 @@ public class While : Statement
 }
 \end{lstlisting}
 
-In general, for a language abstraction $\alpha$ (like statements) having a syntactical structure $\sigma_{i}$ having a certain amount of syntactical elements of type $\epsilon_{\sigma_{i_1}}, ..., \epsilon_{\sigma_{i_m}}$ (such as the condition or the statement block in a control structure), the general representation of a hard-coded type rule in a language with discriminated unions is obtained by creating a union type $\alpha$ having a case $\sigma_{i}$ with arguments $\epsilon_{\sigma_{i_j}}$ for each syntactical element.
+\subsubsection{Generalization}
+\label{sec:ch_metacasanova_inference_rule_generalization}
+
+In general, for a node of the abstract syntax tree (AST) $\alpha$ (like \texttt{Statements}) containing syntactical structures $\sigma_{i}$ constructed with a certain amount of arguments of type $\epsilon_{\sigma_{i_1}}, ..., \epsilon_{\sigma_{i_m}}$ (such as the condition or the statement block in a control structure), the general representation of a hard-coded type rule in a language with discriminated unions is obtained by creating a union type $\alpha$ having a case $\sigma_{i}$ with arguments $\epsilon_{\sigma_{i_j}}$ for each syntactical element.
 
 \begin{lstlisting}[mathescape = true]
 type $\alpha$ =
-|$\sigma_1$ of $\epsilon_{\sigma_{1_1}} * ... * \epsilon_{\sigma_{1_m}}$
+|$\sigma_1$ of $\tau_{\sigma_{1_1}} * ... * \tau_{\sigma_{1_m}}$
 ...
-|$\sigma_1$ of $\epsilon_{\sigma_{n_1}} * ... * \epsilon_{\sigma_{n_m}}$
+|$\sigma_n$ of $\tau_{\sigma_{n_1}} * ... * \tau_{\sigma_{n_m}}$
 \end{lstlisting}
 
-\subsection{Semantics}
-Semantics define how the language abstractions behave and can be expressed in different ways, for example with a term-rewriting system \cite{klop1992term} or with the operational semantics \cite{plotkin1981}. For the scope of this work, we choose to rely on the operational semantics. The definition of the operational semantics of a language abstraction is, again, in the form of a logical rule where the conclusion (which is the final behaviour of the construct) is achieved if the evaluation of the premises lead to the desired results. For instance, the operational semantics of a while loop could be the following:
+Evaluating the inference rule through an evaluation function requires first to find out which must be applied by matching the pattern of the syntactical structure from the node of the AST. Later, we need to evaluate each of the premises with the appropriate evaluation function: if the result of each evaluation is what the rule expects (for instance, that the condition has type boolean in the \texttt{if-then-else}) then we return the result of the evaluation rule contained in the right part of the conclusion.
+
+Let us consider a conclusion $\sigma_{j}(\epsilon_{\sigma_{j_1}} \; ... \;\epsilon_{\sigma_{j_m}})$ (where each $\epsilon$ is one of the arguments used to construct the case of the discriminate union) with a result of the evaluation $\rho_{\sigma_j}$ a set of premises $\pi_{1},...,\pi_{k}$ that are evaluated through an evaluation function $\varphi_{\pi_i}, \; i = 1,...,k$ returning a result $\rho_{\pi_i}$. Let us assume that $\rho'_{\pi_i}$ is the expected result for the premise evaluated through $\varphi_{\pi_i}$. As usual, $\Gamma$ defines the environment (symbol table). The type rule that we are trying to execute will thus have the following structure:
 
 \begin{mathpar}
 	\mprset{flushleft}
 	\inferrule*
-	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
-	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle \text{\textit{L} ; while \textit{c} do \textit{L} ; \textit{k}} \rangle}
-	
-	\inferrule*
-	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
-	{\langle \text{while \textit{c} do \textit{L} ; \textit{k}} \rangle \Rightarrow \langle k \rangle}
+	{\Gamma \vdash \varphi_{\pi_1} \pi_1 : \rho'_{\pi_1} \\\\
+	\vdots \\\\
+	\Gamma \vdash \varphi_{\pi_i} \pi_i : \rho'_{\pi_i} \\\\
+	\vdots\\\\
+	\Gamma \vdash \varphi_{\pi_k} \pi_k : \rho'_{\pi_k}}
+ {	\Gamma \vdash \sigma_{j}(\epsilon_{\sigma_{j_1}},...,\epsilon_{\sigma_{j_m}}) : \rho_{\sigma_j}} \\
 \end{mathpar}
 
-Again, the behaviour of the semantics rule must be encoded in the host language in which the compiler is being developed, but the pattern it follows is always the same. This step, depending on the implementation choice, might also require to translate this behaviour into an \textit{intermediate language} representation that is more suitable for the subsequent code generation phase.
+Given the considerations above, the code necessary for the evaluation will be the following:
+
+\begin{lstlisting}[mathescape = true]
+let rec $\varphi_{\sigma_j}$ $\Gamma$ $\sigma$ =
+  match $\sigma$ with
+  ... //other pattern matching expressions for other rules
+  | $\sigma_{j}(\epsilon_{\sigma_{j_1}},...,\epsilon_{\sigma_{j_m}})$ ->
+    let $\rho_{\pi_1}$ = $\varphi_{\pi_1}$ $\Gamma$ $\pi_1$
+    .
+    .
+    .
+    let $\rho_{\pi_i}$ = $\varphi_{\pi_i}$ $\Gamma$ $\pi_i$
+    .
+    .
+    .
+    let $\rho_{\pi_k}$ = $\varphi_{\pi_k}$ $\Gamma$ $\pi_k$
+    if $\rho_1$ <> $\rho'_1$ then
+      failwith "Type error"
+    .
+    .
+    .
+    elif $\rho_i$ <> $\rho'_i$ then
+      failwith "Type error"
+    .
+    .
+    .
+    elif $\rho_m$ <> $\rho'_m$ then
+      failwith "Type error"
+    else
+      $\rho_{\sigma_j}$    
+  ... //other pattern matching expressions for other rules
+\end{lstlisting}
+
+Each evaluation function is recursive because a premise might need to run the same evaluation function (see the example of the statements above). The function contains a pattern matching that selects the correct inference rule to be used for that syntactical structure. For example, in the case of the statements, it will try to match all the possible syntactical structures for the statements and select the correct one for the input; for instance, if we are running the rule for the \texttt{if-then-else} then the pattern matching will select the match case for \texttt{if-then-else}. Note that $\gamma$ will surely be matched by one of the match cases because at this point we have a correctly generated AST after the parsing phase.
+
+Each premise runs the appropriate evaluation function and returns a result. This result is compared with the one expected by the inference rule, and if the comparison fails the function reports a type error. If all comparisons succeed, then the result of the conclusion is returned.
+
+In a language that does not provide discriminated unions and pattern matching the generalization is more complex: the abstract syntax tree element must be represented by an interface containing the signature of a method \texttt{Visit} used to perform an operation on a specific (polymorphic) syntactical structure. We also require the interface for the visitor pattern with the signature of the functions to run for each polymorphic instance of \texttt{Statement}. In this version we assume that the type of the result of the evaluation function for $\sigma_j$ returns a type $\tau_{\rho_{\sigma_{j}}}$ (which in the previous version could be omitted thanks to the type inference typical of functional programming languages):
+
+\begin{lstlisting}[mathescape = true]
+public interface $\alpha$
+{
+  public $\tau_{\sigma_j}$ Visit(Visitor visitor)
+}
+
+public interface Visitor<T>
+{
+  T $\varphi_{\sigma_j}(\tau_\Gamma \; \Gamma, \tau_{\sigma_{j_1}} \epsilon_{\sigma_{j_1}},...,\tau_{\sigma_{j_m}}\epsilon_{\sigma_{j_m}})$;
+  ... //other statements
+}
+\end{lstlisting}
+
+\noindent
+Then we have to implement the visitor for the type rule for statements and a class for a specific statement:
+
+\begin{lstlisting}[mathescape = true]
+public class Evaluator : Visitor<$\tau_{\rho_{\sigma_{j}}}$>
+{
+  ... //evaluation of other statements
+  public $\tau_{\rho_{\sigma_{j}}}$ $\varphi_{\sigma_j}(\tau_\Gamma \; \Gamma, \tau_{\sigma_{j_1}}\epsilon_{\sigma_{j_1}},...,\tau_{\sigma_{j_m}}\epsilon_{\sigma_{j_m}})$
+  {
+    $\tau_{\rho_{\phi_1}} \rho_{\pi_1}$ = $\varphi_{\pi_1}(\Gamma,\pi_1)$;
+    .
+    .
+    .
+    $\tau_{\rho_{\phi_i}} \rho_{\pi_i}$ = $\varphi_{\pi_i} (\Gamma,\pi_i)$;
+    .
+    .
+    .
+    $\tau_{\rho_{\phi_k}} \rho_{\pi_k}$ = $\varphi_{\pi_k}( \Gamma,\pi_k)$
+    if (!$\rho_{\pi_1}$.Equals($\rho'_{\pi_1})$)
+      throw new TypeError("Type error");
+    .
+    .
+    .
+    else if (!$\rho_{\pi_i}$.Equals($\rho'_{\pi_i})$)
+      throw new TypeError("Type Error");
+    .
+    .
+    .
+    else if (!$\rho_{\pi_k}$.Equals($\rho'_{\pi_k})$)
+      throw new TypeError("Type Error");
+    else
+      return new $\rho_{\sigma_j}$();
+  }
+  ... //evaluation of other statements
+}
+
+public $\sigma_j$ : $\alpha$
+{
+  $\tau_{\sigma_{j_1}} \epsilon_{\sigma_{j_1}}$;
+  ...
+  $\tau_{\sigma_{j_m}} \epsilon_{\sigma_{j_m}}$;
+  
+  public $\tau_{\rho_{\sigma_{j}}}$ Visit(Visitor<$\tau_{\rho_{\sigma_{j}}}$> visitor)
+  {
+    return visitor.$\varphi_{\sigma_j}$($ \epsilon_{\sigma_{j_1}},...,\epsilon_{\sigma_{j_m}}$);
+  }
+}
+\end{lstlisting}
+
+\subsection{Hard-coded implementation of Semantics}
+As shown in Section \ref{sec:ch_background_semantics}, there are multiple ways to express the semantics of a programming language. In this work we choose to make use of the operational semantics representation to have a uniform way of expressing both the type system and the semantics of a language. Let us consider again the semantics rule for \texttt{if-then-else} and \texttt{while-do} presented in Section \ref{sec:ch_background_semantics}. The operational semantics can be implemented generating the code in the object language that emulates the behaviour of the semantics rule, in the same fashion of a type rule. This process might first pass through an intermediate language, closer to the target language. In the case of an interpreter, the behaviour of the semantics must be implemented using the abstractions available in the host language. As an example, we show a possible implementation of the semantics of the two statements mentioned above in an interpreter both in a functional programming language and in an object-oriented language, as for the type rule.
+
+For convenience, let us make a separate rule for the semantics of a sequence of statements from the specific semantics of the control structure. Also, we introduce the statement \texttt{skip} that performs no operation
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{ }
+	{\langle \text{skip} ; ks \rangle \Rightarrow \langle ks \rangle}
+\end{mathpar}
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{\langle k \rangle \Rightarrow k'}
+	{\langle k ; ks \rangle \Rightarrow \langle k' ; ks \rangle}
+\end{mathpar}
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
+	{\langle \text{if \textit{c} then \textit{T} else \textit{E}} \rangle \Rightarrow \text{\textit{T}}}
+\end{mathpar}
+\begin{mathpar}	
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{false}}}
+	{\langle \text{if \textit{c} then \textit{T} else \textit{E}} \rangle \Rightarrow \text{\textit{E}}}
+\end{mathpar}
+\begin{mathpar}	
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
+	{\langle \text{while \textit{c} do \textit{L}} \rangle \Rightarrow \text{\textit{L} ; while \textit{c} do \textit{L}}}
+\end{mathpar}
+\begin{mathpar}	
+	\mprset{flushleft}
+	\inferrule*
+	{\langle c \rangle \Rightarrow \text{\texttt{true}}}
+	{\langle \text{while \textit{c} do \textit{L}} \rangle \Rightarrow \text{skip} }
+\end{mathpar}
+
+As for the type rules, we assume that the data type representing a statement is implemented by a discriminate union. The evaluation function first performs the pattern matching on the argument to select the correct rule to execute, in the same fashion of the type rule, but instead of analysing the types this time executes the specific behaviour of the statement, as specified by the semantics rule. For inference rules above we use the following code:
+
+\begin{lstlisting}
+let rec interpretStmt (symbolTable : SymbolTable) (stmt : Statement) : Statement =
+  match stmt with
+  ... //other statements semantics
+  | Sequence(Skip,ks) -> interpretStmt symbolTable ks
+  | Sequence(k,ks) ->
+  	 let k' = interpretStmt symbolTable k
+  	 interpretStmt symbolTable Sequence(k',ks)
+  | If (cond,_then,_else) ->
+      let condEvaluation = interpretExpr symbolTable cond
+      if condEvaluation = True then
+      	_then
+      else
+        _else
+  | While (cond,_do) ->
+     let condEvaluation = interpretExpr symbolTable cond
+     if condEvaluation = true then
+       Sequence(_do,While(cond,_do))
+      else
+        Skip
+  ... //other statements semantics
+\end{lstlisting}
+
+As for the type evaluation, we assum that \texttt{interpretExpr} is another function that is able to process expressions and return their value. 
+
+The function matches the kind of statement that we want to execute. In the case of a sequence of statements starting with a skip, we simply return the interpretation of the remaining part of the sequence (we indeed skip to the next statement), otherwise we have to run the first statement and then recursively evaluate the sequence formed by the result of the execution of the statement and the rest of the statements. This is needed, for instance, to correctly evaluate the body of a control structure. The body of each match case is responsible of emulating the intended behaviour described in the semantics of the control structure: the \texttt{if} returns the correct block to execute depending on the boolean value of the condition, instead the \texttt{while} returns either its body followed by the same \texttt{while} loop when the condition is \texttt{true}, otherwise \texttt{skip} to jump past the loop.
+
+In the case of an object-oriented language, it is necessary to add a new implementation of the visitor pattern implementing the behaviour of the semantics for each statement:
+
+\begin{lstlisting}
+public class StatementInterpreter : StatementVisitor
+{
+  ... //other statements semantics
+  public Statement OnSequence(SymbolTable symbolTable, Sequence seq)
+  {
+    Statement k = seq.Head;
+    Statement ks = seq.Tail;
+    if (k.Equals(Skip))
+      return ks.Visit(new StatementInterpreter());
+    else
+    {
+      Statement k1 = k.Visit(new StatementInterpreter());
+      Statement seq1 = new Sequence(k1,ks)
+      return seq1.Visit(new StatementInterpreter());
+    }
+  }
+  public Statement OnIf(Expression cond, Statement _then, Statement _else)
+  {
+    Value condValue = cond.Visit(new ExpressionInterpreter());
+    if (condValue.Equals(new True()))
+      return _then;
+    else
+      return _else;
+  }
+  public Statement OnWhile(Expression cond, Statement _do)
+  {
+    Value condValue = cond.Visit(new ExpressionInterpreter());
+    if (condValue.Equals(new True()))
+      return new Sequence(_do,new While(cond,_do))
+    else
+      return new Skip();
+  }
+  ... //other statement semantics
+}
+\end{lstlisting}
+
+A further remark is that, for the sake of simplicity, here the interpretation only returns a new statement to execute obtained by processing the current statement, but in a real application it should also return a data structure representing the state of the program.
+
+At this point it should not be hard to observe that this pattern can be generalized as well in a way analogous to that used for type rules for both implementations, which we omit for brevity.
+
+
 
 \subsection{Discussion}
 The examples above show how the behaviour of the type checking and semantics rules must be hard-coded in the language chosen for the compiler implementation, regardless of the fact that their pattern is constantly repeated in every rule. This pattern can be captured in a meta-language that is able to process the type system and operational semantics definition of the language and produce the code to execute the behaviour of the rules. In this work we describe the meta-language for \textit{Metacasanova}, a meta-compiler that is able to read a program written in terms of type system/operational semantics rules defining a programming language, a program written in that language, and output executable code that mimics the behaviour of the semantics. Such a language relieves the programmer from writing boiler-plate code when implementing a compiler for a (Domain-Specific) language. For this reason we formulate the following research question:
