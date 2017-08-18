@@ -6,6 +6,7 @@ This chapter presents the language definition and compiler architecture of Metac
 In Chapter \ref{ch:background} we gave on overview of the necessary steps involved in developing a compiler. We showed that the lexing/parsing phase is simple enough to be automated using a lexer/parser generator. Such software takes as input the grammar and the definitions of regular expressions to define the tokens of the language and produces output code containing that is able to parse a program written in a programming language defined by that grammar. However, the steps involved in the following phases, namely the \textit{type checking} and \textit{operational semantics} implementation follow a recurring pattern, but in general the behaviour of the type system and the code generation reflecting the behaviour of the operational semantics must be hard-coded in the host language in which the compiler is being implemented. Below we present two examples to show how these behaviours can be implemented in two different general purpose programming languages and show that both follow the same pattern.
 
 \subsection{Hard-coded implementation of type rules}
+\label{sec:ch_metacasanova_hc_type_rules}
 As shown in Section \ref{sec:ch_background_type_checking}, type rules are expressed in the form of logical rules. Let us consider the type rules for the \texttt{if-then-else} and \texttt{while-do} statements presented in Section \ref{sec:ch_background_type_checking} in the version that assigns the type \textit{unit} to the code blocks for convenience. In a programming language that supports discriminated unions as a language abstraction (like Haskell or F\#), the syntactical element in the abstract syntax tree of the language can be expressed as
 
 \begin{lstlisting}
@@ -285,7 +286,38 @@ public $\sigma_j$ : $\alpha$
 }
 \end{lstlisting}
 
+A general pseudo-code representation of the rule evaluation is shown in Algorithm \ref{alg:ch_metacasanova_rule_evaluation}.
+
+\begin{algorithm}
+	\caption{Pseudocode of rule evaluation}
+	\label{alg:ch_metacasanova_rule_evaluation}
+	\begin{algorithmic}
+		\Function{Evaluate rule}{$R \text{ inference rule }$, $I \text{ input of the rule }$}
+		\If {$\text{\textbf{not }} R.Conclusion \text{ matches } I$}
+			\State \Return $\text{\textbf{error}}$
+		\EndIf
+		\ForAll {$p \text{ in } R.Premises$}
+		  \State $p'\gets \text{textbf{ evaluate }} p$
+		  \If {$\text{\textbf{not }}p.Result \text{\textbf{ matches }} p$}
+		    \State \Return $\text{\textbf{error}}$
+		  \EndIf
+		\EndFor
+		\State \Return $R.Result$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+A graphical representation of the rule evaluation can be found in Figure \ref{fig:ch_metacasanova_rule_evaluation}.
+
+\begin{figure}
+	\centering
+	\includegraphics[width = \textwidth]{Figures/chapter_metacasanova/rule_evaluation}
+	\caption{Diagram of rule evaluation: on the left side the structure of an inference rule, on the right side its evaluation expressed as a flow chart. The components of the rule are coloured to match the parts in which they are used in the flow chart.}
+	\label{fig:ch_metacasanova_rule_evaluation}
+\end{figure}
+
 \subsection{Hard-coded implementation of Semantics}
+\label{sec:ch_metacasanova_hc_semantics}
 As shown in Section \ref{sec:ch_background_semantics}, there are multiple ways to express the semantics of a programming language. In this work we choose to make use of the operational semantics representation to have a uniform way of expressing both the type system and the semantics of a language. Let us consider again the semantics rule for \texttt{if-then-else} and \texttt{while-do} presented in Section \ref{sec:ch_background_semantics}. The operational semantics can be implemented generating the code in the object language that emulates the behaviour of the semantics rule, in the same fashion of a type rule. This process might first pass through an intermediate language, closer to the target language. In the case of an interpreter, the behaviour of the semantics must be implemented using the abstractions available in the host language. As an example, we show a possible implementation of the semantics of the two statements mentioned above in an interpreter both in a functional programming language and in an object-oriented language, as for the type rule.
 
 For convenience, let us make a separate rule for the semantics of a sequence of statements from the specific semantics of the control structure. Also, we introduce the statement \texttt{skip} that performs no operation
@@ -397,29 +429,18 @@ public class StatementInterpreter : StatementVisitor
 
 A further remark is that, for the sake of simplicity, here the interpretation only returns a new statement to execute obtained by processing the current statement, but in a real application it should also return a data structure representing the state of the program.
 
-At this point it should not be hard to observe that this pattern can be generalized as well in a way analogous to that used for type rules for both implementations, which we omit for brevity.
-
+At this point it is possible to observe that this pattern can be generalized as well in a way analogous to that used for type rules for both implementations, which we omit for brevity.
 
 
 \subsection{Discussion}
-The examples above show how the behaviour of the type checking and semantics rules must be hard-coded in the language chosen for the compiler implementation, regardless of the fact that their pattern is constantly repeated in every rule. This pattern can be captured in a meta-language that is able to process the type system and operational semantics definition of the language and produce the code to execute the behaviour of the rules. In this work we describe the meta-language for \textit{Metacasanova}, a meta-compiler that is able to read a program written in terms of type system/operational semantics rules defining a programming language, a program written in that language, and output executable code that mimics the behaviour of the semantics. Such a language relieves the programmer from writing boiler-plate code when implementing a compiler for a (Domain-Specific) language. For this reason we formulate the following research question:
+In Section \ref{sec:ch_metacasanova_hc_type_rules} and \ref{sec:ch_metacasanova_hc_semantics} we have shown two implementations, one functional and one object-oriented, of type rules and semantics in a possible hard-coded compiler. We have also shown that the pattern can be generalized in both versions. Indeed, their behaviour must be hard-coded in the language chosen for the compiler implementation, regardless of the fact that the pattern is constantly repeated in every rule. This pattern can be captured in a meta-language that is able to process the type system and operational semantics definition of the language and generates the code in the target language necessary to execute the behaviour of the rules. In the following sections we describe the meta-language for \textit{Metacasanova}, a meta-compiler that is able to read a program written in terms of type system/operational semantics rules defining a programming language, a program written in that language, and output executable code that mimics the behaviour of the semantics. The goal of this language is relieving the programmer from writing boiler-plate code when implementing a compiler for a (Domain-Specific) language.
 
-\vspace{0.2cm}
-\noindent
-\textbf{Research question 1:} \textit{To what extent Metacasanova eases the development speed of a compiler for a Domain-Specific Language, in terms of code length compared to the hard-coded implementation, and how much does the abstraction layer of the Metacompiler affect the performance of the generated code?}
-
-\vspace{0.2cm}
-Another problem that arises when using meta-compilers is the performance decay given by the introduction of their additional abstraction layer. One of the reasons for this performance decay (see Section \ref{subsec:code_generation_discussion}) is that the meta-language (and thus the meta-type system) is unaware of the type system and the memory model of the language implemented in the meta-compiler. For this reason, checking the types and accessing the memory requires to dynamically look up a symbol table defined with the abstractions provided by the meta-language. The need for performance is for Metacasanova important because it is being used to extend the DSL for games \textit{Casanova} \cite{abbadi2015casanova, abbadithesis2017}. Thus, we formulate a second research question:
-
-\vspace{0.2cm}
-\noindent
-\textbf{Research question 2:} \textit{In what way can we embed the type system of the implemented language in Metacasanova in order to get rid of the dynamic lookups at runtime and what is the performance gain of this optimization?}
-
-\vspace{0.2cm}
-We try to answer these two research questions by using a two-steps methodology: (\textit{i}) we present an architecture for Metacasanova aimed to automate the process of code generation, and then (\textit{ii}) we propose a language extension to embed the implemented language type system in the meta-type system of Metacasanova.
+\section{Metacasanova overview}
+\label{sec:ch_metacasanova_metacasanova_overview}
+In this section we present the general idea behind Metacasanova. We start by defining the requirements of Metacasanova, then we proceed to give a general overview of the language, and finally we formalize the semantics of the language.
 
 \subsection{Requirements of Metacasanova}
-In order to relieve programmers of manually defining the behaviour described in Section \ref{sec:problem} in the back-end of the compiler, we propose the following features for Metacasanova:
+In order to relieve programmers of manually defining the behaviour described in Section \ref{sec:ch_metacasanova_hc_type_rules} and \ref{sec:ch_metacasanova_hc_semantics} in the back-end of the compiler, we propose the following features for Metacasanova:
 
 \begin{itemize}
 	\item It must be possible to define custom operators (or functions) and data containers. This is needed to define the syntactic structures of the language we are defining.
@@ -430,10 +451,17 @@ In order to relieve programmers of manually defining the behaviour described in 
 
 We can see that these specifications are compatible with the definition of meta-compiler, as the software takes as input a language definition written in the meta-language, a program for that language, and outputs runnable code that mimics the code that a hard-coded compiler would output.
 
-\subsection{General overview}
+\subsection{Program structure}
+In this section we give an informal idea of how a Metacasanova program is organized. Further ahead this idea is expanded with additional details when we present the implementation details of the parser.  \\\\
+A Metacasanova program is mainly organized in three parts:
 
-A Metacasanova program is made of a set of \texttt{Data} and \texttt{Function} definitions, and a sequence of rules. A data definition specifies the constructor name of the data type (used to construct the data type), its field types, and the type name of the data. Optionally it is possible to specify a priority for the constructor of the data type. For instance this is the definition of the sum of two arithmetic expression
+\begin{enumerate}
+	\item \textit{Data and function declarations:} in this part it is possible to specify data structures, that define the syntactic constructs of the language, and functions used to evaluate terms of the language through rules.
+	\item \textit{Polymorphism defintions:} in this part it is possible to specify polymorphism through type equivalence by stating that a type $T_1$ is equivalent to another type $T_2$.
+	\item \textit{Rule definitions:} in this part the programmer defines the type or semantics rules necessary to describe the type system or behaviour of the abstractions of the programming language.
+\end{enumerate}
 
+A data structure or function declaration specifies the types of the arguments to construct the data structure or to pass to the function, their name, and the type of the data structure or the function itself
 \begin{lstlisting}
 Data Expr -> "+" -> Expr : Expr
 \end{lstlisting}
@@ -446,6 +474,13 @@ Data "+" -> Expr -> Expr : Expr
 Data Expr -> Expr -> "+" : Expr
 \end{lstlisting}
 
+Optionally, it is possible to specify a precedence priority and the associativity. For example, the following code specifies that the multiplication has a higher precedence over the sum and that both are left-associative.
+
+\begin{lstlisting}
+Data Expr -> "+" -> Expr : Expr Priority 0 <|
+Data Expr -> "*" -> Expr : Expr Priority 1 <|
+\end{lstlisting}
+
 \noindent
 A function definition is similar to a data definition but it also has a return type. For instance the following is the evaluation function definition for the arithmetic expression above:
 
@@ -454,23 +489,21 @@ Func "eval" -> Expr : Value
 \end{lstlisting}
 
 \noindent
-In Metacasanova it is also possible to define polymorphic data in the following way:
+A polymorphic data structure is defined through the keyword \texttt{is}, which specifies that a type $T_1$ is equivalent to another type $T_2$. For example the following code specifies that a data structure of type \texttt{Value}, such as a list, can be used also as an expression of type \texttt{Expr}.
 
 \begin{lstlisting}
+Data "$l" -> List : Value 
 Value is Expr
 \end{lstlisting}
 
-\noindent
-In this way we are saying that an atomic value is also an expression and we can pass both a composite expression and an atomic value to the evaluation function defined above.
-
-Metacasanova also allows to embed C\# code \footnote{See Section \ref{sec:code_generation} for the motivation.} into the language by using double angular brackets. This code can be used to embed .NET types when defining data or functions, or to run C\# code in the rules. For example in the following snippets we define a floating point data which encapsulates a floating point number of .NET to be used for arithmetic computations:
+Metacasanova also allows to embed C\# code into the language by using double angular brackets. This code can be used to embed .NET types when defining data or functions, or to run C\# code in the rules. For example in the following snippet we define a floating point data which encapsulates a floating point number of .NET to be used for arithmetic computations:
 
 \begin{lstlisting}
 Data "$f" -> <<float>> : Value
 \end{lstlisting}
 
 \noindent
-A rule in Metacasanova, as explained above, may contain a sequence of function calls and clauses. In the following snippet we have the rule to evaluate the sum of two floating point numbers:
+A rule in Metacasanova may contain a sequence of premises and a conclusion. The rule is executed if the input matches the pattern of the conclusion and all the premises return a result that matches the one specified in their rightmost part. In the following snippet we have the rule to evaluate the sum of two floating point numbers:
 
 \begin{lstlisting}
 eval a => $f c
@@ -493,11 +526,15 @@ eval expr => res
 eval (a + b) => res
 \end{lstlisting} 
 
-Finally the language supports expression bindings with the following syntax:
+\noindent
+A more exhaustive explanation of the syntax of Metacasanova is given in Section \ref{sec:ch_metacasanova_parsing}, while an overview of the general shape of a program can be found in Figure \ref{fig:ch_metacasanova_program_structure}.
 
-\begin{lstlisting}
-x := $f 5
-\end{lstlisting}
+\begin{figure}
+	\centering
+	\includegraphics[width = 0.6\textwidth]{Figures/chapter_metacasanova/program_structure}
+	\caption{Structure of a program in Metacasanova}
+	\label{fig:ch_metacasanova_program_structure}
+\end{figure}
 
 \begin{comment}
 \subsection{Syntax in BNF}
@@ -582,13 +619,22 @@ In what follows we consider a set of rules defined in the Metacasanova language 
 
 R1 says that, when both $C$ and $F$ are empty (we do not have any clauses or function calls), the rule in Metacasanova returns a result. R2 says that, if all the clauses in $C$ evaluates to true and, for all the function calls in $F$ we can find a rule that returns a result (all the function applications return a result for at least one rule of the program), then the current rule returns a result. R3(a) and R3(b) specify when a rule fails to return a result: this happens when at least one of the clauses in $C$ evaluates to false, or when one of the function applications does not return a result for any of the rules defined in the program.
 
-\vspace{0.2cm}
-\noindent
-In the following section we describe how the code generation process works, namely how the \texttt{Data} types of Metacasanova are mapped in the target language, and how the rule evaluation is implemented.
+\section{Architectural overview}
+\label{sec:ch_metacasanova_architecture}
+In this section we provide a general overview of the architecture of Metacasanova compiler.
 
-In Section \ref{sec:semantics} we defined the syntax and semantics of Metacasanova. In this section we explain how the abstractions of the language are compiled into the generated code. We chose C\# as target language because the development of Metacasanova started with the idea of expanding the DSL for game development Casanova with further functionalities. Casanova hard-coded compiler generated C\# code as well because it is compatible with game engines such as Unity3D and Monogame. At the same time, C\# grants decent performance without having to manually manage the memory such as for lower-level languages like C/C++. Code generation in different target languages is possible but still an ongoing project (see Section \ref{sec:conclusion}).
+The compiler has a modular structure: in the front-end we find the the lexer/parser and a parser post-processing module. The latter is required because not all information necessary to build all the elements of the AST is immediately available during the parsing phase. For instance, some data structures store the file name that is being compiled and the name of the current module, but this information is available only after the parsing itself. 
+
+The generated AST is passed to the type checker to check the type correctness. Note that the type checker of the metacompiler checks the meta-types, i.e. the types defined in the meta-program, and not the types of the terms of the language that is being implemented in Metacasanova. This module checks the correctness of the declarations and the terms used in rules. The type checker outputs a data structure containing information about the types of the declarations and terms used in rules (in short a \textit{typed program definition}).
+
+The output of the AST is passed to the code generator that uses information about the types to correctly generate the target code. This is needed because Metacasanova generates C\# code, which is a typed high-level language that requires information about the types to define variables, methods, and classes representing the elements of the meta-program.
+
+Note that also, with this implementation choice, it is possible to support different high-level programming languages, both typed and untyped: the only component that changes will be the generation of the behaviour of the rules in the abstractions provided by the different target languages. A possible improvement of this architecture is generating a common intermediate language that is later translated into the target code, but this falls outside the scope of this work.
+
+
 
 \section{Parsing}
+\label{sec:ch_metacasanova_parsing}
 
 \section{Type checking}
 

@@ -455,7 +455,7 @@ type Expression =
 
 \subsection{Monadic parsers}
 \label{sec:ch_background_parser_monad}
-Monadic parsing is an alternative to traditional parsers, such as LR(k) and LALR(k) presented above. Monadic parsers have inferior performance with respect to LR(k) and LALR(k) \cite{hutton1998monadic} parsers but they are extensible, i.e. they do not rely on a limited set of combinators to describe the grammar of language as for parser generators. Monadic parsers were extensively explained in \cite{hutton1998monadic, wadler1995monads}, here we present a variation that can deal also with error handling. Before explaining how to implement a monadic parser, we introduce the concept of Monad:
+Monadic parsing is an alternative to traditional parsers, such as LR(k) and LALR(k) presented above. Monadic parsers have inferior performance with respect to LR(k) and LALR(k) \cite{hutton1998monadic} parsers but they are extensible, i.e. they do not rely on a limited set of combinators to describe the grammar of a language as for parser generators. Monadic parsers were extensively explained in \cite{hutton1998monadic, wadler1995monads}, here we present a variation that can deal also with error handling. Before explaining how to implement a monadic parser, we introduce the concept of Monad:
 
 \begin{definition}
 	\label{def:ch_background_monad}
