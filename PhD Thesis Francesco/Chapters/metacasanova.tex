@@ -457,7 +457,7 @@ A Metacasanova program is mainly organized in three parts:
 
 \begin{enumerate}
 	\item \textit{Data and function declarations:} in this part it is possible to specify data structures, that define the syntactic constructs of the language, and functions used to evaluate terms of the language through rules.
-	\item \textit{Polymorphism defintions:} in this part it is possible to specify polymorphism through type equivalence by stating that a type $T_1$ is equivalent to another type $T_2$.
+	\item \textit{Type equivalence declarations:} in this part it is possible to specify polymorphism through type equivalence by stating that a type $T_1$ is equivalent to another type $T_2$.
 	\item \textit{Rule definitions:} in this part the programmer defines the type or semantics rules necessary to describe the type system or behaviour of the abstractions of the programming language.
 \end{enumerate}
 
@@ -632,9 +632,111 @@ The output of the AST is passed to the code generator that uses information abou
 Note that also, with this implementation choice, it is possible to support different high-level programming languages, both typed and untyped: the only component that changes will be the generation of the behaviour of the rules in the abstractions provided by the different target languages. A possible improvement of this architecture is generating a common intermediate language that is later translated into the target code, but this falls outside the scope of this work.
 
 
-
 \section{Parsing}
 \label{sec:ch_metacasanova_parsing}
+In this section we explain in detail the grammar of Metacasanova and we present the architecture of its parser. The parser has been built in FsYacc (see Section \ref{sec:ch_background_parser_generators}) and completed by a post-processing module that executes some required transformation on the generated AST that are not convenient to perform during the parsing phase. As explained informally in Section \ref{sec:ch_metacasanova_metacasanova_overview}, a Metacasanova program is made of four main sections: (\textit{i}) a part containing inclusion directives, (\textit{ii}) a part containing the declarations of the meta-data stracutures and evaluation functions used in the program, (\textit{iv}) a part containing type equivalences, and (\textit{iii}) a part containing evaluation rules that define the behaviour of the meta-program. The definition of the first part is trivial and we do not examine it in detail. We will instead describe in detail the other parts.
+	
+\subsection{Declarations}
+\label{sec:ch_metacasanova_parser_declarations}
+Declarations contain \textit{function} or \textit{data} declarations. A meta-data structure is a meta-language representation of an abstraction of the language implemented in the metacompiler and contains both syntactical and structural information. For example, an arithmetic operator in a programming language can be represented as a meta-data structure containing both its symbol and the values of its arugments. Meta-data structures can be recursive, i.e. it is possible to have arguments that are instances of the same meta-data structure. This is done in order to allow recursive data structures such as lists. A meta-data structure declaration begins with the keyword \texttt{Data} and is followed by a series of arguments, which are separated by arrows, that can be both type names and strings representing the name of the meta-data. It is possible to declare an infix or suffix operator by placing its name after the first position of the arguments. For instance, the following code defines a sum operator for arithmetic expressions with an infix notation.
+
+\begin{lstlisting}
+Data Expr -> "+" -> Expr : Expr
+\end{lstlisting}
+
+Type names are identifier that begins with an alphabetic character followed by one or more alphanumeric characters or underscores. The regular expression defining this syntax is expressed as
+
+\begin{lstlisting}
+ID ::= ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '_' '0'-'9']+
+\end{lstlisting}
+
+Type names can also contain external code enclosed by double angular brackets to make use of external types such as .NET primitive types (\texttt{int}, \texttt{float}, etc.). The operator names are strings that may contain any symbol usually allowed in strings in usual programming languages.
+
+The arguments are followed by a type name defining the type of the meta-data structure. Optionally it is possible to specify a priority and the associativity, otherwise the default priority will be -1 and the operator will be left-associative.
+
+Function declarations have the same structure except they begin with the keyword \texttt{Func} instead.
+
+Both data and function declarations may define generic arguments. In order to specify generic arguments, they must be enclosed between square brackets after the declaration keyword. For instance the following code defines a data structure representing a tuple
+
+\begin{lstlisting}
+Data[a,b] a -> "," -> b : Tuple[a,b]
+\end{lstlisting}
+
+Finally, each declaration must end with a line break. Line breaks are used in Metacasanova to separate different language elements, as in this case.
+
+The grammar production used to describe the syntax of declarations is the following:
+
+\begin{lstlisting}
+declaration:
+| FUNC genericSeq typeOrNameDeclarations COLON typeDeclaration priority associativity newLineSeq {
+Func(processParsedArgs $3 $5 (fst $1) (snd $1) $2 $6 $7) }
+| DATA genericSeq typeOrNameDeclarations COLON typeDeclaration priority associativity newLineSeq {
+Data(processParsedArgs $3 $5 (fst $1) (snd $1) $2 $6 $7) }
+\end{lstlisting}
+
+Since type names and data or function names can appear in any order, the parser generates a support polymorphic data structure in F\#.
+
+\begin{lstlisting}
+type TypeDeclOrName =
+| Type of TypeDecl
+| Name of string
+\end{lstlisting}
+
+This data structure is later transformed by the parser post-processor in a \textit{symbol declaration}. A symbol declaration contains all the information about a declaration, including the data or function name, the types of the arguments, the priority, and the generic types. This information is later exploited by the type checker to verify the consistency of the declarations and type check the rest of the program.
+
+\subsubsection{Type equivalence declarations}
+Type equivalence has been presented as a separate part of the program but it has a tight relationship with the declarations. A type equivalence has the form
+
+\begin{lstlisting}
+T1 is T2
+\end{lstlisting}
+
+where T1 and T2 are two meta-type names. They are used to specify that meta-type T1 is equivalent to meta-type T2 and can replace any argument of type T2 while constructing meta-data structures or calling functions. The grammar rule that defines a type equivalence declaration is
+
+\begin{lstlisting}
+ID IS ID newLineSeq
+\end{lstlisting}
+
+\noindent
+where \texttt{ID} is the same regular expression used for type names. Again successive equivalence declarations should be separated by one or more line breaks. The grammar production generates a list of pairs in the AST containing the types involved in the equivalence. This data structure will be processed at a later stage by the type checker to generate an equivalence table.
+
+\subsection{Rules}
+\label{sec:ch_metacasanova_parser_rules}
+Rules in Metacasanova are the language elements used to define the behaviour of the meta-program. A rule consists of a set of premises followed by a conclusion. Premises and conclusion are separated by a fraction line. Premises and conclusion are made of a left part consisting of a sequence of arguments, and a right part that can contain either a variable or a sequence of arguments. We call the left part of this syntactical structure \textit{function call}, while the right part is the \textit{result}. Premises differ from the conclusion as, besides function calls, they can also contain \textit{bindings} and \textit{clause}. Bindings are simply ways to rename values in the premises in the fashion of bindings in functional languages, while clauses are boolean predicates. Moreover, premises can also contain .NET code to directly emit, which can contain any C\# code. The syntax of emitted code is the same as that of a normal premise, except the \textit{function call} is replaced by the code to emit enclosed in double angular brackets. The following is the grammar production defining a premise\footnote{ \texttt{BIND} is the symbol \texttt{:=}}:
+
+\begin{lstlisting}
+premise:
+| emit premises { $1 :: $2 }
+| functionCall premises { $1 :: $2 }
+| ID BIND arg newLineSeq premises { (Bind({ Namespace = ""; Name = fst $1 },Position.Create(snd $1,""),$3)) :: $5 }
+| arg comparisonOp arg newLineSeq premises { (Conditional($1,$2,$3)) :: $5 }
+| { [] }
+
+functionCall:
+| argSeq ARROW argSeq newLineSeq { FunctionCall($1,$3) }
+\end{lstlisting}
+
+Note that premises are optional (axioms do not have any premise in a logical rule), so an empty list is returned when none is given. Note that the namespace required for variables, such as in the binding, is left empty because at this point the namespace of the program is not available yet. The namespace will be later filled in by the parser post-processor. Also note that, in this stage, we do not check if each function call actually contains a function name, and we simply parse a premise (and a conclusion) as a sequence of arguments, that could be function or data names, variables, literals, or nested expressions. Nested expressions are expressions enclosed in brackets and are themselves other sequences of arguments. The actual control that premises and conclusions contain a function name is performed by the type checker, because to correctly identify the function name a complete symbol table, unavailable in this moment, is required. A conclusion has the same syntax of a function call:
+
+\begin{lstlisting}
+conclusion:
+| argSeq ARROW argSeq newLineSeq { ValueOutput($1,$3) }
+\end{lstlisting}
+
+The parser generates a data structure for a rule containing a representation of the premises and the conclusion:
+
+\begin{itemize}[noitemsep]
+\item \textit{function call}: A function call is simply a pair of list of arguments, where the left element is the call itself, while the right element is the result.
+
+\item \textit{emit}: Emitted code contains the code in string format and the variable it is assigned to (used to save the result of expressions or function calls).
+
+\item \textit{bind}: Bindings contain the variable name used for the binding and its argument, which can be a literal, the constructor of a meta-data structure, or another variable.
+
+\item \textit{conditional}: Conditionals are boolean expressions that may contain comparison operators. Their representation stores their left and right argument and the comparison operator.
+\end{itemize}
+
+\subsection{Parser post-processor}
+\label{sec:ch_metacasanova_parser_post-processor}
 
 \section{Type checking}
 
