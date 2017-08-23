@@ -79,7 +79,7 @@ Functor "GetField" => string => Record : Getter
 Functor "SetField" => string => Record : Setter
 \end{lstlisting}
 
-The behaviour of functor is expressed, as for normal functions, through a rule in the meta-program. A rule that evaluates a functor returns an instantiation of a module or a type. Note that, inside a module instantiation, it is possible to define and implement functions other than those in the module definition, i.e. the module instantiation must implement \textit{at least} all the functors and functions of the definition. For instance, the following is the type rule instantiating the module for \texttt{EmptyRecord}:
+The behaviour of a functor is expressed, as for normal functions, through a rule in the meta-program. A rule that evaluates a functor returns an instantiation of a module or a type. Note that, inside a module instantiation, it is possible to define and implement functions other than those in the module definition, i.e. the module instantiation must implement \textit{at least} all the functors and functions of the definition. For instance, the following is the type rule instantiating the module for \texttt{EmptyRecord}:
 
 \begin{lstlisting}
 -------------------
