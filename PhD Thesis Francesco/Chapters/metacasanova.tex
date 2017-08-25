@@ -737,13 +737,169 @@ The parser generates a data structure for a rule containing a representation of 
 
 \subsection{Parser post-processor}
 \label{sec:ch_metacasanova_parser_post-processor}
+The parser post-processor is responsible to integrate in the AST all the information that is not directly available during the parsing phase. It is also responsible to re-arrange the terms appearing in the data and function declarations, and those appearing in function calls. Its main functions are the following: (\textit{i}) insert the namespace and file information in the elements of the AST, (\textit{ii}) rearrange the terms parsed from a declaration in a \textit{symbol declaration} data structure, and (\textit{iii}) parenthesize the function call terms according to their priority and associativity and rearrange them in a prefix notation.
+
+The first task is trivial and will not be explained in details. Suffice to say that the process scans the AST starting from the root and recursively add the namespace and file name into all the nodes that must contain such information until a leaf is reached. Below we explain in detail the other how to accomplish the other two tasks.
+
+\subsubsection{Building the declaration data structure}
+As anticipated in Section \ref{sec:ch_metacasanova_parser_declarations}, the name of the data or function and the types of its arguments can appear in any order. For convenience, the AST stores a data structure called \textit{symbol declaration} that separates all the information about a declaration for further use, which is made of the following components:
+
+\begin{itemize}[noitemsep]
+	\item The name of the data or function.
+	\item The type of the arguments of the data or function.
+	\item The return type of the declaration: in the case of a data declaration this defines the type of the meta-data structure itself, while in a function declaration this defines the type of the result returned by the function.
+	\item The operator arguments order, which can be prefix, infix, or suffix.
+	\item The priority of the operator.
+	\item The associativity of the operator.
+	\item Possible generic arguments.
+	\item The arity (amount of arguments) to the left and right of the operator symbol.
+\end{itemize}
+
+When the parser processes the arguments of a declaration, it creates a list of terms that can be either a type declaration or a name assigned to the meta-data or function in \texttt{string} format. The different arguments must be recognized and stored appropriately in the symbol declaration. In order to do so, the post-processor scans the arguments and, if the argument is a string, then it places it as a first element of a pair, otherwise it places the type declaration in a list of declarations. Algorithm \ref{alg:ch_metacasanova_symbol_args} shows the details of this process. Note that it might be possible that the programmer commits the mistake of defining more than one name for the declaration, since we are still checking the syntax of the program. Thus the algorithm checks that the result of the function does not already contain a declaration name as, if it does, it means that a name argument has already been encountered while scanning the list.
+
+The symbol declaration needs also to store the order of the declaration, its left and right arity, and the type of the declaration. 
+
+For the declaration order we have three options:
+
+\begin{enumerate}[noitemsep]
+	\item The first element of the parsed arguments is the declaration name. The declaration is then \textbf{prefix}.
+	\item The last element of the parsed arguments is the declaration name. The declaration is \textbf{suffix}.
+	\item If both 1 and 2 are false, then the name is in the middle and the declaration is \textbf{infix}.
+\end{enumerate}
+
+Finding the left and right arity of an operator can be done simply by splitting the list of arguments in correspondence of the declaration name and then counting the elements of the two lists obtained by the split.
+
+Finally, the post-processor must build the type of the declaration. Types in Metacasanova are represented in a way similar to typed lambda calculus \cite{barendregt2013lambda, church1940formulation}: if a declaration as type arguments $T_{1}, T_{2}, ..., T_{n}$, then its type representation is given as $T_{1} \rightarrow T_{2} \rightarrow ... \rightarrow T_{n}$. This will allow at a later stage the type checking of partial function applications. The post-processor scans the arguments list and recursively add the element to a data structure representing an \textit{arrow type}. The arrow type contains two elements corresponding to the elements to the left and right of the arrow. It is possible to build a chain of arrow types by recursively adding an arrow type as right argument of another arrow. For instance, to represent the type $A \rightarrow B \rightarrow C$ we use.
+
+\begin{lstlisting}
+Arrow(A,Arrow(B,Arrow(C)))
+\end{lstlisting}
+
+The algorithm to build the type arrow simply scans the argument list and recursively add the current argument to the left of an arrow type and the result of the recursive call to the remaining part of the list as its right part. This process is shown in Algorithm \ref{alg:ch_metacasanova_symbol_type}. Note that in Metacasanova a declaration might contain no type arguments (only the name), thus we return an empty type as placeholder. If a declaration contains only one type argument then there is no need to build an arrow type and the type argument itself is returned. This is also used as a base case for the recursive build of an arrow type.
+
+\begin{algorithm}
+	\caption{Arguments construction in a symbol declaration}
+	\label{alg:ch_metacasanova_symbol_args}
+	\begin{algorithmic}
+		\Function {argSeparation} {$A \text{ list of arguments returned by the parser}$}
+			\State $name \gets$ \texttt{""}
+			\State $D \gets \emptyset$
+			\ForAll {$a \in A$}
+				\If {$a \text{ is a string}$}
+					\If {$name \neq$ \texttt{""}}
+						\AlgError{duplicate function name}
+					\Else
+						\State $name \gets a$
+					\EndIf
+				\Else
+					\State $D \gets D \cup \lbrace a \rbrace$
+				\EndIf
+			\EndFor
+			\State \Return $(name,D)$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+	\caption{Type construction in a symbol declaration}
+	\label{alg:ch_metacasanova_symbol_type}
+	\begin{algorithmic}
+		\Function {buildDeclarationType} {$A \text{ list of arguments returned by the parser}$}
+			\If {$A = \emptyset$}
+				\State \Return $Empty$
+			\ElsIf {$A = \lbrace x \rbrace$}
+				\State \Return $x$
+			\Else
+				\State $h \gets$ \Call {head} {$A$}
+				\State $t \gets$ \Call {tail} {$A$}
+				\State $r \gets$ \Call {buildDeclarationType} {$t$}
+				\State \Return $h \rightarrow r$
+			\EndIf
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Parenthesization of function calls}
+As explained above, Metacasanova allows the declaration of functions and data types expressed with any notation (prefix, suffix, or infix) and with arbitrary associativity and precedence. Furthermore, this is possible regardless of the amount of arguments the data type or the function call use. Parsing operators according to precedence is a well-known problem that must be solved in order to avoid ambiguity in the language grammar. For instance, the expression \texttt{3 + 5 / 4} can generate two different parse trees: \texttt{(3 + 5) / 4} or \texttt{3 + (5 / 4)}. This ambiguity can be solved by setting the division operator to have a higher precedence over the sum operator, as in traditional arithmetic.
+
+The first attempt to solve this problem was Dijkstra's Shunting-Yard algorithm \cite{dijkstra1961shuntingyard} that takes an expression containing operators and a priority table and returns the same expression in reverse polish notation. This approach was later generalised by operator-precedence parsing which is available in all LALR(1) parser generators. Unfortunately, these approaches deal with binary operators, but are insufficient for operators of arbitrary arity. Moreover, parse generators such as Yacc allows to define a set of pre-defined language operators but do not allow to specify ``custom'' operators to extend the language with. A notable effort in parsing \textit{mixfix operators} (i.e. operators with an arbitrary position in an expression) using precedence graphs has been done in \cite{danielsson2008parsing}.
+
+In this work we used an AST-transformation technique that changes a function call expressed as a sequence of arguments into a parenthesized version based on defined priorities and associativity. A function call, as defined in Section \ref{sec:ch_metacasanova_parser_rules}, can be the left part of a premise or a conclusion, and is parsed as a sequence of arguments. Each argument can be represented in the following way:
+
+\begin{itemize}[noitemsep]
+	\item A literal.
+	\item An identifier, that can start with an alphabetic character (\textit{simple id}), or a symbol (such as \texttt{\%, \#, \&, @, ...}) followed by a sequence of alphanumeric characters.
+	\item A nested expression, which is any sequence of arguments enclosed between brackets (such as \texttt{(5 +++ x)}).	
+\end{itemize}
+
+We now give the definition of parenthesization of an argument sequence. In what follows we use the term \textit{symbol} to indicate the name of \textit{functions} or \textit{meta-data} structure used in an argument sequence.
+
+\begin{definition}
+	\label{def:ch_metacasanova_parenthesization}
+	An argument sequence is parenthesized if all its arguments are (\textit{i}) literals, (\textit{ii}) identifiers, or (\textit{iii}) a nested expressions containing a parenthesized argument sequence, and the nesting depth of a symbol is directly proportional to its priority (i.e. the highest-precedence operator is at maximum nesting depth).
+\end{definition}
+
+\noindent
+For instance, given the precedence relation in Table \ref{tab:ch_metacasanova_example_precedence_relation}, the following argument sequence is parenthesized
+
+\begin{lstlisting}[label = code:ch_metacasanova_par_example,caption = Example of parenthesization]
+x -> ($ a1 (b1 % b2 b3) a2)
+\end{lstlisting}
+
+\begin{table}
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		\textbf{Symbol} & \textbf{Priority} & \textbf{Left arity} & \textbf{Right arity} & \textbf{Associativity} \\
+		\hline
+		\texttt{\%} & 2 & 1 & 2 & Left \\
+		\hline
+		\texttt{\$} & 1 & 0 & 3 & Left \\
+		\hline
+		\texttt{->} & 0 & 1 & 1 & Left \\
+		\hline
+	\end{tabular}
+	\caption{Precedence relation for Listing \ref{code:ch_metacasanova_par_example}}
+	\label{tab:ch_metacasanova_example_precedence_relation}
+\end{table}
+
+The algorithm takes as input a precedence table with the structure of Table \ref{tab:ch_metacasanova_example_precedence_relation} and the argument sequence to parenthesize, and returns the parenthesized argument sequence. We adopt a recursive approach to the parenthesization problem, whose base case is that the sequence contains only identifiers and literals. Note that a sequence that contains a nested expression is in general not parenthesized because the sequence enclosed in brackets has not been parenthesized yet.
+
+At this point we have two different possibilities for an argument sequence: (\textit{i}) the sequence consists no symbol, or (\textit{ii}) the sequence contains one ore more symbols.
+
+\paragraph{Parenthesization of sequences with no symbols}
+When there are no symbols in the sequence of arguments, each argument can be a literal or identifier corresponding to no definition, or a nested expression. In the first case the argument is automatically parenthesized according to Definition \ref{def:ch_metacasanova_parenthesization}. In the second case we must recursively parenthesize the sequence contained in the nested expression. If the result of this parenthesization is a single nested expression, than we take its content and store it into a single nested expression, to avoid redundant nesting parentheses of the form \texttt{((...(a1 a2, ..., an)...))}. If the result is a series of arguments than we just place it inside a nested expression, obtaining something of the form \texttt{(a1 a2 (b1 b2 ...) a3 (c1 c2 ...) ...)}.
+
+\paragraph{Parenthesization of sequences with symbols}
+Dealing with sequences containing symbols is more complex, since we must parenthesize them keeping into account the symbols priorities and associativity. According to Definition \ref{def:ch_metacasanova_parenthesization}, in a parenthesized sequence the operator with the lowest priority must be at the top of the sequence nesting. The idea is then that at the current depth we should find the symbol with the lowest priority and a series of parenthesizations containing sequences with symbols of higher priority. The algorithm extracts the symbol in the sequence with the lowest priority and the positions in the sequence where it appears. Note that the same symbol might appear more than once. If the symbol associativity is left then we consider its rightmost occurrence in the sequence, otherwise its leftmost one. Now we split the sequence in two parts using this occurrence as separator and we recursively try to parenthesize these two parts. For instance, let us consider again the Precedence Table \ref{tab:ch_metacasanova_example_precedence_relation} and the following sequence of arguments
+
+\begin{lstlisting}
+x -> $ a1 b1 % b2 b3 a2
+\end{lstlisting}
+
+\noindent
+The algorithm will select the symbol \texttt{->} as a separator, as it is the symbol with the lowest priority (there is only one occurrence, thus we neglect the part that selects the appropriate occurrence). It will then recursively parenthesize the sequences \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. At this point we have two parenthesizations of the left and right part: $\lbrace l_1, l_2, ..., l_n \rbrace$ and $\lbrace r_1, r_2, ..., r_m \rbrace$ respectively for the left and right sequence. Assuming that the left arity of the current symbol is $a_l$ and the right one is $a_r$, then the parenthesization of the current operator will contain the elements $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$ and $\lbrace r_1, ..., r_{a_r} \rbrace$. Assuming that the current symbol is $\sigma$, we now consider three cases:
+
+\begin{enumerate}
+	\item The symbol uses a prefix notation: in this case the parenthesization will not contain any elements from $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$, thus the final parenthesization will be $\lbrace l_1, l_2, ..., l_n \; (\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1}, ..., r_{m} \rbrace$.
+	\item The symbol uses an infix notation: in this case the parenthesization will contain elements from both $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$ and $\lbrace r_1, ..., r_{a_r} \rbrace$. The final parenthesization will be $$l_1, ...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1} ,..., r_{m}$$.
+	\item The symbol uses a suffix notation: in this case the parenthesization will not contain any elements from $\lbrace r_1, ..., r_{a_r} \rbrace$ and the final parenthesization will be $l_1,...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma) \; r_{1},...,r_{m}$.
+\end{enumerate}
+
+In order to clarify this process, let us consider again the argument sequence
+
+\begin{lstlisting}
+x -> $ a1 b1 % b2 b3 a2
+\end{lstlisting}
+
+\noindent
+and let us apply the algorithm to it (again using the Priority Table \ref{tab:ch_metacasanova_example_precedence_relation}). The algorithm will test the whole sequence looking for symbols, and of course will find one. We then fall in the second part of the algorithm. The symbol with the lowest priority is \texttt{->}, so the algorithm will recursively parenthesize \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. The left one is a base case of the recursion since the sequence contains only one identifier that is not a symbol, thus its parenthesization is the sequence itself. The right one contains other symbols so we have to recursively apply the algorithm. The operator with the lowest priority is now \texttt{$}. 
 
 \section{Type checking}
 
 \section{Code generation}
 
 \subsection{Data structures code generation}
-The type of each data structure is generated as an interface in C\#. Each data structure defined in Metacasanova is mapped to a \texttt{class} in C\# that implements such interface. The class contains as many fields as the number of arguments the data structure contains. Each field is given an automatic name \texttt{argC} where \texttt{C} is the index of the argument in the data structure definition. The data structure symbols used in the definition might be pre-processed and replaced in order to avoid illegal characters in the C\# class definition. The class contains an additional field that stores the original name of the data structure before the replacement is performed, used for its ``pretty print''. For example the data structure
+The type of each data structure is generated as an interface in C\#. Each data structure defined in Metacasanova is mapped to a \texttt{class} in C\# that implements such interface. The class contains as many fields as the number of arguments the data structure contains. Each field is given an automatic name \texttt{argC} where \texttt{C} is the index of the argument in the data structure definition. The data structure symbols used in the definition might be pre-processed and replaced in order to avoid illegal characters in the C\# class definition. The class contains an additional field that stores the original name of the data structure before the replacement is performed, used for its ``pretty print''. For example the data structure.
 
 \begin{lstlisting}
 Data "$i" -> int : Value
