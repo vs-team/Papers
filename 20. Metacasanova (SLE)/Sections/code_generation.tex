@@ -146,14 +146,7 @@ After the execution of the function called by a premise, we must check if a rule
 if (!(__tmp1.__res.HasValue)) goto case 1;
 \end{lstlisting}
 
-If the premise was successfully evaluated by one rule, then we must check the structure of the result, which leads to the following three situations:
-\begin{enumerate}
-	\item The result is bound to a variable.
-	\item The result is constrained to be a literal.
-	\item The result is an explicit data argument.
-\end{enumerate}
-
-In the first case, as already explained above, the pattern matching always succeeds, so no check is needed. In the second case, it is enough to check the value of the literal. In the last case, all the arguments of the data argument must be checked to see if they match the expected result. In general this process is recursive, as the arguments could be themselves other explicit data arguments. If the result passes the check, then the result is copied into the local variables, in a fashion similar to the one performed for the function premise. For instance, for the premise
+If the premise was successfully evaluated by one rule, then we must check the structure of the result, which leads to the following three situations: (\textit{i}) the result is bound to a variable, (\textit{ii}) the result is constrained to be a literal, and (\textit{iii}) the result is an explicit data argument. In the first case, as already explained above, the pattern matching always succeeds, so no check is needed. In the second case, it is enough to check the value of the literal. In the last case, all the arguments of the data argument must be checked to see if they match the expected result. In general this process is recursive, as the arguments could be themselves other explicit data arguments. If the result passes the check, then the result is copied into the local variables, in a fashion similar to the one performed for the function premise. For instance, for the premise
 
 \begin{lstlisting}
 eval a -> $i c
