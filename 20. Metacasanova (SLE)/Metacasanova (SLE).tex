@@ -24,6 +24,7 @@
 \usepackage{comment}
 \usepackage{mathpartir}
 \usepackage{listings}
+\usepackage{balance}
 
 \lstset
 {
@@ -112,7 +113,7 @@
 %% Author with single affiliation.
 \author{Francesco Di Giacomo}
 \affiliation{
-  \institution{Unviersit\`{a} Ca' Foscari}            %% \institution is required
+  \institution{Universit\`{a} Ca' Foscari}            %% \institution is required
   \city{Venice}
   \country{Italy}
 }
@@ -128,7 +129,7 @@
 
 \author{Agostino Cortesi}
 \affiliation{
-	\institution{Unviersit\`{a} Ca' Foscari}            %% \institution is required
+	\institution{Universit\`{a} Ca' Foscari}            %% \institution is required
 	\city{Venice}
 	\country{Italy}
 }
@@ -157,7 +158,7 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-	Domain-Specific Languages (DSL's) offer language-level abstractions that General-Purpose Languages do not offer, thus speeding up the implementation of the solution of problems within a specific domain. Developers have the choice of developing a DSL by building an interpreter/compiler for it, which is a hard and time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a dedicated compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, whose meta-language is based on operational semantics. We then propose a language extension with functors and modules that allows to embed the type system of a language definition inside the meta-type system of Metacasanova and improves the performance of manipulating data structures at run-time. Our result shows that Metacasanova drastically reduces the code lines required to develop a compiler, and that the running time of the Meta-program is improved by embedding the host language type system in the meta-type system with the use of functors in the meta-language.
+	Domain-Specific Languages (DSL's) offer language-level abstractions that General-Purpose Languages do not offer, thus speeding up the implementation of the solution of problems within a specific domain. Developers have the choice of developing a DSL by building an interpreter/compiler for it, which is a hard and time-consuming task, or embedding it in a host language, thus speeding up the development process but losing several advantages that having a dedicated compiler might bring. In this work we present a meta-compiler called \textit{Metacasanova}, whose meta-language is based on operational semantics. Then, we propose a language extension with functors and modules that allows to embed the type system of a language definition inside the meta-type system of Metacasanova and improves the performance of manipulating data structures at run-time. Our results show that Metacasanova dramatically reduces the code lines required to develop a compiler, and that the running time of the Meta-program is improved by embedding the host language type system in the meta-type system with the use of functors in the meta-language.
 \end{abstract}
 
 \copyrightyear{2017}
@@ -179,7 +180,7 @@
 \end{CCSXML}
 
 \ccsdesc[500]{Software and its engineering~Translator writing systems and compiler generators}
-\keywords{meta-compiler, functors, optimization, operational semantics}  %% \keywords is optional
+\keywords{meta-compiler, optimization, operational semantics}  %% \keywords is optional
 
 
 %% \maketitle
