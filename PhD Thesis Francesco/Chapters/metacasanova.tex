@@ -804,7 +804,7 @@ The algorithm to build the type arrow simply scans the argument list and recursi
 	\caption{Type construction in a symbol declaration}
 	\label{alg:ch_metacasanova_symbol_type}
 	\begin{algorithmic}
-		\Function {buildDeclarationType} {$A \text{ list of arguments returned by the parser}$}
+		\Function {buildDeclarationType} {$A$ list of arguments returned by the parser}
 			\If {$A = \emptyset$}
 				\State \Return $Empty$
 			\ElsIf {$A = \lbrace x \rbrace$}
@@ -881,7 +881,7 @@ The algorithm will select the symbol \texttt{->} as a separator, as it is the sy
 
 \begin{enumerate}
 	\item The symbol uses a prefix notation: in this case the parenthesization will not contain any elements from $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$, thus the final parenthesization will be $\lbrace l_1, l_2, ..., l_n \; (\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1}, ..., r_{m} \rbrace$.
-	\item The symbol uses an infix notation: in this case the parenthesization will contain elements from both $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$ and $\lbrace r_1, ..., r_{a_r} \rbrace$. The final parenthesization will be $$l_1, ...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1} ,..., r_{m}$$.
+	\item The symbol uses an infix notation: in this case the parenthesization will contain elements from both $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$ and $\lbrace r_1, ..., r_{a_r} \rbrace$. The final parenthesization will be $$l_1, ...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1} ,..., r_{m}$$
 	\item The symbol uses a suffix notation: in this case the parenthesization will not contain any elements from $\lbrace r_1, ..., r_{a_r} \rbrace$ and the final parenthesization will be $l_1,...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma) \; r_{1},...,r_{m}$.
 \end{enumerate}
 
@@ -892,9 +892,136 @@ x -> $ a1 b1 % b2 b3 a2
 \end{lstlisting}
 
 \noindent
-and let us apply the algorithm to it (again using the Priority Table \ref{tab:ch_metacasanova_example_precedence_relation}). The algorithm will test the whole sequence looking for symbols, and of course will find one. We then fall in the second part of the algorithm. The symbol with the lowest priority is \texttt{->}, so the algorithm will recursively parenthesize \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. The left one is a base case of the recursion since the sequence contains only one identifier that is not a symbol, thus its parenthesization is the sequence itself. The right one contains other symbols so we have to recursively apply the algorithm. The operator with the lowest priority is now \texttt{\$}. The symbol is the first element of the sequence, thus the left subsequence obtained by the partitioning phase is empty (and the result of its parenthesization an empty sequence as well). The right subsequence is \texttt{a1 b1 \% b2 b3 a2}. In this sequence there is only one symbol, which is \texttt{\%}, thus the algorithm will try to parenthesize \texttt{a1 b1} and \texttt{b2 b3 a2}. Their parenthesization is trivial and returns the sequences themselves. At this point we have to consider the arity of \texttt{\%}, which accepts one left argument and two right arguments. The algorithm will then enclose between brackets \texttt{b1 \% b2 b3}. The full parenthesization leads then to \texttt{a1 (b1 \% b2 b3) a2}. At this point this result is used to build the parenthesization of \texttt{\$}. This symbol accepts 3 right arguments (and no left argument), so the parenthesization will be \texttt{(\$ a1 (b1 \% b2 b3) a2) }. Finally we have to use the result to build the parenthesization of \texttt{\%}. This symbol accepts 1 left argument and 1 right argument. The parenthesization of its left subsequence was \texttt{x}, while its right parenthesization is \texttt{(\$ a1 (b1 \% b2 b3) a2) }, thus the final parenthesization will be \texttt{(x -> (\$ a1 (b1 \% b2 b3) a2))}.
+and let us apply the algorithm to it (again using the Priority Table \ref{tab:ch_metacasanova_example_precedence_relation}). The algorithm will test the whole sequence looking for symbols, and of course will find one. We then fall in the second part of the algorithm. The symbol with the lowest priority is \texttt{->}, so the algorithm will recursively parenthesize \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. The left one is a base case of the recursion since the sequence contains only one identifier that is not a symbol, thus its parenthesization is the sequence itself. The right one contains other symbols so we have to recursively apply the algorithm. The operator with the lowest priority is now \texttt{\$}. The symbol is the first element of the sequence, thus the left subsequence obtained by the partitioning phase is empty (and the result of its parenthesization an empty sequence as well). The right subsequence is \texttt{a1 b1 \% b2 b3 a2}. In this sequence there is only one symbol, which is \texttt{\%}, thus the algorithm will try to parenthesize \texttt{a1 b1} and \texttt{b2 b3 a2}. Their parenthesization is trivial and returns the sequences themselves. At this point we have to consider the arity of \texttt{\%}, which accepts one left argument and two right arguments. The algorithm will then enclose between brackets \texttt{b1 \% b2 b3}. The full parenthesization leads then to \texttt{a1 (b1 \% b2 b3) a2}. At this point this result is used to build the parenthesization of \texttt{\$}. This symbol accepts 3 right arguments (and no left argument), so the parenthesization will be \texttt{(\$ a1 (b1 \% b2 b3) a2) }. Finally we have to use the result to build the parenthesization of \texttt{\%}. This symbol accepts 1 left argument and 1 right argument. The parenthesization of its left subsequence was \texttt{x}, while its right parenthesization is \texttt{(\$ a1 (b1 \% b2 b3) a2) }, thus the final parenthesization will be \texttt{(x -> (\$ a1 (b1 \% b2 b3) a2))}. At this point, the outer parenthesization can be removed for better readability.\\
+The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_parenthesization}.
+
+\begin{algorithm}
+	\small
+	\caption{Parenthesization of a sequence of arguments. The operators :: and @ are respectively prepend and append on a list. With the notation $\langle S \rangle$ we denote a sequence $S$ enclosed by parentheses.}
+	\label{alg:ch_metacasanova_parenthesization}
+	\begin{algorithmic}
+		\Function {parenthesize} {$S$ symbols in the sequence, $A$ arguments sequence}
+			\If { $A = \emptyset$ }
+				\State \Return $A$
+			\Else
+				\If {$s \neq \emptyset$}
+					\AlgLet{$s'$} {the symbol with lowest priority in $S$}
+					\AlgLet{$I$} {the set of indices at which $s'$ occurs in $S$.}
+					\State $l \gets \emptyset$
+					\State $r \gets \emptyset$
+					\If {$s'$ is left-associative}
+						\State $I' \gets $  \Call {last} {$I$}
+						\State $l,r \gets$ \Call {splitAt} {$I'$}
+						\State $r \gets$ \Call {tail} {$r$}
+					\Else
+						\State $I' \gets $  \Call {first} {$I$}
+						\State $l,r \gets$ \Call {splitAt} {$I'$}
+						\State $r \gets$ \Call {tail} {$r$}
+					\EndIf
+					\AlgLet{$lsym$}{the symbols in $l$}
+					\AlgLet{$rsym$}{the symbols in $r$}
+					\State $lpar \gets$ \Call {parenthesize} {$lsym$,$l$}
+					\State $rpar \gets$ \Call {parenthesize} {$rsym$,$r$}
+					\AlgLet{$larity$}{left arity of $s'$}
+					\AlgLet{$rarity$}{right arity of $s'$}
+					\State $largs,plargs \gets$ \Call {splitAt} {$|largs| - larity$}
+					\State $rargs,prargs \gets$ \Call {splitAt} {$|rargs| - rarity$}
+					\If {$larity + rarity > 0$}
+						\If {$s'$ is prefix}
+							\State $e \gets s' \; :: \; prargs$
+						\ElsIf {$s'$ is suffix}
+							\State $e \gets plargs \; @ \; s'$
+						\Else {$s'$ is infix}
+							\State $e \gets plargs \; @ \; s' \; @ \; prargs$
+						\EndIf
+						\State \Return $largs \; @ \; \langle e \rangle \; @ \; rargs$
+					\Else
+						\State \Return $largs \; @ \; s' \; @ \; rargs$
+					\EndIf
+				\Else
+					\State $p \gets \emptyset$
+					\ForAll {$a \in A$}
+						\If {$a = \langle e \rangle$}
+							\AlgLet{$S'$}{symbols in $e$}
+							\State $p' \gets$ \Call {parenthesize} {$S'$} {$e$}
+							\If {$p' = \langle e' \rangle$}
+								\State $p \gets p \; @ \; e'$
+							\Else
+								\State $p \gets p \; @ \; \langle p' \rangle$
+							\EndIf
+						\Else
+							\State $p \gets p \; @ \; \lbrace a \rbrace$
+						\EndIf
+					\EndFor
+				\EndIf
+			\EndIf		
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
 
 \section{Type checking}
+\label{sec:ch_metacasanova_type_checking}
+The type checker of Metacasanova is responsible of two tasks: (\textit{i}) checking that the declarations are correctly formed and (\textit{ii}) check that the premises and conclusions of rules respect the meta-types defined in the declarations. We will now proceed to explain in detail how the two processes are implemented in the metacompiler.
+
+\subsection{Checking declarations}
+Checking declarations requires to check the consistency of \textit{meta-type declarations} in each one of the function or data declarations. Note that, from now on, we will refer to meta-types simply as \textit{types} for simplicity. Also we assume that, at this point, we have already built the \textit{symbol table} for the meta-program containing all the symbol declarations with the complete information about the declaration itself. A type declaration in Metacasanova can have four different forms:
+
+\begin{itemize}
+	\item \textit{Zero:} A place-holder type used for function or meta-data that do not use any arguments.
+	
+	\item \textit{External:} Used for embedded types from .NET.
+	
+	\item \textit{Argument:} A type argument is a simple type identifier followed by an optional list of generic arguments used for generic types. For example the type \texttt{Tuple[a,b]} is a type argument whose identifier is \texttt{Tuple} and whose generic arguments are \textit{a} and \textit{b}.
+	
+	\item \textit{Arrow:} An arrow type has the form \texttt{T1 -> T2 -> ... -> Tn} and is used to represent the type of the arguments used when calling a function or when constructing a meta-data. For example the function declaration \texttt{Func Num -> "+" -> Num : Num} has the \textit{Arrow} type \texttt{Num -> Num}. Note that the symbol declaration, for convenience, stores two different type declarations: the arguments types separated from the function returned type or the meta-data type and a \textit{full type} that combines the type of the arguments and the returned type or data type into a single arrow. For example, for the function above, its full type would be \texttt{Num -> Num -> Num}.
+\end{itemize}
+
+The algorithm to check the type declarations behaves differently depending on the form of the type declaration. For \textit{Zero} or \textit{External} type declarations the check always succeeds. For \textit{Arrow} the algorithm recursively check the left and right part of the arrow. In the case of an \textit{Argument} we have two sub-cases: (\textit{i}) the argument is an identifier with no generic arguments, or (\textit{ii}) the argument is an identifier followed by a number of generic arguments. The first case is simple, as it is enough to check whether the type is defined in the symbol table or not. If the type cannot be found in the symbol table then it is undefined and an error is returned. In the case of a type with generic arguments we must check that the amount of provided generics matches the amount required for the generic type; then we must check if the provided generic arguments have a correct form. A generic argument can be an identifier or again a type accepting other generic arguments. This is the case, for instance, of a type declaration such as \texttt{Tuple[List[int],Tuple[a,List[float]]]}. In the case of a simple generic identifier we must only check that the generic identifier is in the scope of the declaration. For instance the declaration
+
+\begin{lstlisting}
+Func[a,b] "foo" -> a -> b : b
+\end{lstlisting}
+
+\noindent
+would be a valid declaration since the generic identifier are in the scope of the declaration, while
+
+\begin{lstlisting}
+Func[a,b] "foo" -> a -> b : c
+\end{lstlisting}
+
+\noindent
+would be invalid if \texttt{c} is not a data type defined in the meta-program. In the case of nested types the algorithm must recursively check again that the type exists and that the generic arguments are valid. The procedure details are described in Algorithm \ref{alg:ch_metacasanova_check_declaration}.
+
+\begin{algorithm}
+	\caption{Type checking of a symbol declaration}
+	\label{alg:ch_metacasanova_check_declaration}
+	\begin{algorithmic}
+		\Function {checkDeclaration} {$S$ symbol table, $G$ declared generic arguments, $d$ type declaration}
+			\If { $d = \text{\textit{Empty}}$ \textbf{or} $d = \text{\textit{Zero}}$ }
+				\State \Return
+			\Else
+				\State \textbf{let} $G'$ be the generics required for $d$
+				\If {$G' \neq \emptyset$} 
+					\If {$|G'| \neq |G|$}
+						\AlgError{invalid amount of generic arguments}
+					\Else
+						\ForAll {$g \in G'$}
+							\State \Call {checkDeclaration} {$S$,$G$,$g$}
+						\EndFor
+					\EndIf
+				\Else
+					\If {$d \in S$ \textbf{or} $d \in G$}
+						\State \Return
+					\Else
+						\AlgError{undefined type}
+					\EndIf
+				\EndIf
+			\EndIf
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Checking rules}
 
 \section{Code generation}
 

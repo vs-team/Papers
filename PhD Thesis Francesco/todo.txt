@@ -1,23 +1,9 @@
 CHAPTER 1 
- 
-- Maybe 1.4 should come after the problem statement or included in problem statement.
-- Add a research statement to the problem statement section.
-- Metodology (how we are doing things).
-- Contribution of the thesis (which could be the scientific relevance but then put it after the problem statement).
-- Add a chapter about the thesis
 
 CHAPTER 2
-- Add an example about why regular expressions are insufficient to parse context-free grammars and a reference for this claim.
-- Add a section on DSL's.
-- Networking in games.
 
 CHAPTER 3
-- Move the section about Casanova 2 into a new chapter.
-- Move Casanova 2.5 into a separate chapter. (Casanova has a dedicated chapter after this).
-
-CHAPTER 7
-- Divide this into two chapters: Discussion and future works where we discuss for example the Yacc parser from language syntax and Metacasanova syntax
-- Another chpater has the answer of the problem statement (conclusion).
+- Expand the list of requirements by adding a motivation for them.
 
 GENERAL:
 - Literal quotes come in double quotes, all the rest in single quotes.
