@@ -925,7 +925,7 @@ The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_par
 					\AlgLet{$larity$}{left arity of $s'$}
 					\AlgLet{$rarity$}{right arity of $s'$}
 					\State $largs,plargs \gets$ \Call {splitAt} {$|largs| - larity$}
-					\State $rargs,prargs \gets$ \Call {splitAt} {$|rargs| - rarity$}
+					\State $rargs,prargs \gets$ \Call {splitAt} {$rarity$}
 					\If {$larity + rarity > 0$}
 						\If {$s'$ is prefix}
 							\State $e \gets s' \; :: \; prargs$
