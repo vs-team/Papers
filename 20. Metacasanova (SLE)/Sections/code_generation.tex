@@ -124,7 +124,7 @@ a = __tmp0.__arg0;
 b = __tmp0.__arg1;
 \end{lstlisting}
 
-Note that the type conversion from the polymorphic type \texttt{Expr} into \texttt{opPlus} is now safe because we have already checked during the pattern matching that we actually have \texttt{opPlus}.
+Note that the type conversion from the polymorphic type \texttt{Expr} into \texttt{opPlus} is now safe because we have already\\ checked during the pattern matching that we actually have \texttt{opPlus}.
 
 \subsubsection{Generation of Premises}
 Before evaluating each premise, we must instantiate the class for the function that they are invoking. The input arguments of the function call must be copied into the fields of the instantiated object. If one of the arguments is an explicit data argument, then it must be instantiated and its arguments should be initialized, and then the whole data argument must be assigned to the respective function field. After this step, it is possible to invoke the \texttt{Run} method of the function to start its execution. The first premise of the example above then becomes (the generation of the second is analogous):
