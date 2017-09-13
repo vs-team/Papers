@@ -1,4 +1,4 @@
-This chapter presents the language definition and compiler architecture of Metacasanova. 
+This chapter aims to provide the reader with additional motivation about the advantage of meta-compilers and sufficient details on the Metacasanova compiler architecture. In Section \ref{sec:ch_metacasanova_intro} we show that there exists a common pattern when implementing the formal definition of the type system and semantics of a programming language into the abstraction of a general-purpose programming language. In Section \ref{sec:ch_metacasanova_metacasanova_overview} we define the requirements of Metacasanova and give an informal overview about the structure of a meta-program and we provide a formalization of its semantics. In Section \ref{sec:ch_metacasanova_architecture} we explain the working principles of the meta-compiler and the involved compilation stages . In Section \ref{sec:ch_metacasanova_parsing} we present the details of the Metacasanova grammar and parser; we then explain the subsequent parsing post-processing phase and how the post-processor re-processes the generated AST. In Section \ref{sec:ch_metacasanova_type_checking} we explain how the type checking of a meta-program is performed and in what cases it fails. In Section \ref{sec:ch_metacasanova_code_generation} we explain how the abstractions of Metacasanova are mapped into the abstractions of the C\# target code.
 
 
 \section{Repetitive steps in compiler development}
@@ -583,6 +583,7 @@ id ":=" <constructor>
 \end{comment}
 
 \subsection{Formalization}
+\label{subsec:ch_metacasanova_formalization}
 In what follows we assume that the pattern matching of the function arguments in a rule succeeds, otherwise a rule will fail to return a result.
 The informal semantics of the rule evaluation in Metacasanova is the following:
 \begin{enumerate}
@@ -964,12 +965,15 @@ The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_par
 The type checker of Metacasanova is responsible of two tasks: (\textit{i}) checking that the declarations are correctly formed and (\textit{ii}) check that the premises and conclusions of rules respect the meta-types defined in the declarations. We will now proceed to explain in detail how the two processes are implemented in the metacompiler.
 
 \subsection{Checking declarations}
+\label{subsec:ch_metacasanova_checking_declarations}
 Checking declarations requires to check the consistency of \textit{meta-type declarations} in each one of the function or data declarations. Note that, from now on, we will refer to meta-types simply as \textit{types} for simplicity. Also we assume that, at this point, we have already built the \textit{symbol table} for the meta-program containing all the symbol declarations with the complete information about the declaration itself. A type declaration in Metacasanova can have four different forms:
 
 \begin{itemize}
 	\item \textit{Zero:} A place-holder type used for function or meta-data that do not use any arguments.
 	
 	\item \textit{External:} Used for embedded types from .NET.
+	
+	\item \textit{Unsafe:} Unsafe type is a place-holder for external function calls, i.e. function defined in an external embedded language.
 	
 	\item \textit{Argument:} A type argument is a simple type identifier followed by an optional list of generic arguments used for generic types. For example the type \texttt{Tuple[a,b]} is a type argument whose identifier is \texttt{Tuple} and whose generic arguments are \textit{a} and \textit{b}.
 	
@@ -992,6 +996,7 @@ Func[a,b] "foo" -> a -> b : c
 \noindent
 would be invalid if \texttt{c} is not a data type defined in the meta-program. In the case of nested types the algorithm must recursively check again that the type exists and that the generic arguments are valid. The procedure details are described in Algorithm \ref{alg:ch_metacasanova_check_declaration}.
 
+\paragraph{Complexity} The worst-case scenario for the Algorithm \ref{alg:ch_metacasanova_check_declaration}
 \begin{algorithm}
 	\caption{Type checking of a symbol declaration}
 	\label{alg:ch_metacasanova_check_declaration}
@@ -1022,10 +1027,86 @@ would be invalid if \texttt{c} is not a data type defined in the meta-program. I
 \end{algorithm}
 
 \subsection{Checking rules}
+Type checking a rule requires to type check its conclusion and all of the premises. In what follows we assume that the parser post-processor has already parenthesized and normalized all the function calls, so that every function call is parenthesized according to symbol priority and associativity and that the symbol name is in the first position of an argument sequence. Moreover, we use the following definition relative to meta-data arguments:
+
+\begin{definition}
+	An argument is said to be an \textit{explicit data argument} when it is an expression constructing a meta-data.
+\end{definition}
+
+\noindent
+For example, in the following meta-program
+
+\begin{lstlisting}[caption = Example of an explicit data argument in Metacasanova,  label = code:ch_metacasanova_explicit_data_argument]
+Data Expr -> "+" -> Expr : Expr
+Func "eval" -> Expr -> Environment : Value
+...
+
+eval a env -> a'
+eval b env -> b'
+<<a' + b'>> -> v
+------------------
+eval (a + b) env -> v
+\end{lstlisting}
+
+\noindent
+the first argument of \texttt{eval} in the conclusion is an explicit data argument. Moreover we use the following definition to define the compatibility of two types.
+
+\begin{definition}
+\label{def:ch_metacasanova_type_equivalence}
+	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$, then we say that the type $t_1$ is \textit{equivalent} to $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
+\end{definition}
+
+\subsubsection{Checking the conclusion}
+A conclusion must always contain a function call. In order to type-check the function call correctly, we must check that (\textit{i}) the arity of the function is respected, i.e. that the arguments are not more than what the function expects (the type system of Metacasanova supports partial function application, so it is allowed to pass less arguments), and (\textit{ii}) that the type of each argument is compatible with what provided in the declaration. Moreover, since a conclusion might contain explicit data arguments, we have to recursively add all the variables contained in the explicit data arguments to the local variables of the current function, as they could be used in the premises. As an example, refer to Listing \ref{code:ch_metacasanova_explicit_data_argument}, where the variables \texttt{a} and \texttt{b} are defined in the argument of \texttt{eval} and later used in the premises.
+Checking \textit{i} is trivial: it is sufficient to compare the length of the given argument sequence with the length of the arguments provided in the declaration. If the length of the argument sequence is greater than the arguments defined in the declaration then an error is returned. Checking (\textit{ii}) is more complex and the details are explained below.
+
+The right hand-side of a conclusion might contain a variable or an explicit data argument. In both cases its type checking must be delayed until all premises are processed because a variable appearing in one of them might be used. For example, in Listing \ref{code:ch_metacasanova_explicit_data_argument}, variable \texttt{v} is used in the right hand-side of the conclusion and defined in the result of the last premise.
+
+\subsubsection{Checking a premise}
+A premise, as explained in Section \ref{sec:ch_metacasanova_parser_rules}, can be (\textit{i}) a function call, (\textit{ii}) a binding, or (\textit{iii}) a clause.\\\\
+In case \textit{i} we have to type check the arguments of the function call in the same fashion of the conclusion but with a slight difference: when encountering a variable this must not be added to the local variable set but rather looked up in it. If the lookup fails then the variable is undefined and cannot be used. The same happens when checking the arguments of explicit data arguments. If the call is correctly typed, then we must check its result. The result of a call can be either a variable or an explicit data argument. In the first case the variable is added to the local variables and its type set to the return type of the function. In the case of an explicit data argument then all the arguments that are variable are added to the local variables with the appropriate type read from the meta-data structure declaration and, in case of a nested explicit data argument, the procedure is recursively applied.\\\\
+In case \textit{ii} the binding is correctly typed if its right argument is correctly type. The right argument can be a variable or an explicit data argument so we apply the same method that we used to check variables and explicit data arguments in function calls. If this test succeeds then the left argument of the binding, which is always a variable, is added to the local variables with the type of the right argument.\\\\
+In case \textit{iii} the clause is correctly typed if the types of the arguments used in the comparison operator are compatible with respect to the operator itself and if they are themselves correctly typed. For example, for the equality comparison, we must ensure that both arguments are correctly typed. As always, if external types are involved the test automatically succeeds because nothing can be known at this point about the compatibility of the provided types. Of course the test fails if we use a comparison operator combining external types with types defined in the meta-program, because they will always be incompatible.
+
+\subsubsection{Checking a single argument}
+\label{subsec:ch_metacasanova_argument_check}
+When checking the type of an argument we have to consider several cases depending on what kind of argument we are inspecting. The reader can find the details of each case below. Note that we will never consider external types as their type checking is delegated to the external code compiler that is used when compile the generated code, so their type checking in the Metacasanova type checker is always successful.
+
+\paragraph{Checking literals}
+If the argument is a literal then we have to consider three sub-cases:
+
+\begin{enumerate}
+	\item The expected type is generic. In this case, since we are providing explicitly a literal, the generic can be assigned the specific type of the literal.
+	\item The expected type is non-generic. In this case we have to check if the type of the literal is compatible with the expected type. This only happens if the expected type is one of the native types supported by Metacasanova.
+	\item The expected type is a meta-data structure requiring generic arguments. In this case the type is always incorrect, since a literal is always incompatible with meta-data.
+\end{enumerate}
+
+\paragraph{Checking identifiers}
+When we have an identifier as argument, this might be either a symbol for a meta-data structure taking no arguments, or simply a variable. In the first case we simply check that the type of the meta-data structure is equivalent to the expected type. In the second case the result depends on whether we are type checking a conclusion or a premise. If we are checking a conclusion, then the variable must be added to the local variables in the scope of the rule, otherwise we must look up the local variables to check if it was previously defined. If the lookup fails then the variable is undefined and an error is returned.
+
+\paragraph{Checking nested expressions}
+Checking a nested expression requires, in the first place, to recursively type check the arguments used in the nested expression. If this check succeeds than we must also ensure that the type of the meta-data structure that we are analysing is compatible with the expected type.
+
+\paragraph{Checking the type equivalence}
+According to Definition \ref{def:ch_metacasanova_type_equivalence}, a type is equivalent to another if they are equal or if, in the symbol table, there exists a specified equivalence between the first type and the second. We have thus to distinguish two cases: (\textit{i}) check if the types are equal and, if this fails, (\textit{ii}) check if the provided type is paired with the expected type in an equivalence table. For the following considerations refer to the type structure defined in Section \ref{subsec:ch_metacasanova_checking_declarations}.
+
+\subparagraph{Testing type equality}
+Checking type must consider three options: (\textit{i}) the type is a simple identifier, (\textit{ii}) the type is an Arrow type , and (\textit{iii}) the type is External, Unsafe or Zero.\\\\
+In case \textit{i} we must compare two Type Arguments $t_1$ and $t_2$ other wise the test fails immediately. In this case it is enough to simply check that $t_1 = t_2$.\\\\
+In case \textit{ii} we must compare two Arrow types otherwise the test fails immediately. Let us assume that we have $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$, then we check if $t_1 = t_2$ and recursively apply the type equality test on $t_2 \rightarrow ... \rightarrow t_n$ and $u_m \rightarrow ... \rightarrow u_m$. Note that if $n \neq m$ at some point the test will fail because we will compare a Type Argument with an Arrow Type, which will always fail.\\\\
+In case \textit{iii} the test succeeds if one of the types (either the provided one or the expected one) is external or unsafe; it also succeeds if both types are Zero types.
+
+\subparagraph{Testing type equivalence}
+
+Type equivalence might succeed in only two cases: (\textit{i}) when testing two Argument Types, and when testing two Arrow Types; in all other cases the test fails immediately. In what follows we write $t_1 \equiv t_2$ to say that $t_1$ is equivalent to $t_2$.\\\\
+In case \textit{i} we have to check if the provided type is paired with the expected type in a type equivalence map stored in the symbol table. If the lookup in the map is unsuccessful then an error is returned.\\\\
+In case \textit{ii} again we consider $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$. This time we check if $t_1 equiv t_2$ and then we recursively check the equivalence of $t_2 \rightarrow ... \rightarrow t_n$ with $u_m \rightarrow ... \rightarrow u_m$. Again, the equivalence test fails if $n \neq m$ because we will end up comparing an Argument Type with an Arrow Type.
 
 \section{Code generation}
+\label{sec:ch_metacasanova_code_generation}
+Metacasanova uses C\# as target language and generates code compatible with any library compiled in the .NET framework. In this phase we must (\textit{i}) generate the appropriate abstractions in C\# to represent meta-data structures and their type equivalence, and (\textit{ii}) generate the code to implement the semantics of the rule evaluation, as described in Section \ref{subsec:ch_metacasanova_formalization}.
 
-\subsection{Data structures code generation}
+\subsection{Meta-data structures code generation}
 The type of each data structure is generated as an interface in C\#. Each data structure defined in Metacasanova is mapped to a \texttt{class} in C\# that implements such interface. The class contains as many fields as the number of arguments the data structure contains. Each field is given an automatic name \texttt{argC} where \texttt{C} is the index of the argument in the data structure definition. The data structure symbols used in the definition might be pre-processed and replaced in order to avoid illegal characters in the C\# class definition. The class contains an additional field that stores the original name of the data structure before the replacement is performed, used for its ``pretty print''. For example the data structure.
 
 \begin{lstlisting}
