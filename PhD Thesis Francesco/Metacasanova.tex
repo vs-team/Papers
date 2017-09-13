@@ -14,13 +14,14 @@
 \usepackage{mathpartir}
 \usepackage{subcaption}
 \usepackage{multirow}
+\usepackage{pdfpages}
 \usepackage[chapter]{algorithm}
 \usepackage{algpseudocode}
 \usepackage{algorithmicx}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage[top=2cm,bottom=2cm,left=3cm,right=2cm]{geometry}
 \author{Francesco Di Giacomo}
-\title{Metacasanova: a high-performance meta-compiler for Domain Specific Languages}
+\title{Metacasanova: a High-performance Meta-compiler for Domain-specific Languages}
 \date { }
 
 \lstset
@@ -43,6 +44,9 @@
 
 \makeindex
 \begin{document}
+\pagenumbering{gobble}
+\includepdf{Extra/Cover.pdf}
+\newpage
 \frontmatter
 \maketitle
 
