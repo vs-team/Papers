@@ -1121,13 +1121,14 @@ public interface Value {  }
 
 public class __opDollari : Value
 {
-public string __name = "$i";
-public int __arg0;
-
-public override string ToString()
-{
-return "(" + __name + " " + __arg0 + ")";
-}
+	public string __name = "$i";
+	public int __arg0;
+	
+	5
+	public override string ToString()
+	{
+	return "(" + __name + " " + __arg0 + ")";
+	}
 }
 \end{lstlisting}
 
@@ -1182,9 +1183,9 @@ will be generated as
 \begin{lstlisting}
 public class eval
 {
-public Expr __arg0;
-public __MetaCnvResult<Value> __res;
-...
+	public Expr __arg0;
+	public __MetaCnvResult<Value> __res;
+	...
 }
 \end{lstlisting}
 
@@ -1208,13 +1209,13 @@ is generated as follows
 \begin{lstlisting}
 case 0:
 {
-Expr a = default(Expr);
-Expr b = default(Expr);
-int c = default(int);
-int d = default(int);
-int e = default(int);
-if (!(__arg0 is __opPlus)) goto case 1;
-...
+	Expr a = default(Expr);
+	Expr b = default(Expr);
+	int c = default(int);
+	int d = default(int);
+	int e = default(int);
+	if (!(__arg0 is __opPlus)) goto case 1;
+	...
 }
 \end{lstlisting}
 
