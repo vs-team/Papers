@@ -996,7 +996,6 @@ Func[a,b] "foo" -> a -> b : c
 \noindent
 would be invalid if \texttt{c} is not a data type defined in the meta-program. In the case of nested types the algorithm must recursively check again that the type exists and that the generic arguments are valid. The procedure details are described in Algorithm \ref{alg:ch_metacasanova_check_declaration}.
 
-\paragraph{Complexity} The worst-case scenario for the Algorithm \ref{alg:ch_metacasanova_check_declaration}
 \begin{algorithm}
 	\caption{Type checking of a symbol declaration}
 	\label{alg:ch_metacasanova_check_declaration}

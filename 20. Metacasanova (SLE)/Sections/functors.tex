@@ -149,46 +149,46 @@ GetField fieldName (RecordField name type r) => Getter fieldName thisRecord{
 \end{lstlisting}
 
 \noindent
-Analogously, the setter of a field instantiates two separate modules whether the current field is the one we want to set or not.
+Analogously, the setter of a field instantiates two separate modules whether the current field is the one we want to set or not. This can bee seen in Listing \ref{code:setters}
+
+\subsection{Functor Result Inlining}
+If a premise or a conclusion contains a call to a functor, this call is evaluated at compile time, rather than at runtime. Metacasanova has been extended with an interpreter which is able to evaluate the result of the functor calls. The behaviour of the interpreter follows the same logic explained when presenting the code generation steps in Section \ref{sec:code_generation}, thus here we do not present the details for brevity. When a rule outputs the instantiation of the module, the generated code will contain only rules of the modules whose conclusion contains a function (i.e. functions that output values, not functors). In this way the generated code will contain a different version of those functions depending on the instantiation parameters of the module.
+
+We now show how to use the implementation of the records given in Section \ref{subsec:record_implementation} for the physical body presented as a case study.
+The definition of the record type for the physical body is done through a functor (Listing \ref{code:physical_body}).
 
 \begin{lstlisting}[caption = Module instantiations for setters, label = code:setters]
 name = fieldName
 thisRecord := RecordField name type r
 ----------
 SetField fieldName (RecordField name type r) => Setter fieldName thisRecord{
-  
-  -----------------
-  SetType => type
-  
-  -------------------
-  set (x,xs) v -> (v,xs)}
+
+-----------------
+SetType => type
+
+-------------------
+set (x,xs) v -> (v,xs)}
 
 name <> fieldName
 thisRecord := RecordField name type r
 ------------
 SetField fieldName (RecordField name type r) => Setter fieldName thisRecord{
-  Functor "SetAnotherField" : Setter
-  
-  -------------------------
-  SetAnotherField => SetField fieldName r
-  
-  SetAnotherField => s
-  ----------------------------
-  SetType => s.SetType
-  
-  SetAnotherField => setter
-  setter.set xs v -> xs'
-  ----------------------------------
-  set (x,xs) v -> (x,xs') }
+Functor "SetAnotherField" : Setter
+
+-------------------------
+SetAnotherField => SetField fieldName r
+
+SetAnotherField => s
+----------------------------
+SetType => s.SetType
+
+SetAnotherField => setter
+setter.set xs v -> xs'
+----------------------------------
+set (x,xs) v -> (x,xs') }
 \end{lstlisting}
 
-\subsection{Functor Result Inlining}
-If a premise or a conclusion contains a call to a functor, this call is evaluated at compile time, rather than at runtime. Metacasanova has been extended with an interpreter which is able to evaluate the result of the functor calls. The behaviour of the interpreter follows the same logic explained when presenting the code generation steps in Section \ref{sec:code_generation}, thus here we do not present the details for brevity. When a rule outputs the instantiation of the module, the generated code will contain only rules of the modules whose conclusion contains a function (i.e. functions that output values, not functors). In this way the generated code will contain a different version of those functions depending on the instantiation parameters of the module.
-
-We now show how to use the implementation of the records given in Section \ref{subsec:record_implementation} for the physical body presented as a case study.
-The definition of the record type for the physical body is done through a functor
-
-\begin{lstlisting}
+\begin{lstlisting}[caption = Functor for physical body, label = code:physical_body]
 Functor "PhysicalBodyType" : Record
 
 EmptyRecord => empty
@@ -198,7 +198,7 @@ RecordField "Position" Vector2 velocity => body
 PhysicalBodyType => body
 \end{lstlisting}
 
-This rule is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate\footnote{Note that here we give a high-level representation of the generated rules that are actually directly generated as C\# code.}
+The rule in Listing \ref{code:physical_body} is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate\footnote{Note that here we give a high-level representation of the generated rules that are actually directly generated as C\# code.}
 
 \begin{lstlisting}
 Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
@@ -253,9 +253,11 @@ getVel -> p
 \end{lstlisting}
 
 \noindent
-This time the functor will generate two different functions in two separate modules. The first time the record is processed, \texttt{Rule 2} in Listing \ref{code:getters} will be activated (because the first field in the Record is \texttt{Position}). This rule will instantiate an additional module when evaluating the functor call in its premise, which in turn is able to get the \texttt{Velocity} field. The rule for \texttt{get} in the first module will contain in its premise a call to  \texttt{get} of the second module.
+This time the functor will generate two different functions in two separate modules. The first time the record is processed, \texttt{Rule 2} in Listing \ref{code:getters} will be activated (because the first field in the Record is \texttt{Position}). This rule will instantiate an additional module when evaluating the functor call in its premise, which in turn is able to get the \texttt{Velocity} field. The rule for \texttt{get} in the first module will contain in its premise a call to  \texttt{get} of the second module (Listing \ref{code:velocity_getter}).
 
-\begin{lstlisting}
+We want to point out that this optimization has been presented on the specific case of records, but can be generalized for any situations where you would use a symbol table. Indeed any symbol table can be expressed with the representation above as a sequence of pair where the first item is the value of the current variable, and the second item is the continuation of the symbol table.
+
+\begin{lstlisting}[caption = Getter rule for velocity, label = code:velocity_getter]
 //Code for module1
 Func "get" -> Tuple[Vector2,Tuple[Vector2,unit]] : Vector2
 
@@ -269,5 +271,3 @@ Func "get" -> Tuple[Vector2,unit] : Vector2
 ------------------
 get (x,xs) -> x
 \end{lstlisting}
-
-We want to point out that this optimization has been presented on the specific case of records, but can be generalized for any situations where you would use a symbol table. Indeed any symbol table can be expressed with the representation above as a sequence of pair where the first item is the value of the current variable, and the second item is the continuation of the symbol table.
