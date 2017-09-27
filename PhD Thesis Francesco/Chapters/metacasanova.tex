@@ -1051,8 +1051,8 @@ eval (a + b) env -> v
 the first argument of \texttt{eval} in the conclusion is an explicit data argument. Moreover we use the following definition to define the compatibility of two types.
 
 \begin{definition}
-\label{def:ch_metacasanova_type_equivalence}
-	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$, then we say that the type $t_1$ is \textit{equivalent} to $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
+\label{def:ch_metacasanova_type_compatibility}
+	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$, then we say that the type $t_1$ is \textit{compatible} with $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
 \end{definition}
 
 \subsubsection{Checking the conclusion}
@@ -1081,13 +1081,13 @@ If the argument is a literal then we have to consider three sub-cases:
 \end{enumerate}
 
 \paragraph{Checking identifiers}
-When we have an identifier as argument, this might be either a symbol for a meta-data structure taking no arguments, or simply a variable. In the first case we simply check that the type of the meta-data structure is equivalent to the expected type. In the second case the result depends on whether we are type checking a conclusion or a premise. If we are checking a conclusion, then the variable must be added to the local variables in the scope of the rule, otherwise we must look up the local variables to check if it was previously defined. If the lookup fails then the variable is undefined and an error is returned.
+When we have an identifier as argument, this might be either a symbol for a meta-data structure taking no arguments, or simply a variable. In the first case we simply check that the type of the meta-data structure is compatible with the expected type. In the second case the result depends on whether we are type checking a conclusion or a premise. If we are checking a conclusion, then the variable must be added to the local variables in the scope of the rule, otherwise we must look up the local variables to check if it was previously defined. If the lookup fails then the variable is undefined and an error is returned.
 
 \paragraph{Checking nested expressions}
 Checking a nested expression requires, in the first place, to recursively type check the arguments used in the nested expression. If this check succeeds than we must also ensure that the type of the meta-data structure that we are analysing is compatible with the expected type.
 
-\paragraph{Checking the type equivalence}
-According to Definition \ref{def:ch_metacasanova_type_equivalence}, a type is equivalent to another if they are equal or if, in the symbol table, there exists a specified equivalence between the first type and the second. We have thus to distinguish two cases: (\textit{i}) check if the types are equal and, if this fails, (\textit{ii}) check if the provided type is paired with the expected type in an equivalence table. For the following considerations refer to the type structure defined in Section \ref{subsec:ch_metacasanova_checking_declarations}.
+\paragraph{Checking the type compatibility}
+According to Definition \ref{def:ch_metacasanova_type_equivalence}, a type is compatible with another if they are equal or if, in the symbol table, there exists a specified equivalence between the first type and the second. We have thus to distinguish two cases: (\textit{i}) check if the types are equal and, if this fails, (\textit{ii}) check if the provided type is paired with the expected type in an equivalence table. For the following considerations refer to the type structure defined in Section \ref{subsec:ch_metacasanova_checking_declarations}.
 
 \subparagraph{Testing type equality}
 Checking type must consider three options: (\textit{i}) the type is a simple identifier, (\textit{ii}) the type is an Arrow type , and (\textit{iii}) the type is External, Unsafe or Zero.\\\\
@@ -1095,9 +1095,9 @@ In case \textit{i} we must compare two Type Arguments $t_1$ and $t_2$ other wise
 In case \textit{ii} we must compare two Arrow types otherwise the test fails immediately. Let us assume that we have $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$, then we check if $t_1 = t_2$ and recursively apply the type equality test on $t_2 \rightarrow ... \rightarrow t_n$ and $u_m \rightarrow ... \rightarrow u_m$. Note that if $n \neq m$ at some point the test will fail because we will compare a Type Argument with an Arrow Type, which will always fail.\\\\
 In case \textit{iii} the test succeeds if one of the types (either the provided one or the expected one) is external or unsafe; it also succeeds if both types are Zero types.
 
-\subparagraph{Testing type equivalence}
+\subparagraph{Testing type compatibility}
 
-Type equivalence might succeed in only two cases: (\textit{i}) when testing two Argument Types, and when testing two Arrow Types; in all other cases the test fails immediately. In what follows we write $t_1 \equiv t_2$ to say that $t_1$ is equivalent to $t_2$.\\\\
+Type equivalence might succeed in only two cases: (\textit{i}) when testing two Argument Types, and when testing two Arrow Types; in all other cases the test fails immediately. In what follows we write $t_1 \equiv t_2$ to say that $t_1$ is compatible with $t_2$.\\\\
 In case \textit{i} we have to check if the provided type is paired with the expected type in a type equivalence map stored in the symbol table. If the lookup in the map is unsuccessful then an error is returned.\\\\
 In case \textit{ii} again we consider $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$. This time we check if $t_1 equiv t_2$ and then we recursively check the equivalence of $t_2 \rightarrow ... \rightarrow t_n$ with $u_m \rightarrow ... \rightarrow u_m$. Again, the equivalence test fails if $n \neq m$ because we will end up comparing an Argument Type with an Arrow Type.
 
