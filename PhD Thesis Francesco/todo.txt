@@ -8,3 +8,5 @@ CHAPTER 3
 GENERAL:
 - Literal quotes come in double quotes, all the rest in single quotes.
 - Put a dash between meta and compiler everywhere. Same thing for Meta-casanova.
+- Include the full list meta-program in C++ in Appendix A.
+- Write the full grammar of Metacasanova in BNF in Appendix B.

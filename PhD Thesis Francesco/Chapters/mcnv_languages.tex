@@ -1,4 +1,24 @@
 \section{The C-{}- language}
+In this section we present the implementation of a small imperative language called C-{}-. Note that, although the name might suggest this, we do not claim any resemblance with the C programming language, as it lacks several features such as pointer arithmetic, arrays, and functions.
+
+C-{}- allows the use of four built-in values: integer, strings, booleans, and floating-point numbers in double precision. The memory is represented using a dictionary that pairs variable names with their value. In what follows we omit the details of the lookup of entries in the dictionary for brevity. Suffice to say that the meta-program makes use of the \texttt{ImmutableDictionary} data structure available in .NET. Also note that C-{}- defines scopes for variables, so that if a variable is declared inside the scope of a code block in a control structure, that is usable only within the scope itself.
+
+The core of the meta-program is made of the evaluation of both expressions and statements. We proceed below to present the details of both kinds of evaluation.
+
+\subsection{Expression Evaluation}
+As explained above C-{}- supports boolean, string, integer, and floating-point values. These are represented through the following meta-data structures in the meta-program.
+
+\begin{lstlisting}
+Data "$i" -> <<int>> : Value Priority 300
+Data "$d" -> <<double>> : Value Priority 300
+Data "$s" -> <<string>> : Value Priority 300
+Data "$b" -> <<bool>> : Value Priority 300
+\end{lstlisting}
+
+\noindent
+Note that we are using the .NET data types to represent the actual values stored in the meta-data structures.
+
+\subsection{Statement Evaluation}
 
 \section{Casanova 2.5 in Metacasanova}
 In this section we will briefly introduce the Casanova language, a domain specific language for games. We then show a re-implementation, which we call Casanova 2, of the Casanova 2 language hard-coded compiler as an example of use of Metacasanova.
