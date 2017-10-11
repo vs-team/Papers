@@ -16,7 +16,173 @@ Data "$b" -> <<bool>> : Value Priority 300
 \end{lstlisting}
 
 \noindent
-Note that we are using the .NET data types to represent the actual values stored in the meta-data structures.
+Note that we are using the .NET data types to represent the actual values stored in the meta-data structures. We also define the following type equivalence, since values are atomic cases of expressions and can be used as such:
+
+\begin{lstlisting}
+Value is Expr
+\end{lstlisting}
+
+\noindent
+Expressions can also contain variables, thus we need a meta-data structure to represent them as well.
+
+\begin{lstlisting}
+Data "$" -> <<string>> : Id Priority 300
+\end{lstlisting}
+
+\noindent
+Variables can be used as atomic expressions as well, so we need an additional type equivalence
+
+\begin{lstlisting}
+Id is Expr
+\end{lstlisting}
+
+\noindent
+We now define a data structure to represent the state of the program. The state is simply a map where the key is a variable name and the stored element a valid value in C-{}-. In the declaration we will define the meta-type \texttt{SymbolTable}, and from now on we will refer use the term ``symbol table'' as a synonym of ``state''.
+
+\begin{lstlisting}
+Data "$m" << ImmutableDictionary<Id, Value> >> : SymbolTable 
+\end{lstlisting}
+
+\noindent
+Since we want to allow variable scoping, the state of the program is not represented by a single map, but by a list of maps. Each time the program enters a different scope context, an empty map is added to this list, and removed when the program exits the scope. This process will be further explained below. We define a meta-data structure to represent this list of states (note that the operator for the construction of the list is infix).
+
+\begin{lstlisting}
+Data SymbolTable -> "::" -> TableList : TableList
+\end{lstlisting}
+
+\noindent
+We can finally proceed to define a meta-data structure to represent the operations for expressions. First we define the arithmetic operators in the language:
+
+\begin{lstlisting}
+Data Expr -> "+" -> Expr : Expr
+Data Expr -> "-" -> Expr : Expr
+Data Expr -> "*" -> Expr : Expr
+Data Expr -> "/" -> Expr : Expr
+\end{lstlisting}
+
+\noindent
+then we can define operators for boolean expressions:
+\begin{lstlisting}
+Data Expr -> "&&" -> Expr : Expr
+Data Expr -> "||" -> Expr : Expr
+Data "!" -> Expr : Expr
+\end{lstlisting}
+
+\noindent
+and finally comparison operators:
+\begin{lstlisting}
+Data Expr -> "equals" -> Expr : Expr
+Data Expr -> "neq" -> Expr: Expr
+Data Expr -> "ls" -> Expr : Expr
+Data Expr -> "leq" -> Expr : Expr
+Data Expr -> "grt" -> Expr : Expr
+Data Expr -> "geq" -> Expr : Expr
+\end{lstlisting}
+
+We now have to define the function that evaluates an expression through rules in the program. This function takes as input the list of symbol tables (needed to read possible variables), an expression, and returns the value after computing the expression.
+
+\begin{lstlisting}
+Func "evalExpr" -> TableList -> Expr : Value
+\end{lstlisting}
+
+\noindent
+Now we have to proceed to define the rules to compute the actual evaluation of an expression. Clearly the base cases of the evaluation are the atomic values, where we immediately return the value itself.
+
+\begin{lstlisting}
+-----------------------------
+evalExpr tables ($i v) -> ($i v)
+
+-----------------------------
+evalExpr tables ($d v) -> ($d v)
+
+-----------------------------
+evalExpr tables ($s v) -> ($s v)
+
+-----------------------------
+evalExpr tables ($b v) -> ($b v)
+\end{lstlisting}
+
+Evaluating variables is more complex: we have to look at the table currently in the head of the list of tables (which is the one relative to the current scope). If we do not find the required variable we have to recursively look it up in the tail of the list, since we could have an arbitrary amount of nested scopes. When the variable is found we return its value. This behaviour is implemented by the following code:
+
+\begin{lstlisting}
+symbols contains ($name) -> Yes
+symbols lookup ($name) -> val
+-------------------------------------------
+evalExpr (symbols :: tables) ($name) -> val
+
+symbols contains ($name) -> No
+evalExpr tables ($name) -> val
+-------------------------------------------
+evalExpr (symbols :: tables) ($name) -> val
+
+\end{lstlisting}
+
+We proceed now to define the evaluation of arithmetic operators. We show only the example of the sum for brevity, the other rules differ only in the operator. Evaluating the arithmetic expression requires to recursively call \texttt{evalExpr} on the right and left argument. These recursive calls will eventually return two values that are the result of the two evaluations. After we obtain these values, we can compute their sum and return it as result.
+
+\begin{lstlisting}
+evalExpr tables expr1 -> ($i val1)
+evalExpr tables expr2 -> ($i val2)
+<<val1 + val2>> -> v
+---------------------------------------
+evalExpr tables expr1 + expr2 -> ($i v)
+\end{lstlisting}
+
+\noindent
+Note that we have used .NET external code in the third premise to compute the result of the arithmetic operation. Evaluating arithmetic operations involving floating-point expressions can be done in an analogous way, except in the premises we expect to have the meta-data structure for floating-point values as result of \texttt{evalExpr}:
+
+\begin{lstlisting}
+evalExpr tables expr1 -> ($d val1)
+evalExpr tables expr2 -> ($d val2)
+<<val1 + val2>> -> v
+---------------------------------------
+evalExpr tables expr1 + expr2 -> ($d v)
+\end{lstlisting}
+
+\noindent
+The same can be said for the string concatenation.
+The evaluation of boolean expression is analogous: we show again only the evaluation for AND as the other rules are analogous:
+
+\begin{lstlisting}
+evalExpr tables expr1 -> ($b val1)
+evalExpr tables expr2 -> ($b val2)
+<<val1 && val2>> -> b
+----------------------------------------------------------------------
+evalExpr tables expr1 && expr2 -> b
+\end{lstlisting}
+
+\noindent
+Again we rely on external code to compute the actual boolean value.
+As for the comparison operators, we can use a clause in the premise to avoid using external code in the following way:
+
+\begin{lstlisting}
+evalEpxr tables expr1 -> val1
+evalExpr tables expr2 -> val2
+val1 == val2
+------------------------------------------------
+evalExpr tables (expr1 equals expr2) -> $b true
+
+evalEpxr tables expr1 -> val1
+evalExpr tables expr2 -> val2
+val1 != val2
+------------------------------------------------
+evalExpr tables (expr1 equals expr2) -> $b false
+\end{lstlisting}
+
+\noindent
+The first rule checks that the values computed by evaluating the left and right argument of the equality comparison are the same. If this happens then the rule returns a meta-data structure containing the boolean representation of \texttt{true}. Otherwise the first rule fails and the second one is executed. This one will return a boolean representation of \texttt{false} when the values are different.
+
+For inequality operators we must rely on external code for the computation is Metacasanova only allows equality comparisons in clauses:
+
+\begin{lstlisting}
+evalExpr tables expr1 -> ($i val1)
+evalExpr tables expr2 -> ($i val2)
+<< val1 < val2 >> -> boolResult
+---------------------------------------------------------
+evalExpr tables (expr1 ls expr2) -> ($b boolResult)
+\end{lstlisting}
+
+\noindent
+The evaluation of the other comparison operators is implemented through analogous rules, which differ only in the operators.
 
 \subsection{Statement Evaluation}
 

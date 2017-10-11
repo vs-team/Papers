@@ -1052,7 +1052,7 @@ the first argument of \texttt{eval} in the conclusion is an explicit data argume
 
 \begin{definition}
 \label{def:ch_metacasanova_type_compatibility}
-	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$, then we say that the type $t_1$ is \textit{compatible} with $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
+	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$ the set of type equivalence declarations, then we say that the type $t_1$ is \textit{compatible} with $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
 \end{definition}
 
 \subsubsection{Checking the conclusion}
@@ -1087,7 +1087,7 @@ When we have an identifier as argument, this might be either a symbol for a meta
 Checking a nested expression requires, in the first place, to recursively type check the arguments used in the nested expression. If this check succeeds than we must also ensure that the type of the meta-data structure that we are analysing is compatible with the expected type.
 
 \paragraph{Checking the type compatibility}
-According to Definition \ref{def:ch_metacasanova_type_equivalence}, a type is compatible with another if they are equal or if, in the symbol table, there exists a specified equivalence between the first type and the second. We have thus to distinguish two cases: (\textit{i}) check if the types are equal and, if this fails, (\textit{ii}) check if the provided type is paired with the expected type in an equivalence table. For the following considerations refer to the type structure defined in Section \ref{subsec:ch_metacasanova_checking_declarations}.
+According to Definition \ref{def:ch_metacasanova_type_compatibility}, a type is compatible with another if they are equal or if, in the symbol table, there exists a specified equivalence between the first type and the second. We have thus to distinguish two cases: (\textit{i}) check if the types are equal and, if this fails, (\textit{ii}) check if the provided type is paired with the expected type in an equivalence table. For the following considerations refer to the type structure defined in Section \ref{subsec:ch_metacasanova_checking_declarations}.
 
 \subparagraph{Testing type equality}
 Checking type must consider three options: (\textit{i}) the type is a simple identifier, (\textit{ii}) the type is an Arrow type , and (\textit{iii}) the type is External, Unsafe or Zero.\\\\

@@ -344,6 +344,7 @@ rule comparisonOperators = parse
 
 Note that, in order to provide useful information about the lexing phase, we might need to acces, for instance, to the position of the lexer (for error reporting) or to get the string read by the lexer (for example to generate literals when reading numbers or strings). This information is provided by the \textit{lexer buffer}, which is a data structure generated automatically by the parser generator. For example, if the token needs to store its row and column position in the file for error reporting, the definition above can be changed in this way (note the use of the header to define the function \texttt{range}):
 
+
 \begin{lstlisting}
 {
   module Lexer
