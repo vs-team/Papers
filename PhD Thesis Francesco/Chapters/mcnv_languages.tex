@@ -5,7 +5,7 @@ C-{}- allows the use of four built-in values: integer, strings, booleans, and fl
 
 The core of the meta-program is made of the evaluation of both expressions and statements. We proceed below to present the details of both kinds of evaluation.
 
-\subsection{Expression Evaluation}
+\subsection{Expression Semantics}
 As explained above C-{}- supports boolean, string, integer, and floating-point values. These are represented through the following meta-data structures in the meta-program.
 
 \begin{lstlisting}
@@ -184,7 +184,245 @@ evalExpr tables (expr1 ls expr2) -> ($b boolResult)
 \noindent
 The evaluation of the other comparison operators is implemented through analogous rules, which differ only in the operators.
 
-\subsection{Statement Evaluation}
+\subsection{Statement Semantics}
+
+Statement evaluation requires the definition of a different function, \texttt{eval}, that processes each statement and returns the result of the statement evaluation and the updated state. Note that, even if the evaluation of statements does not always change the state, in general we have to assume that this will happen.
+
+The function \texttt{eval} takes as input a statement to process and the current state (list of symbol tables), and returns the updated list of symbol tables
+
+\begin{lstlisting}
+Func "eval" -> TableList -> Stmt : TableList
+\end{lstlisting}
+
+We now proceed to define the meta-data structures necessary to represent the statements of the language: C-{}- supports (\textit{i}) variable declarations, (\textit{ii}) variable assignment, (\textit{iii}) if-then-else, (\textit{iv}) while loops, and (\textit{v}) for loops.
+
+Variable declarations follow the same structure of standard C, that is a type name followed by an identifier. Thus, the corresponding meta-data structure can be defined as:
+
+\begin{lstlisting}
+"variable" -> Type -> Id : Stmt
+\end{lstlisting}
+
+\noindent
+Analogously, variable assignment follows the C convention and uses the \texttt{=} symbol.
+
+\begin{lstlisting}
+Id -> "=" -> Expr : Stmt
+\end{lstlisting}
+
+The control structure if-then-else does not follow the standard C representation, rather we use the keywords \texttt{then} and \texttt{else} to delimit its code blocks. Note that nothing would prevent to implement the conventional C syntax, but we prefer this ``lightweight'' representation. The keywords \texttt{then} and \texttt{else} are meta-data structures that take no arguments and do not have any functional utility other than syntactical mark-ups.
+
+\begin{lstlisting}
+Data "then" : Then
+Data "else" : Else
+Data "if" -> Expr -> Then -> Stmt -> Else -> Stmt : Stmt
+\end{lstlisting}
+
+Analogously we can define the meta-data structure for \texttt{While} and \texttt{For}
+
+\begin{lstlisting}
+Data "do" : Do
+Data "while" -> Expr -> Do -> Stmt : Stmt
+Data "for" -> Expr -> Expr -> Epxr -> Do -> Stmt : Stmt
+\end{lstlisting}
+
+\noindent
+Up to this point we are able to define single statements in the language, but we need a way to concatenate a sequence of statements to form code blocks, in the fashion of C. This is done by introducing an additional meta-data structure, which is the ";" symbol. For convenience, we also introduce a \texttt{nop} statement, which does not do anything, but it will be useful to express the semantics of statements evaluation.
+
+\begin{lstlisting}
+Data Stmt -> ";" -> StmtList : StmtList
+Data "nop" -> :Stmt
+
+StmtList is Stmt
+
+\end{lstlisting}
+
+We now proceed to define the semantics of statement evaluation. 
+
+\subsubsection{Variable Declarations and Assignments}
+Evaluating a variable declaration simply adds the variable to the symbol table of the current scope. Note that we allow variable shadowing, so it is possible to redefine the same symbol in different scopes.
+
+\begin{lstlisting}
+symbols defineVariable id -> symbols'
+-------------------------------------
+eval (symbols nextTable tables) (variable t id) -> symbols' nextTable tables
+\end{lstlisting}
+
+\noindent
+This rule is executed whenever the processed statement matches the structure of a variable declaration statement. The premise adds the symbol to the symbol table of the current scope (we omit the details for brevity), and returns an updated symbol table. The list of symbol 
+tables is rebuilt to include the updated table and returned as result.
+
+Variable assignment is more complex, since the variable we are trying to use might not be in the symbol table of the current scope. We must then define two lookups functions, that behave differently depending on whether the variable is in the symbol table in the head of the symbol table list or not. We declare the function \texttt{updateTable} that performs this lookup and updates the table list accordingly. 
+
+\begin{lstlisting}
+Func "updateTables" -> TableList -> TableList -> Id -> Expr : EvaluationResult
+\end{lstlisting}
+
+\noindent
+In the case that the variable is in the symbol table in the head of the list of tables we have the following rule:
+
+\begin{lstlisting}
+symbols contains id -> Yes
+evalExpr vars expr -> val
+symbols add id val -> symbols'
+-------------------------------
+updateTables vars (symbols nextTable tables) id expr -> symbols' nextTable tables
+\end{lstlisting}
+
+\noindent
+The first premise checks if the symbol is contained in the table in the head of the list. If the answer is \texttt{Yes} (a meta-data structure returned by the function \texttt{contains}, not described here again for brevity), then the second premise proceeds to evaluate the expression in the right hand-side of the assignment. The third premise adds the value obtained as result of the second premise to the current symbol table and returns the modified table. The new table is than placed in the head of the table list and the whole list is returned. Note that, at this point, all the tables in the list remain unchanged except the one that was in the head. Note that \texttt{updateTables} carries two copies of the list of tables. One of them is passed to \texttt{eval} because the right-hand side of the assignment might contain other variables. The process of looking up the left hand-side variable pops symbol tables from the head of list (see next rule) but the original list of tables is necessary when assigning the values of variables located in inner scopes. For instance, consider the following program in C-{}-:
+
+\begin{lstlisting}[caption = C-{}- sample program, label = code:ch_mcnv_languages_c--_sample_program]
+int x;
+...
+if (x > 0) then
+	int y;
+	y = 4
+	x = y;
+else
+  x = x - 1;	
+\end{lstlisting}
+
+\noindent
+assume that before the if-then-else $x > 0$. The program will enter the \texttt{then} block and declare \texttt{y}. In the current state we have to symbol tables, one for the scope of the \texttt{if-then-else} and one for the outer scope. When assigning \texttt{y} to \texttt{x} the symbol table tries to look up \texttt{x} in the table of the current scope and fails. This will pop the head of the list of tables (which is the table of \texttt{if-then-else}) and recursively look in the tail. During the second attempt \texttt{x} is retrieved but now we do not have the symbol table where \texttt{y} is defined anymore to evaluate the right hand-side. We thus need the original list of tables to be able to retrieve \texttt{y}. In general, if we call \texttt{$d_l$} the depth of scoping of the left hand-side and $d_r$ the depth of scoping of the right hand-side, the process pops the table of the right hand-side whenever $d_l > d_r$ and this is when we need the original list of tables to retrieve the value of the right hand-side.
+
+If the variable is not contained in the head of the list, i.e. it has not been declared in the current scope, we have the following rule:
+
+\begin{lstlisting}
+symbols contains id -> No
+updateTables vars tables id expr -> tables'
+----------------------------------------------
+updateTables vars (symbols nextTable tables) id expr -> symbols nextTable tables'
+\end{lstlisting}
+
+The first premise tries to lookup the variable in the symbol table of the current scope and does not find it. Thus we recursively call \texttt{updateTables} with the tail of the list. The recursive call will eventually find the variable in one of the symbol tables associated with outer scopes. This process will produce an updated list of tables that is returned as a new tail for the current list.
+
+At this point, the rule for the evaluation of the variable assignment simply class the \texttt{updateTables} function in its premise:
+
+\begin{lstlisting}
+updateTables tables tables id expr -> res
+----------------------------------------
+eval tables (id = expr) -> res
+\end{lstlisting}
+
+\subsubsection{Conditionals}
+
+Evaluating \texttt{if-then-else} requires two rules, depending on the result of the evaluation of its condition. The following rule implements the semantics when the condition is false:
+
+\begin{lstlisting}
+evalExpr tables condition -> $b true
+emptyDictionary -> table
+eval (table nextTable tables) thenBlock -> table' nextTable tables''
+-------------------------------------------------------------------
+eval tables (if condition then thenBlock else elseBlock) -> tables''
+\end{lstlisting}
+
+The first premise evaluates the condition of the control structures and succeeds if the result is a meta-data structure containing the boolean value \texttt{true}. The second premise uses an utility function to initialize an empty symbol table. This is required to define a new table for the scope of the conditional. The third premise evaluates the statements contained in the then block after pushing the symbol table for the current scope in the list of symbol tables. This process will eventually produce a new list of symbol tables. The result returns only the tail of this list, since when we exit the scope of the conditional we must pop its symbol tables.
+
+For instance, consider again the program in Listing \ref{code:ch_mcnv_languages_c--_sample_program} and again assume that $x > 0$. After executing the then block, the state of the program is made of the symbol tables shown in Table \ref{tab:ch_mcnv_languages_tables_ifthenelse}
+
+\begin{table}
+	\centering
+	\begin{tabular}{|l|l|}
+		\hline
+		\textbf{Variable} & \textbf{Value} \\
+		\hline
+		x & undefined\\
+		\hline
+	\end{tabular}\\
+	\vspace{0.2cm}
+	\begin{tabular}{|l|l|}
+		\hline
+		\textbf{Variable} & \textbf{Value} \\
+		\hline
+		y & 4\\
+		\hline
+	\end{tabular}
+	\begin{tabular}{|l|l|}
+		\hline
+		\textbf{Variable} & \textbf{Value} \\
+		\hline
+		x & 4\\
+		\hline
+	\end{tabular}
+	\caption{Symbol table at the beginning and after the execution of the program in Listing \ref{code:ch_mcnv_languages_c--_sample_program} with $x > 0$}
+	\label{tab:ch_mcnv_languages_tables_ifthenelse}
+\end{table}
+
+\noindent
+After exiting the then block, variable \texttt{y} exits the scope, thus we have to pop the symbol table for the current scope. However, the symbol table of the outer scope has been changed because \texttt{x} got the value of \texttt{y}. Thus the evaluation returns the list containing this updated table. In general, the process should consider that an arbitrary amount of symbol tables for each outer scope have been changed, thus we return this updated list.
+
+The rule that evaluates conditionals when the condition is false is analogous, except this time we evaluate the else block:
+
+\begin{lstlisting}
+evalExpr tables condition -> $b false
+emptyDictionary -> table
+eval (table nextTable tables) elseBlock -> table' nextTable tables''
+--------------------------------------------------------------------
+eval tables (if condition then thenBlock else elseBlock) -> tables''
+\end{lstlisting}
+
+\subsubsection{While Loops}
+Evaluating the while loops require to check its condition first. When the condition is false we simply skip the loop without changing the state. The rule to implement this behaviour is thus straightforward:
+
+\begin{lstlisting}
+evalExpr tables condition -> $b false
+--------------------------------------------
+eval tables (while condition expr) -> tables
+\end{lstlisting}
+
+\noindent
+The semantics when the condition is true is more complex:
+
+\begin{lstlisting}
+evalExpr tables condition -> $b true
+emptyDictionary -> table
+eval (table nextTable tables) block -> table' nextTable tables''
+eval tables'' (while condition do block) -> res
+---------------------------------------------------
+eval tables (while condition do block) -> res
+\end{lstlisting}
+
+\noindent
+The first premise succeeds when the evaluation of the condition returns a true boolean value in C-{}-. Analogously to what we did for conditionals, we initialize an empty symbol table for the current scope and we push it into the list of symbol tables. We then evaluate the body of the loop. This process will, in general, produce an updated list of symbol tables. Again we pop the symbol table for the current scope because we are exiting the loop. We then evaluate again the whole loop to test its condition again.
+
+\subsubsection{For Loops}
+For loops follow the C convention and are made of four parts: (\textit{i}) an initialization, (\textit{ii}) a condition (\textit{ii}), (\textit{iii}) a step, and (\textit{iv}) a block of code. The initialization is evaluated once before entering the loop, the condition is tested before each iteration of the loop, and the step is evaluated at the end of each iteration. In order to implement this behaviour we make use of an additional support function called \texttt{loopFor}:
+
+\begin{lstlisting}
+Func "loopFor" -> TableList -> Expr -> Stmt -> Stmt : TableList
+\end{lstlisting}
+
+\noindent
+The evaluation of the \texttt{for-loop} evaluates the initialization in its premise. It then calls \texttt{loopFor} after the initialization has been evaluated. Again the initialization might define additional variables that enter the scope of the loop, so the updated table of the current scope is pushed into the list of symbol tables. Note that possible variables defined in the initialization part of the loop might be used after the loop itself, according to the semantics of C, so we have to insert them into the symbol table of the current scope and not the one of the loop itself.
+
+\begin{lstlisting}
+eval tables init => tables'
+loopFor tables' condition step block => res
+-------------------------------------------------------
+eval tables (for init condition step do block) => res
+\end{lstlisting}
+
+The rules for \texttt{loopFor} are two, since we must consider the case when the condition is false and the one where it is true. When the condition is false the loop is completely skipped, thus we simply return the current state without any changes, in the same fashion of the \texttt{while-loop}:
+
+\begin{lstlisting}
+evalExpr tables condition -> $b false
+------------------------------------------------------------------
+loopFor tables condition step block -> tables
+\end{lstlisting}
+
+\noindent
+When the condition is true, we create as usual a symbol table for the scope of the loop and we push it into the list of symbol tables. The third premise evaluates the block of the loop returning an updated list of tables. As usual we pop the table of the scope of the loop and we evaluate the step. This again might change the list of symbol tables. We then run again the loop with the updated list of tables.
+
+\begin{lstlisting}
+evalExpr tables condition -> $b true
+emptyDictionary -> table
+eval (table nextTable tables) block -> table' nextTable tables''
+eval tables'' step -> tables3
+loopFor tables3 condition step expr -> res 
+------------------------------------------------------------------
+loopFor tables condition step block -> res
+\end{lstlisting}
+
 
 \section{Casanova 2.5 in Metacasanova}
 In this section we will briefly introduce the Casanova language, a domain specific language for games. We then show a re-implementation, which we call Casanova 2, of the Casanova 2 language hard-coded compiler as an example of use of Metacasanova.
