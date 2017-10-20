@@ -1,0 +1,443 @@
+\documentclass[10pt,a4paper]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{mathpartir}
+\hypersetup{colorlinks,urlcolor=blue}
+
+\usetheme{Warsaw}
+
+\lstset
+{
+	basicstyle = \ttfamily\footnotesize,
+	breaklines = true,
+	frame = single
+}
+
+\begin{document}
+
+\author[Di Giacomo et al.]
+{Francesco ~Di Giacomo \inst{1} \\
+	\and Mohamed ~Abbadi \inst{3} \\
+	\and Agostino ~Cortesi \inst{1} \\
+	\and Pieter ~Spronck \inst{2} \\
+	\and Giuseppe ~Maggiore \inst{3}}
+\institute[Universities Here and There] % (optional)
+{
+  Università Ca' Foscari di Venezia
+  \and Tilburg University
+  \and Hogeschool Rotterdam
+}
+\date{}
+\title{Metacasanova: An Optimized Meta-compiler for Domain-Specific Languages}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Domain-Specific Languages}
+\framesubtitle{Advantages of DSL's}
+\begin{itemize}
+	\item Abstractions that are closer to the problem domain.
+	\item Speed-up of development time of the problem solution.	
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Domain-Specific Languages}
+\framesubtitle{DSL's implementation}
+
+Two possible paths:
+
+\begin{enumerate}
+	\item Embed the DSL in a host language.
+	\item Write a compiler/interpreter.
+\end{enumerate}
+
+\textbf{Embedding Pros and Cons:}
+
+\begin{itemize}
+	\item Re-use of the host language infrastructure.
+	\item Developers expert in the host-language need only to become familiar with the language extension.
+	\item Syntax and type system bound to those of the host language. Type system as well.
+	\item Domain-specific optimizations are difficult.
+\end{itemize}
+
+\textbf{Compilation/interpretation Pros and Cons}
+
+\begin{itemize}
+	\item Syntax and types correspond to the language definition.
+	\item Good error reporting.
+	\item Domain-specific optimizations are possible.
+	\item Long development time.
+	\item Development process follows recurrent patterns.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Domain-Specific Languages}
+\framesubtitle{Steps in Compilers Development}
+\begin{enumerate}
+	\item Formalize the grammar of the language.
+	\item Formalize the type system and semantics.
+	\item Build a syntactical analyser.
+	\item Build a type checker.
+	\item Implement the semantics in the target language.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Domain-Specific Languages}
+\framesubtitle{Steps in Compilers Development - Recurring steps}
+\begin{itemize}
+	\item Step 1 and 2 are creative and cannot be captured by a pattern.
+	\item Step 3 can be completed by using a Lexer/Parser generator.
+	\item Step 4 process the result of the syntax analysis and implements the formalization of the type system in a chosen programming language.
+	\item Step 5 takes the result of Step 4 and implements the formalization of the semantics in the target language.
+\end{itemize}
+
+Step 4 and 5 are independent of the language we are building the compiler for.
+\end{frame}
+
+\begin{frame}
+\frametitle{Domain-Specific Languages}
+\framesubtitle{Steps in Compilers Development - Problems}
+\begin{itemize}
+	\item The formalization of the types and semantics is lost when implemented with the abstraction of the chosen programming language.
+	\item The implementation mimic the behaviour of the meta-representation of the formal semantics.
+	\item Example: if we use inference rules, then we re-implement their behaviour in the host language each time we write a new compiler.
+\end{itemize}
+
+\textbf{Goal:} Express the repetitive steps in terms of the formalization.
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacompilation}
+\framesubtitle{Metacasanova}
+
+\textbf{Metacompilers}
+\begin{itemize}
+	\item Input: the definition of a language in a meta-language.
+	\item Input: a program written in that language.
+	\item Output: Executable code for the program.
+\end{itemize}
+
+\textbf{Metacasanova}
+\begin{itemize}
+	\item Input: Language definition in terms of inference rules.
+	\item Input: A meta-representation of the program in that language.
+	\item Output: C\# code (it can later be compiled using a .NET compiler).
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Meta-program Structure}
+
+\begin{itemize}
+	\item Meta-data structure declarations: used to represent the abstractions of the language.
+	\item Function declaration: used to process inference rules.
+	\item Sub-typing. Used to define different ``roles'' for meta-data structures. For example you can say that an atomic value can be also used as an arithmetic expression.
+	\item Inference rules.
+	\item It is possible to embed types and methods from an external language.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Semantics of rule evaluation}
+
+\begin{mathpar}
+	\mprset{flushleft}
+	\inferrule*[left=R1:]
+	{C = \emptyset \\\\ F = \emptyset}
+	{\langle f^{r} \rangle \Rightarrow \lbrace x \rbrace} \\
+	
+	\mprset{flushleft}
+	\inferrule*[left=R2:]
+	{\forall c_{i} \in C \;, \langle c_{i} \rangle \Rightarrow true \\\\
+		\forall f_{j} \in F \; , \exists r_{k} \in R \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \lbrace x_{r^{k}} \rbrace}
+	{\langle f^{r} \rangle \Rightarrow \lbrace x_{r} \rbrace} \\
+	
+	\mprset{flushleft}
+	\inferrule*[left=R3(a):]
+	{\exists c_{i} \in C \; | \; \langle c_{i} \rangle \Rightarrow false}
+	{\langle f^{r} \rangle \Rightarrow \emptyset} \\
+	
+	\mprset{flushleft}
+	\inferrule*[left=R3(b)]
+	{\forall r_{k} \in R \; , \exists f_{j} \in F \; | \; \langle f_{j}^{r_{k}} \rangle \Rightarrow \emptyset}
+	{\langle f^{r} \rangle \Rightarrow \emptyset}
+\end{mathpar}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example: Control structures}
+\begin{itemize}
+	\item We assume we have meta-data structures representing values in our language.
+	\item We assume we already have defined expression evaluations for brevity.
+	\item The memory is represented as a meta-data structures containing a map between Id's and values.	
+	\begin{lstlisting}
+Data "$m" << ImmutableDictionary<Id, Value> >> : SymbolTable
+	\end{lstlisting}
+	\item We represent local scopes through a list of symbol tables.
+	\begin{lstlisting}
+Data SymbolTable -> "::" -> TableList : TableList
+	\end{lstlisting}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example: Control structures}
+\textbf{Meta-data definition of If-Then-Else:}
+\begin{lstlisting}
+Data "then" : Then
+Data "else" : Else
+Data "if" -> Expr -> Then -> Stmt -> Else -> Stmt : Stmt
+\end{lstlisting}
+
+\textbf{Meta-data definition of While-Do:}
+\begin{lstlisting}
+Data "do" : Do
+Data "while" -> Expr -> Do -> Stmt : Stmt
+\end{lstlisting}
+
+\textbf{Evaluation function:}
+\begin{lstlisting}
+Func "eval" -> TableList -> Stmt : EvaluationResult
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example: Control structures}
+\textbf{Evaluation of If-Then-Else}
+\begin{lstlisting}
+evalExpr tables condition -> $b true
+emptyDictionary -> table
+eval (table nextTable tables) thenBlock -> table' nextTable tables''
+----------------------------------------------
+eval tables (if condition then thenBlock else elseBlock) -> tables''
+\end{lstlisting}
+
+\begin{lstlisting}
+evalExpr tables condition -> $b false
+emptyDictionary -> table
+eval (table nextTable tables) elseBlock -> table' nextTable tables''
+----------------------------------------------
+eval tables (if condition then thenBlock else elseBlock) -> tables''
+\end{lstlisting}
+
+\begin{itemize}
+	\item Pattern matching of the statement in the conclusion.
+	\item Pattern matching of the first premise result.
+	\item Create an empty symbol table for the if-then-else scope
+	\item evaluate either the then or else. 
+	\item Return the state without the if-then-else scope.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example: Control structures}
+\textbf{Evaluation of While-Do}
+\begin{lstlisting}
+evalExpr tables condition -> $b false
+--------------------------------------------
+eval tables (while condition expr) -> tables
+\end{lstlisting}
+
+\begin{lstlisting}
+evalExpr tables condition -> $b true
+emptyDictionary -> table
+eval (table nextTable tables) block -> table' nextTable tables''
+eval tables'' (while condition do block) -> res
+---------------------------------------------------
+eval tables (while condition do block) -> res
+\end{lstlisting}
+
+\begin{itemize}
+	\item Pattern matching of the statement in the conclusion.
+	\item Pattern matching of the first premise result.
+	\item If the condition returns true then create an empty symbol table. Otherwise skip the loop completely.
+	\item Evaluate the body of the loop.
+	\item Re-evaluate the whole loop (including the condition).
+	\item Return the result of the previous step.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Evaluation}
+
+\textbf{Advantages:}
+\begin{itemize}
+	\item Shorter code.
+	\item Semantics almost identical to the formal formulation.
+\end{itemize}
+
+\textbf{Disadvantages:}
+\begin{itemize}
+	\item Low performance due to the memory representation.
+	\item Possible errors are reported at run-time.
+	\item Languages implemented in Metacasanova exhibits dynamic behaviours.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Reasons for low performance}
+
+\begin{itemize}
+	\item The state is represented through a meta-data structure in Metacasanova.
+	\item Typing or executing the semantics require to access a dictionary data structure at run-time.
+	\item This is due to the fact that it is not possible to extend the \textbf{meta-type system} to embed the type system of the implemented language.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Functors}
+
+\begin{itemize}
+	\item We extend Metacasanova with functors (functions that process types instead of values) and Modules.
+	\item Functors and Modules are processed at compile-time rather than run-time.
+	\item They allow to embed the type system of the language that is being implemented in the meta-type system.
+	\item We introduce the symbol \texttt{=>} to denote something evaluated at compile-time, in contrast to \texttt{->}, which evaluates something at run-time.
+\end{itemize}
+
+We now proceed to define an alternate memory model:
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{A memory model with functors}
+
+The meta-type of a record is defined through a module. This module contains a functor that returns the type of the record (we use \texttt{*} for \textit{kind}, which means any type).
+
+\begin{lstlisting}
+Module "Record" : Record {
+  Functor "RecordType" : *
+}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{A memory model with functors}
+
+Getters and setters are also modules:
+\begin{lstlisting}
+Module "Getter" => (name : string) => (r : Record) {
+  Functor "GetType" : *
+  Func "get" -> (r.RecordType) : GetType }
+
+Module "Setter" => (name : string) => (r : Record ) {
+  Functor "SetType" : *
+  Func "set" -> (r.RecordType) -> SetType : (r.RecordType) }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{A memory model with functors}
+
+A record can be implemented as a sequence of pairs containing the field name and its type
+
+\begin{lstlisting}
+Functor "EmptyRecord" : Record
+Functor "RecordField" => string => * => Record : Record
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{A memory model with functors}
+
+The empty record contains a constructor that returns \texttt{unit}.
+
+\begin{lstlisting}
+-------------------
+EmptyRecord => Record {
+
+Func "cons" : unit
+
+------------------
+RecordType => unit
+
+------------------
+cons -> ()
+
+}
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{A memory model with functors}
+
+A field contains a functor returning the type of the field and a constructor for the record that returns a tuple where the first element has the type of the current field and the second has the type of the rest of the record.
+
+\begin{lstlisting}
+------------------
+RecordField name type r = Record {
+Func "cons" -> type -> r.RecordType : RecordType
+
+---------------------------------------
+RecordType => Tuple[type,r.RecordType]
+
+-------------------
+cons x xs -> (x,xs)} 
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example of Record}
+
+This creates a record for a physical body with two fields:
+
+\begin{lstlisting}
+Functor "PhysicalBodyType" : Record
+
+EmptyRecord => empty
+RecordField "Velocity" Vector2 empty => velocity
+RecordField "Position" Vector2 velocity => body
+--------------------------
+PhysicalBodyType => body
+\end{lstlisting}
+
+When called in a meta-program, this functor will create at run-time a module instantiation containing
+
+\begin{lstlisting}
+Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
+
+------------------------
+cons x xs -> (x,xs)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example of Record}
+
+The physical body can then be constructed as
+
+\begin{lstlisting}
+Func "PhysicalBody" : PhysicalBodyType.RecordType
+
+-----------------------
+PhysicalBody -> PhysicalBodyType.cons((Vector2.Zero,(Vector2.Zero,())))
+\end{lstlisting}
+\end{frame}
+
+\end{document}
