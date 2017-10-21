@@ -40,6 +40,23 @@
 \frame{\titlepage}
 
 \begin{frame}
+\frametitle{Summary}
+
+We present Metacasanova, a meta-compiler initially created to ease the development of Casanova, a DSL for game development.
+
+\vspace{1cm}
+\textbf{Topics:}
+\begin{itemize}
+	\item Introduction on DSL.
+	\item Introduction of Metacasanova and example of use.
+	\item Language extension with Functors.
+	\item Example of Records implemented with Functors.
+	\item Results and Conclusion.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
 \frametitle{Domain-Specific Languages}
 \framesubtitle{Advantages of DSL's}
 \begin{itemize}
@@ -223,7 +240,7 @@ Func "eval" -> TableList -> Stmt : EvaluationResult
 \begin{lstlisting}
 evalExpr tables condition -> $b true
 emptyDictionary -> table
-eval (table nextTable tables) thenBlock -> table' nextTable tables''
+eval (table :: tables) thenBlock -> table' :: tables''
 ----------------------------------------------
 eval tables (if condition then thenBlock else elseBlock) -> tables''
 \end{lstlisting}
@@ -231,7 +248,7 @@ eval tables (if condition then thenBlock else elseBlock) -> tables''
 \begin{lstlisting}
 evalExpr tables condition -> $b false
 emptyDictionary -> table
-eval (table nextTable tables) elseBlock -> table' nextTable tables''
+eval (table :: tables) elseBlock -> table' :: tables''
 ----------------------------------------------
 eval tables (if condition then thenBlock else elseBlock) -> tables''
 \end{lstlisting}
@@ -258,7 +275,7 @@ eval tables (while condition expr) -> tables
 \begin{lstlisting}
 evalExpr tables condition -> $b true
 emptyDictionary -> table
-eval (table nextTable tables) block -> table' nextTable tables''
+eval (table :: tables) block -> table' :: tables''
 eval tables'' (while condition do block) -> res
 ---------------------------------------------------
 eval tables (while condition do block) -> res
@@ -334,22 +351,6 @@ Module "Record" : Record {
 \frametitle{Metacasanova}
 \framesubtitle{A memory model with functors}
 
-Getters and setters are also modules:
-\begin{lstlisting}
-Module "Getter" => (name : string) => (r : Record) {
-  Functor "GetType" : *
-  Func "get" -> (r.RecordType) : GetType }
-
-Module "Setter" => (name : string) => (r : Record ) {
-  Functor "SetType" : *
-  Func "set" -> (r.RecordType) -> SetType : (r.RecordType) }
-\end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Metacasanova}
-\framesubtitle{A memory model with functors}
-
 A record can be implemented as a sequence of pairs containing the field name and its type
 
 \begin{lstlisting}
@@ -416,14 +417,32 @@ RecordField "Position" Vector2 velocity => body
 PhysicalBodyType => body
 \end{lstlisting}
 
-When called in a meta-program, this functor will create at run-time a module instantiation containing
+\end{frame}
 
-\begin{lstlisting}
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Example of Record}
+The premises will generate three separate modules:
+
+\begin{enumerate}
+	\item The empty record module seen above
+	\item A \texttt{Record} instantiation for the field velocity followed by the empty record containing:
+	\begin{lstlisting}
 Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
 
 ------------------------
 cons x xs -> (x,xs)
-\end{lstlisting}
+	\end{lstlisting}
+	\item A \texttt{Record} instantiation for the field position followed by velocity containing:
+	\begin{lstlisting}
+Func "cons" -> Vector2 -> Tuple[Vector2,unit] : 
+  Tuple[Vector2,Tuple[Vector2,unit]]
+
+--------------------
+cons x xs -> (x,xs)
+	\end{lstlisting}
+\end{enumerate}
+
 \end{frame}
 
 \begin{frame}[fragile]
@@ -436,8 +455,151 @@ The physical body can then be constructed as
 Func "PhysicalBody" : PhysicalBodyType.RecordType
 
 -----------------------
-PhysicalBody -> PhysicalBodyType.cons((Vector2.Zero,(Vector2.Zero,())))
+PhysicalBody -> 
+  PhysicalBodyType.cons((Vector2.Zero,(Vector2.Zero,())))
 \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Record: Getter}
+
+Getters and setters are also modules:
+\begin{lstlisting}
+Module "Getter" => (name : string) => (r : Record) {
+	Functor "GetType" : *
+	Func "get" -> (r.RecordType) : GetType }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Record: Getter}
+
+\textbf{Case 1:} the field is the current element of the tuple. \texttt{get} returns the first element of the tuple.
+
+\begin{lstlisting}
+name = fieldName
+thisRecord := RecordField name type r
+-----------------
+GetField fieldName (RecordField name type r) => Getter fieldName thisRecord {
+
+	----------------
+	GetType => type
+	
+	---------------
+	get (x,xs) -> x}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Record: Getter}
+
+\textbf{Case 2:} the field is not the current element of the tuple. \texttt{get} generates a getter module that will eventually fall in Case 1 (assuming that the field name is valid):
+\begin{lstlisting}
+name <> fieldName
+thisRecord := RecordField name type r
+------------------
+GetField fieldName (RecordField name type r) => Getter fieldName thisRecord{
+	Functor "GetAnotherField" : Getter
+	
+	---------------
+	GetAnotherField => GetField fieldName r
+	
+	GetAnotherField => g
+	---------------
+	GetType => g.GetType
+	
+	GetAnotherField => getter
+	getter.get xs -> v
+	-------------------
+	get (x,xs) -> v }
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Results}
+
+\begin{table}
+	\centering
+	\tiny
+	\caption{Running time with the functor optimization and the dynamic table with 1000000 records.}
+	\begin{tabular}{|c|c|c|c|}
+		\hline
+		\textbf{FIELDS}& \textbf{Functors (ms)}&\textbf{Dynamic Table (ms)} & \textbf{Gain}\\ \hline
+		1&	9.47E-04&	7.29E-04&	0.77\\ \hline
+		2&	9.51E-04&	1.78E-03&	1.87\\ \hline
+		3&	9.50E-04&	3.33E-03&	3.51\\ \hline
+		4&	9.60E-04&	5.43E-03&	5.66\\ \hline
+		5&	9.65E-04&	8.03E-03&	8.32\\ \hline
+		6&	9.71E-04&	1.11E-02&	11.44\\ \hline
+		7&	9.75E-04&	1.47E-02&	15.12\\ \hline
+		8&	9.82E-04&	1.89E-02&	19.28\\ \hline
+		9&	9.92E-04&	2.37E-02&	23.86\\ \hline
+		10&	1.00E-03&	2.87E-02&	28.62\\ \hline
+		\multicolumn{2}{c|}{} & \textbf{Average gain} & 11.84\\ \cline{3-4}						
+	\end{tabular}
+\end{table}
+
+\begin{table}
+	\centering
+	\small
+	\caption{Code length implementation of C-{}- and run-time performance}
+	\begin{tabular}{|c|c|c|}
+		\hline
+		\textbf{Statement} & \textbf{Metacasanova} & \textbf{C\#}\\
+		\hline
+		\texttt{if-then-else} & 4 & 103 \\
+		\hline
+		\texttt{while} & 7 & 73 \\
+		\hline
+		\texttt{For} & 11 & 81\\
+		\hline
+	\end{tabular}
+	
+	\vspace{0.15cm}
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{C-{}-} & \textbf{Python} \\
+		\hline
+		1.26ms & $2.36 \cdot 10^{-2}$ms \\
+		\hline
+	\end{tabular}
+	\label{tab:cmm}
+\end{table}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Metacasanova}
+\framesubtitle{Conclusion}
+
+\textbf{Benefits:}
+\begin{itemize}
+	\item Significant code reduction.
+	\item Performance improvement and static typing with functors.
+	\item Fast prototyping and implementation of new languages.
+\end{itemize}
+
+\textbf{Problems:}
+\begin{itemize}
+	\item Programs in the implemented language still need to be expressed in the meta-language.
+	\item Performance is worse than a hard-coded implementation of the compiler.
+\end{itemize}
+
+\textbf{Future work:}
+\begin{itemize}
+	\item Use functors to extend Casanova, a DSL for game development, with networking primitives.
+	\item Web-based meta-interpreter for a didactic platform to learn programming with interactive feedback. 
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\centering
+\Huge
+Thank you!
 \end{frame}
 
 \end{document}
