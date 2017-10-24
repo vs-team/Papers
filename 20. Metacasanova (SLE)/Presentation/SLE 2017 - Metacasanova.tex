@@ -169,7 +169,7 @@ Step 4 and 5 are independent of the language we are building the compiler for.
 
 \begin{itemize}
 	\item Meta-data structure declarations: used to represent the abstractions of the language.
-	\item Function declaration: used to process inference rules.
+	\item Function declarations: used to process inference rules.
 	\item Sub-typing. Used to define different ``roles'' for meta-data structures. For example you can say that an atomic value can be also used as an arithmetic expression.
 	\item Inference rules.
 	\item It is possible to embed types and methods from an external language.
@@ -467,8 +467,8 @@ Func "PhysicalBody" : PhysicalBodyType.RecordType
 
 -----------------------
 PhysicalBody -> 
-  PhysicalBodyType.cons <<Vector2.Zero>> 
-    (<<Vector2.Zero>>,())
+  PhysicalBodyType.cons (0,0)
+    ((0,0),())
 \end{lstlisting}
 \end{frame}
 
