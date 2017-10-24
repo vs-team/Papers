@@ -119,15 +119,15 @@ Two possible paths:
 	\item Step 5 takes the result of Step 4 and implements the formalization of the semantics in the target language.
 \end{itemize}
 
-Step 4 and 5 are independent of the language we are building the compiler for.
+Step 4 and 5 follow the same pattern independently of the language we are building the compiler for.
 \end{frame}
 
 \begin{frame}
 \frametitle{Domain-Specific Languages}
 \framesubtitle{Steps in Compilers Development - Problems}
 \begin{itemize}
-	\item The formalization of the types and semantics is lost when implemented with the abstraction of the chosen programming language.
 	\item The implementation mimics the behaviour of the meta-representation of the formal semantics.
+	\item The formalization of the types and semantics is lost when implemented with the abstraction of the chosen programming language.
 	\item Example: if we use inference rules, then we re-implement their behaviour in the host language each time we write a new compiler.
 \end{itemize}
 
@@ -171,9 +171,31 @@ Step 4 and 5 are independent of the language we are building the compiler for.
 	\item Meta-data structure declarations: used to represent the abstractions of the language.
 	\item Function declarations: used to process inference rules.
 	\item Sub-typing. Used to define different ``roles'' for meta-data structures. For example you can say that an atomic value can be also used as an arithmetic expression.
-	\item Inference rules.
+	\item Rules.
 	\item It is possible to embed types and methods from an external language.
 \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Metacasanova}
+\framesubtitle{Structure of Rules}
+
+\begin{itemize}
+	\item Premises containing bindings, clauses, function calls.
+	\item Conclusion containing a function call.
+	
+	\vspace{0.5cm}
+	\textbf{Example:}
+	\begin{lstlisting}
+y == a
+bar k -> dataType c d
+k := dataType c d
+-------------------------
+foo (dataType a b) y -> k
+	\end{lstlisting}
+\end{itemize}
+
+
 \end{frame}
 
 \begin{frame}
@@ -326,7 +348,7 @@ eval tables (while condition do block) -> res
 
 \begin{itemize}
 	\item The state is represented through a meta-data structure in Metacasanova.
-	\item Typing or executing the semantics require to access a dictionary data structure at run-time.
+	\item Typing or executing the semantics requires to access a dictionary data structure at run-time.
 	\item This is due to the fact that it is not possible to extend the \textbf{meta-type system} to embed the type system of the implemented language.
 \end{itemize}
 \end{frame}
