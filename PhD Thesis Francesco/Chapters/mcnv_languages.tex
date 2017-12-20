@@ -6,6 +6,7 @@ C-{}- allows the use of four built-in values: integer, strings, booleans, and fl
 The core of the meta-program is made of the evaluation of both expressions and statements. We proceed below to present the details of both kinds of evaluation.
 
 \subsection{Expression Semantics}
+\label{subsec:ch_mcnv_languages_expression_semantics}
 As explained above C-{}- supports boolean, string, integer, and floating-point values. These are represented through the following meta-data structures in the meta-program.
 
 \begin{lstlisting}
@@ -48,6 +49,7 @@ Since we want to allow variable scoping, the state of the program is not represe
 
 \begin{lstlisting}
 Data SymbolTable -> "::" -> TableList : TableList
+Data "[]" -> TableList
 \end{lstlisting}
 
 \noindent
@@ -185,6 +187,7 @@ evalExpr tables (expr1 ls expr2) -> ($b boolResult)
 The evaluation of the other comparison operators is implemented through analogous rules, which differ only in the operators.
 
 \subsection{Statement Semantics}
+\label{subsec:ch_mcnv_languages_statement_semantics}
 
 Statement evaluation requires the definition of a different function, \texttt{eval}, that processes each statement and returns the result of the statement evaluation and the updated state. Note that, even if the evaluation of statements does not always change the state, in general we have to assume that this will happen.
 
@@ -236,7 +239,20 @@ StmtList is Stmt
 
 \end{lstlisting}
 
-We now proceed to define the semantics of statement evaluation. 
+We now proceed to define the semantics of statement evaluation.
+
+\subsubsection{Evaluating a sequence of statement}
+The evaluation of a sequence of statements require to evaluate the first statement in a sequence and then recursively evaluate the rest of the sequence. The recursive evaluation returns the final program state. The base case of the recursion is met when the sequence contains only \texttt{nop}. In this case we terminate the evaluation and return the unchanged program state.
+
+\begin{lstlisting}
+--------------------------
+eval tables nop -> tables
+
+eval tables a -> tables'
+eval table' b -> res
+---------------------------
+eval tables (a;b) -> res
+\end{lstlisting}
 
 \subsubsection{Variable Declarations and Assignments}
 Evaluating a variable declaration simply adds the variable to the symbol table of the current scope. Note that we allow variable shadowing, so it is possible to redefine the same symbol in different scopes.
@@ -265,7 +281,7 @@ symbols contains id -> Yes
 evalExpr vars expr -> val
 symbols add id val -> symbols'
 -------------------------------
-updateTables vars (symbols nextTable tables) id expr -> symbols' nextTable tables
+updateTables vars (symbols :: tables) id expr -> symbols' :: tables
 \end{lstlisting}
 
 \noindent
@@ -291,7 +307,7 @@ If the variable is not contained in the head of the list, i.e. it has not been d
 symbols contains id -> No
 updateTables vars tables id expr -> tables'
 ----------------------------------------------
-updateTables vars (symbols nextTable tables) id expr -> symbols nextTable tables'
+updateTables vars (symbols :: tables) id expr -> symbols :: tables'
 \end{lstlisting}
 
 The first premise tries to lookup the variable in the symbol table of the current scope and does not find it. Thus we recursively call \texttt{updateTables} with the tail of the list. The recursive call will eventually find the variable in one of the symbol tables associated with outer scopes. This process will produce an updated list of tables that is returned as a new tail for the current list.
@@ -311,7 +327,7 @@ Evaluating \texttt{if-then-else} requires two rules, depending on the result of 
 \begin{lstlisting}
 evalExpr tables condition -> $b true
 emptyDictionary -> table
-eval (table nextTable tables) thenBlock -> table' nextTable tables''
+eval (table :: tables) thenBlock -> table' :: tables''
 -------------------------------------------------------------------
 eval tables (if condition then thenBlock else elseBlock) -> tables''
 \end{lstlisting}
@@ -356,7 +372,7 @@ The rule that evaluates conditionals when the condition is false is analogous, e
 \begin{lstlisting}
 evalExpr tables condition -> $b false
 emptyDictionary -> table
-eval (table nextTable tables) elseBlock -> table' nextTable tables''
+eval (table :: tables) elseBlock -> table' :: tables''
 --------------------------------------------------------------------
 eval tables (if condition then thenBlock else elseBlock) -> tables''
 \end{lstlisting}
@@ -367,7 +383,7 @@ Evaluating the while loops require to check its condition first. When the condit
 \begin{lstlisting}
 evalExpr tables condition -> $b false
 --------------------------------------------
-eval tables (while condition expr) -> tables
+eval tables (while condition do block) -> tables
 \end{lstlisting}
 
 \noindent
@@ -376,7 +392,7 @@ The semantics when the condition is true is more complex:
 \begin{lstlisting}
 evalExpr tables condition -> $b true
 emptyDictionary -> table
-eval (table nextTable tables) block -> table' nextTable tables''
+eval (table :: tables) block -> table' :: tables''
 eval tables'' (while condition do block) -> res
 ---------------------------------------------------
 eval tables (while condition do block) -> res
@@ -416,13 +432,323 @@ When the condition is true, we create as usual a symbol table for the scope of t
 \begin{lstlisting}
 evalExpr tables condition -> $b true
 emptyDictionary -> table
-eval (table nextTable tables) block -> table' nextTable tables''
+eval (table :: tables) block -> table' :: tables''
 eval tables'' step -> tables3
 loopFor tables3 condition step expr -> res 
-------------------------------------------------------------------
+-------------------------------------------------
 loopFor tables condition step block -> res
 \end{lstlisting}
 
+\subsection{Type Checker}
+Type checking can be performed by using a representation of the type system of C-{}- in terms of rules, in the same fashion of the semantics. In this section we explain the details of how each language construct is type-checked according to its type rule. We begin by defining an alternative version of the symbol table defined in Section \ref{subsec:ch_mcnv_languages_expression_semantics} that contains a mapping between variable names and types:
+
+\begin{lstlisting}
+Data "$m" << ImmutableDictionary<Id, Type> >> : TypeTable 
+\end{lstlisting}
+
+\noindent
+and a constructor for the meta-data representing a sequence of type tables.
+
+\begin{lstlisting}
+Data TypeTable -> "::" -> TypeTableList : TypeTableList
+Data "[]" : TypeTable
+\end{lstlisting}
+
+\noindent
+We now start by defining the meta-data structures for the types in C-{}-:
+
+\begin{lstlisting}
+Data "t_int" : Type
+Data "t_double" : Type
+Data "t_string" : Type
+Data "t_bool" : Type
+Data "t_unit" : Type
+\end{lstlisting}
+
+\noindent
+We also defined a special meta-data representing a type error to correctly report errors if the program contains invalid types:
+
+\begin{lstlisting}
+Data "error" -> <<string>> : Type
+\end{lstlisting}
+
+\subsubsection{Typing expressions}
+
+We now proceed to define the type rules for expressions. We initially need to define a function to use in the conclusion of a type rule that is able to evaluate type of an expression:
+
+\begin{lstlisting}
+Func "typeExpr" -> TypeTableList -> Expr : Type
+\end{lstlisting}
+
+The axioms of expression typing are those that return the type of a literal. In this case the rule immediately returns the type associated to the specific literal.
+
+\begin{lstlisting}
+-----------------------------
+typeExpr tables ($i v) -> t_int
+
+-----------------------------
+typeExpr tables ($d v) -> t_double
+
+-----------------------------
+typeExpr tables ($s v) -> t_string
+
+-----------------------------
+typeExpr tables ($b v) -> t_bool
+\end{lstlisting}
+
+\noindent
+Type checking variables require to perform a lookup for the variable name in the list of type tables that we carry along during the typing process. The variable could be in the table associated with the current scope or in the table of an outer scope. Therefore, we start by first looking in the table of the current scope, and if we do not find the variable we recursively look it up in the subsequent table. If we traverse the whole list of tables without finding the variable, then it means that the program contains an undefined variable and an appropriate error notifying the problem should be returned.
+
+\begin{lstlisting}
+-------------------------------------
+typeExpr [] ($ name) -> error <<"Undefined variable:" + name>>
+
+types contains ($ name) -> Yes
+types lookup ($ name) -> varType
+------------------------------------------------
+typeExpr (types :: tables) ($ name) -> varType
+
+types contains ($ name) -> No
+typeExpr tables ($ name) -> error msg
+------------------------------------------
+typeExpr (types :: tables) ($ name) -> error msg 
+
+types contains ($ name) -> No
+typeExpr tables ($ name) -> varType
+------------------------------------------
+typeExpr (types :: tables) ($ name) -> varType 
+\end{lstlisting}
+
+Note that we had to include a rule in whose premise we check whether the recursive lookup returned an error. If this is the case the entire rule returns the error message rather than the type of the variable.
+
+Type-checking expression operators require to perform the following steps:
+
+\begin{enumerate}[noitemsep]
+	\item Type-check the left and right argument.
+	\item Check that the types obtained at the previous step are compatible with the operator definition.
+	\item Return the type of the operator.
+\end{enumerate}
+
+The process fails when the type-checking of one of the two expressions fails or when the types are incompatible with the operator definition.
+
+\noindent
+For brevity we only present the case of the sum, the rules for the other operators are analogous:
+
+\begin{lstlisting}
+typeExpr tables expr1 -> error msg
+----------------------------------
+typeExpr tables expr1 + expr2 -> error msg
+
+typeExpr tables expr2 -> error msg
+----------------------------------
+typeExpr tables expr1 + expr2 -> error msg
+
+typeExpr tables expr1 -> t_int
+typeExpr tables expr2 -> t_int
+--------------------------------------
+typeExpr tables expr1 + expr2 -> t_int
+
+typeExpr tables expr1 -> t_double
+typeExpr tables expr2 -> t_double
+--------------------------------------
+typeExpr tables expr1 + expr2 -> t_double
+
+typeExpr tables expr1 -> t_string
+typeExpr tables expr2 -> t_string
+--------------------------------------
+typeExpr tables expr1 + expr2 -> t_string
+
+-----------------------------------
+typeExpr tables expr -> 
+  error << "Incompatible types given to operator +" >>
+\end{lstlisting}
+
+\noindent
+Note that the last rule is executed only if all the previous failed, so when the recursive check did not fail or when the returned types were incompatible with the sum operator.
+
+\subsubsection{Typing a sequence of statements}
+Typing a sequence of statements requires to type check the first statement in the sequence and then recursively type check the remaining statements in the sequence. We also need a different type-checking function that is able to process statements and meta-data structure for its result.
+
+\begin{lstlisting}
+Data TypeTableList -> "," -> Type : TypeResult
+Func "typeStmt" -> TypeTableList -> Stmt : TypeResult
+\end{lstlisting}
+
+\noindent
+This function in general returns an updated list of type tables and a type, since variable declarations might change them. We use \texttt{t\textunderscore unit} for the type of statements, which is a place holder for language constructs that just change the state of the program.
+
+The base case of the recursion is when the sequence contains only \texttt{nop}, which returns immediately the same type tables.
+
+\begin{lstlisting}
+------------------------------------
+typeStmt tables nop -> tables,t_unit
+\end{lstlisting}
+
+\noindent
+Type-checking a sequence of statements initially checks the first statement. This might return an updated list of tables. Then it recursively checks the other statements with the result of the first step and returns the final type tables. If either of the process returns an error we just propagate the error.
+
+\begin{lstlisting}
+typeStmt tables a -> tables',error msg
+------------------------------------------
+typeStmt tables (a;b) -> tables',error msg
+
+typeStmt tables a -> tables',t_unit
+typeStmt tables' b -> finalTables,error msg
+----------------------------------------------
+typeStmt tables (a;b) -> finalTables,error msg
+
+
+typeStmt tables a -> tables'
+typeStmt tables b -> finalTables,t_unit
+--------------------------------
+typeStmt tables (a;b) -> finalTables,t_unit
+\end{lstlisting}
+
+\noindent
+Note that we are sure that the final rule succeeds because the type-checking of a statement always returns \texttt{unit} if the type-checking succeeds, according to the type rules of the language; this is further explained in the sections below.
+
+\subsubsection{Typing variable declarations and assignments}
+When we encounter a variable declaration we have to add the variable name and its type to the table of the current scope, unless the variable is already defined in the current scope, in which case we return an error. We must also prevent the declaration of variable with type \texttt{unit}, because that is a reserved type for statements. This is implemented with the following rules:
+
+\begin{lstlisting}
+
+-----------------------------------
+typeStmt types (variable t_unit id) -> [],error << "The type unit cannot be used as a variable type" >>
+
+types contains id -> Yes
+------------------------------------
+typeStmt (types :: tables) (variable t ($ name)) -> [],error << "Variable " + name " already defined" >>
+
+types add id t -> types'
+------------------------------------------
+typeStmt (types :: tables) (variable t id) -> types' :: tables
+\end{lstlisting}
+
+In the case of a variable assignment, the type checker must first look up in the type tables for the variable type. If the variable cannot be found then an error is returned because the program is trying to use an undefined variable. Otherwise we check the type of the right expression, and if it is compatible with the type of the variable then the declaration succeeds. Note that the process of checking the right side of the assignment might fail and, in this case, we have to propagate the error.
+
+\begin{lstlisting}
+-------------------------------
+typeStmt [] (($ name) = expr) -> [],error << "Variable " + name + " undefined" >>
+
+typeExpr tables expr -> error msg
+-------------------------------------------
+typeStmt tables (id = expr) -> [],error msg
+
+types contains id -> No
+typeStmt tables (id = expr) -> res
+-------------------------------------
+typeStmt (types :: tables) (id = expr) -> res
+
+types getValue id -> tvar
+typeExpr (types :: tables) expr -> te
+tvar <> te
+-------------------------------------
+typeStmt (types :: tables) (($ name) = expr) -> [],error << "Trying to assign an incompatible value to " + name >>
+
+types getValue id -> tvar
+---------------------------------------------
+typeStmt (types :: tables) (id = expr) -> (types :: tables),tvar
+\end{lstlisting}
+
+\subsubsection{Typing conditionals}
+Type-checking \texttt{if-then-else} requires to first check the type of the expression provided as condition. This process might fail and in this case we propagate the returned error. If the type checking of the expression succeeds but the returned type is not boolean, we have to return an error as well. Otherwise we can proceed to type-check the body of \texttt{then} and \texttt{else}. This process can again fail and we must again propagate a possible error. If no errors are returned after this step we return a possible updated list of type tables and the type \texttt{unit}.
+
+\begin{lstlisting}
+typeExpr tables condition -> error msg
+--------------------------------------------------------------------
+typeStmt tables (if condition then thenBlock else elseBlock) -> 
+  [],error msg
+
+emptyDictionary -> table
+typeStmt (table :: tables) thenBlock -> t,error msg
+------------------------------------------------------------
+typeStmt tables (if condition then thenBlock else elseBlock) -> 
+  [],error msg
+
+emptyDictionary -> table
+typeStmt (table :: tables) elseBlock -> t,error msg
+------------------------------------------------------------
+typeStmt tables (if condition then thenBlock else elseBlock) -> 
+  [],error msg
+
+typeExpr tables condition -> tc
+tc <> t_bool
+------------------------------------------------------------
+typeStmt tables (if condition then thenBlock else elseBlock) ->
+  [],error << "The condition of an if-then-else must be boolean" >>
+
+--------------------------------------------------------
+typeStmt tables (if condition then thenBlock else elseBlock) ->
+  t_unit,tables
+\end{lstlisting}
+
+Note that the last rule does not type check again the code blocks of \texttt{if-then-else} because the only statement that can change a type table is a variable declaration, but after we exit the scope of the block the local declarations are removed. At this point we are sure that the type-checking of the blocks has succeeded, otherwise we would have triggered one of the rules above returning an error, thus we can immediately return the result.
+
+\subsubsection{Typing while-loops}
+Type-Checking a while loop is similar to the procedure of evaluating a conditional statement. We must first check that the provided condition is boolean. This might fail either because type-checking the condition itself returns an error or because the type of the expression is not boolean. After this step we have to check the body of the loop, which might fail as well. If no error is reported then we can safely return the correct result.
+
+\begin{lstlisting}
+evalExpr tables condition -> error msg
+------------------------------------------------
+typeStmt tables (while condition do block) -> [],error msg
+
+evalExpr tables condition -> tc
+tc <> t_bool
+------------------------------------------------
+typeStmt tables (while condition do block) ->
+  [],error << "The condition of a while loop must be boolean" >>
+  
+evalExpr tables condition -> tc
+emptyDictionary -> table
+typeStmt (table :: tables) condition -> t,error msg
+-----------------------------------------------------
+typeStmt tables (while condition do block) -> [],error msg
+
+
+-------------------------------------------
+typeStmt tables (while condition do block) -> tables,t_unit
+\end{lstlisting}
+
+\noindent
+Again note that the last rules can immediately return the result because we know that, at this point, we cannot have any error and we do not need to keep the type table of the scope of the code block.
+
+\subsubsection{Typing for loops}
+Type-checking a for loops requires to first type-check the initialization. This might fail and we must propagate the error. We must then type-check the condition and the step. This process can fail either because of an error in the condition or in the statement in the step, or because the condition is not boolean.  If this succeeds we then proceed to type-check the body of the loop.
+\begin{lstlisting}
+
+typeStmt tables init -> t,error msg
+-----------------------------------------------
+typeStmt tables (for init condition step do block) -> [],error msg
+
+typeExpr tables condition -> error msg
+---------------------------------------------------
+typeStmt tables (for init condition step do block) -> [],error msg
+
+typeExpr tables condition -> tc
+tc <> t_bool
+---------------------------------------------------
+typeStmt tables (for init condition step do block) -> 
+  [],error << "The condition of a for loop must be boolean" >>
+  
+typeExpr tables condition -> tc
+tc <> t_bool
+---------------------------------------------------
+typeStmt tables (for init condition step do block) -> 
+  [],error << "The condition of a for loop must be boolean" >>
+
+emptyDictionary -> table
+typeStmt (table :: tables) step -> t,error msg  
+-----------------------------------------------------
+typeStmt tables (for init condition step do block) -> [],error msg
+
+emptyDictionary -> table
+typeStmt (table :: tables) block -> t,error msg  
+-----------------------------------------------------
+typeStmt tables (for init condition step do block) -> [],error msg
+
+-----------------------------------------------------
+typeStmt tables (for init condition step do block) -> tables,t_unit
+\end{lstlisting}
 
 \section{Casanova 2.5 in Metacasanova}
 In this section we will briefly introduce the Casanova language, a domain specific language for games. We then show a re-implementation, which we call Casanova 2, of the Casanova 2 language hard-coded compiler as an example of use of Metacasanova.

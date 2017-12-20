@@ -10,3 +10,5 @@ GENERAL:
 - Put a dash between meta and compiler everywhere. Same thing for Meta-casanova.
 - Include the full list meta-program in C++ in Appendix A.
 - Write the full grammar of Metacasanova in BNF in Appendix B.
+- If definitions are formalized with respect to the source, quote the source and tell that they have been rephrased.
+- End Chapter 2 by briefly explain the differences between Metacasanova and the other metacompilers. 
