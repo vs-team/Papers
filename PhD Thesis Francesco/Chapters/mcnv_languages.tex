@@ -757,11 +757,26 @@ typeStmt tables (for init condition step do block) -> tables,t_unit
 \section{The Casanova language}
 In the previous section we have shown how to implement a small imperative language using Metacasanova. In this section we show the implementation in Metacasanova of Casanova, a Domain-Specific Language for game development. We first give an informal explanation about how the language works and then we show an implementation of the language semantics.
 
-%expand with the full implementation of Casanova 2
 \subsection{The structure of a Casanova program}
 In this section we give an informal overview of a program in Casanova, leaving aside for brevity many of the details about the language itself, which can be found in \cite{abbadi2014resource, abbadi2015casanova, abbadi2015high, abbadithesis2017}.
 
-A program in Casanova is structured as a tree of \textit{entities} that represent the dynamic elements of a game, where the root entity is special and called \texttt{world}. An entity is similar to a class in an object-oriented programming language, containing fields and a constructor. However, the difference lies in how the language implements the dynamic behaviour of an entity: each entity defines a set of \textit{rules} that describe the temporal evolution of an entity instance. A rule operates on a set of fields of an entity called \textit{domain}, and it is allowed changed only the values of the fields in its domain. A rule can write in a field of the domain only through a dedicated statement called \texttt{yield}. On the other hand, reading fields outside the domain is always possible. Each rule in an entity is run periodically up to a maximum refresh rate, which is usually set to 60Hz. One update cycle is called \textit{frame}. Each rule is automatically passed two special identifiers, \texttt{this} and \texttt{dt}, where the former is a reference to the current instance of the entity and the latter the time elapsed between the last and the current frame.
+A program in Casanova is structured as a tree of \textit{entities} that represent the dynamic elements of a game, where the root entity is special and called \texttt{world}. For instance, the following code snippet shows an entity depicting a movable character:
+
+\begin{lstlisting}
+entity Character = {
+  Position : Vector2
+  Velocity : Vector2
+
+  ...
+
+  Create(p : Vector2) = {
+    Position = new Vector2(3.0f, 5.0f)
+    Velocity = Vector2.zero
+  }  
+}
+\end{lstlisting} 
+
+An entity is similar to a class in an object-oriented programming language, containing fields and a constructor. However, the difference lies in how the language implements the dynamic behaviour of an entity: each entity defines a set of \textit{rules} that describe the temporal evolution of an entity instance. A rule operates on a set of fields of an entity called \textit{domain}, and it is allowed changed only the values of the fields in its domain. A rule can write in a field of the domain only through a dedicated statement called \texttt{yield}. On the other hand, reading fields outside the domain is always possible. Each rule in an entity is run periodically up to a maximum refresh rate, which is usually set to 60Hz. One update cycle is called \textit{frame}. Each rule is automatically passed two special identifiers, \texttt{this} and \texttt{dt}, where the former is a reference to the current instance of the entity and the latter the time elapsed between the last and the current frame.
 
 Rules have mechanics similar to threads: they can be paused for a specific amount of time or until a certain condition is met. Furthermore, every time the rule executes a \texttt{yield} statement (thus changing the values of the fields in the entity) or its body has been completely evaluated, it is suspended until the next frame. Casanova also features interruptible control structures, such as \texttt{if-then-else}, \texttt{while-do}, and list comprehensions in a syntax similar to SQL or Linq (\texttt{from-where-select}).
  
