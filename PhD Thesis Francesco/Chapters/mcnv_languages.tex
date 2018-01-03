@@ -1,3 +1,5 @@
+In this chapter we show how to implement languages in Metacasanova. The first language that we implement is a small imperative language called C-{}-. Although tiny, this language contains many common features typical of imperative languages such as control structures, program states, variable scoping, and type annotations. We then proceed to re-implement the semantics of Casanova, a DSL for game development, in Metacasanova, work shown also in \cite{DiGiacomo2017}. We finally evaluate the length of the language implementation in Metacasanova against a hard-coded implementation of the same language in a general-purpose programming language, and the runtime performance of programs written in the meta-compiled version against Python.
+
 \section{The C-{}- language}
 In this section we present the implementation of a small imperative language called C-{}-. Note that, although the name might suggest this, we do not claim any resemblance with the C programming language, as it lacks several features such as pointer arithmetic, arrays, and functions.
 
@@ -441,6 +443,7 @@ loopFor tables condition step block -> res
 \end{lstlisting}
 
 \subsection{Type Checker}
+\label{subsec:ch_mcnv_languages_type_checking}
 Type checking can be performed by using a representation of the type system of C-{}- in terms of rules, in the same fashion of the semantics. In this section we explain the details of how each language construct is type-checked according to its type rule. We begin by defining an alternative version of the symbol table defined in Section \ref{subsec:ch_mcnv_languages_expression_semantics} that contains a mapping between variable names and types:
 
 \begin{lstlisting}
@@ -768,14 +771,7 @@ The Casanova compiler generates the code to simulate the rule suspension and res
 \label{subsec:ch_mcnv_languages_casanova_semantics}
 The memory in  is represented using three maps, where the key is the variable/field name, and the value is the value stored in the variable/field. The first dictionary represents the global memory (the fields of the \texttt{world} entity or \textit{Game State}), the second dictionary represents the current entity fields, and the third the variable bindings local to each rule.
 
-The core of the entity update is the \texttt{tick} function. This function evaluates in order each rule in the entity by calling the \texttt{evalRule} function. This function executes the body of the rule and returns a result depending on the set of statements that has been evaluated. This result is used by \texttt{tick} to update the memory and rebuild the rule body to be evaluated at the next frame. The result of \texttt{tick} is a \texttt{State} containing the rules updated so far, and the updated entity and global fields. Since a rule must be restarted after the whole body has been evaluated, we need to store a list containing the original rules, which will be restored when evaluation returns \texttt{Done}. At each step the function recursively calls itself by passing the remaining part of original rules (the rules which body was not altered by the evaluation of the statements) and modified rules (which body has been altered by the evaluation of the statements) to be evaluated. The function stops when all the rules have been evaluated, and this happens when both the original and the modified rule lists are empty. A schematic representation of this behaviour can be seen in Figure \ref{fig:ch_mcnv_languages_rule_update}
-
-\begin{figure}
-	\centering
-	\includegraphics[width=\textwidth]{Figures/statement_evaluation}
-	\caption{Rule update in Metacasanova}
-	\label{fig:ch_mcnv_languages_rule_update}
-\end{figure}
+The core of the entity update is the \texttt{tick} function. This function evaluates in order each rule in the entity by calling the \texttt{evalRule} function. This function executes the body of the rule and returns a result depending on the set of statements that has been evaluated. This result is used by \texttt{tick} to update the memory and rebuild the rule body to be evaluated at the next frame. The result of \texttt{tick} is a \texttt{State} containing the rules updated so far, and the updated entity and global fields. Since a rule must be restarted after the whole body has been evaluated, we need to store a list containing the original rules, which will be restored when evaluation returns \texttt{Done}. At each step the function recursively calls itself by passing the remaining part of original rules (the rules which body was not altered by the evaluation of the statements) and modified rules (which body has been altered by the evaluation of the statements) to be evaluated. The function stops when all the rules have been evaluated, and this happens when both the original and the modified rule lists are empty.
 
 Interruption is achieved by using \textit{Continuation passing style}: the execution of a sequence of statements is seen as a sequence of steps that returns the result of the execution and the remaining code to be executed. Every time a statement is executed we rebuild a new rule whose body contains the continuation which will be evaluated next. For example, consider the following rule:
 
@@ -797,9 +793,10 @@ rule X,Y =
     wait 1.0f
     yield X - 1,Y + 1
 \end{lstlisting}
-Note that \texttt{while} is placed at the end of the continuation because it must be re-evaluated after the first iteration is complete, and that we have decreased the waiting time by \texttt{dt} (the time elapsed between one frame and the previous one). This is analogous to the semantics of \texttt{while} implemented in Section \ref{subsec:ch_mcnv_languages_cmm_loops}. We now proceed to describe the implementation of Casanova semantics in detail.
+Note that \texttt{while} is placed at the end of the continuation because it must be re-evaluated after the first iteration is complete, and that we have decreased the waiting time by \texttt{dt} (the time elapsed between one frame and the previous one). This is analogous to the semantics of \texttt{while} implemented in Section \ref{subsec:ch_mcnv_languages_cmm_loops}. We now proceed to describe the implementation of Casanova semantics in detail. In what follows we assume that we already have evaluation rules for expression and for the symbol table as shown for C-{}-, which we will not repeat for brevity.
 
 \subsection{Rule update}
+\label{subsec:ch_mcnv_languages_rule_update}
 As explained in Section \ref{subsec:ch_mcnv_languages_casanova_semantics}, the rule update is implemented through a \texttt{tick} function that executes all the statements of the rule until an interruption statement (i.e. a statement that might pause the rule execution) is met. Thus, the possible results returned by the \texttt{tick} function are the following: (\textit{i}) \texttt{Suspend} contains a \texttt{wait} statement with the updated timer, the continuation, and a data structure called \texttt{Context} which contains the updated local variables, the entity fields, and the global fields. The function rebuilds a rule which body is the sequence of statements contained by the \texttt{Suspend} data structure. (\textit{ii}) \texttt{Resume} is returned when the rule must resume after the last waited frame. In order not to skip a frame we must still re-evaluate the rule at the next frame and not immediately (see the semantics of the \texttt{wait} statement). In this case the argument of \texttt{Resume} is only the remaining statements to be executed. (\textit{iii}) \texttt{Yield} stops evaluation for one frame. This is summarized in Figure \ref{fig:ch_mcnv_languages_tick_result}. We use the continuation to store the rule body that has yet to be evaluated. The function definition is thus the following:
 
 \begin{figure}
@@ -943,32 +940,202 @@ A summary of this process can be seen in Figure \ref{fig:ch_mcnv_languages_tick}
 
 \subsection{Rule evaluation}
 
-The function \texttt{evalRule} takes as input a rule and the symbol tables for the current entity and the \texttt{world}.
+The function \texttt{evalRule} takes as input a rule and the symbol tables for the current entity and the \texttt{world} and returns an execution result, as seen in Section \ref{subsec:ch_mcnv_languages_rule_update}.
 
 \begin{lstlisting}
 Func "evalRule" -> Rule -> <<ImmutableDictionary<string, Value> >> -> <<ImmutableDictionary<string, Value> >> : ExecutionResult
 \end{lstlisting}
 
-This rule relies
+\noindent
+Semantics rules having \texttt{evalRule} in their conclusion call in one of their premises the function \texttt{eval\tu s}. This function is able to process a sequence of statements and return a result depending on the current statement being executed. When \texttt{eval\tu s} returns \texttt{Done}, \texttt{Suspend}, or \texttt{Resume}, \texttt{evalRule} simply forwards the result to \texttt{tick} as it is. On the other hand, \texttt{eval\tu s} can also return \texttt{Yield} and an additional result called \texttt{Atomic}. This kind of result represents a statement that does not pause the rule execution. \texttt{Atomic} statements are evaluated within the current frame until an interruption statement or the end of the rule is reached.
 
-\begin{comment}
-We want to underline that the main goal of this work is \textbf{to ease the process of building a compiler for a DSL for games, thus our main objective is decreasing the code length and complexity necessary to implement a hard-coded compiler for the language}. At the same time we show that the compiled program in Casanova 2.5 \textbf{has performance similar to that of a language used in game development, and thus Casanova 2.5 is usable in a real scenario}.
-\end{comment}
+In the case of \texttt{Yield}, the function must update the fields of the entity before returning the result to \texttt{tick}, as shown below:
 
-\subsection{Chosen languages}
-We compared the running time of the sample in metacompiled Casanova with an equivalent implementation in Python. This language was chosen based on its use in game development: Python has been used extensively in several games such as Civlization IV \cite{CIV4} or World in Conflict \cite{WIC} because of the native support for coroutines. We deliberately ignore C++ and C\# implementations, although they are widely used in the industry, because we knew in advance \cite{CASANOVA2_PAPER} that the current version of the code generated by the meta-compiler would not match the high performance of these languages: the main goal of this work is to reduce the effort of writing a compiler for a DSL for games while having acceptable performance.
+\begin{lstlisting}
+eval_s b k (Context locals fields globals) dt -> Yield ks values context
+updateFields dom values context  -> updatedContext
+--------------------------------------------------------------------
+evalRule (rule dom b k locals dt) fields globals -> Yield ks values updatedContext
+\end{lstlisting}
+
+\noindent
+We omit the implementation details of \texttt{updateFields} for brevity; suffice to say that this function evaluates the expressions contained in \texttt{yield} and writes their values in the symbol table.
+
+In the case of \texttt{Atomic}, \texttt{evalRule} the rule must immediately be re-evaluated in the current frame. This is obtained by recursively calling \texttt{evalRule} again with the current rule whose body has been replaced by the continuation returned by \texttt{Atomic} (which is simply the remaining code in the rule body).
+
+\begin{lstlisting}
+eval_s b k (Context locals fields globals) dt -> Atomic z (Context newLocals newFields newGlobals)
+evalRule (rule dom z nop newLocals dt) newFields newGlobals -> res
+-------------------------------------------------------------------
+evalRule (rule dom b k locals dt) fields globals  -> res
+\end{lstlisting}
+
+A schematic representation of the interaction between \texttt{tick} and \texttt{evalStatement} can be seen in Figure \ref{fig:ch_mcnv_languages_rule_update}.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{Figures/statement_evaluation}
+	\caption{Rule update in Metacasanova}
+	\label{fig:ch_mcnv_languages_rule_update}
+\end{figure}
+
+\subsection{Statement evaluation}
+Statement evaluation is implemented through the function \texttt{eval\tu s}. This function takes as input a sequence of statements or a single statement and returns a different result depending on the statement semantics. This function takes as input the current body of the rule, its continuation and the context of the program made by the symbol tables of \texttt{world}, the current entity, and the local variables of the rule.
+
+\begin{lstlisting}
+Func "eval_s" -> stmt -> stmt -> ctxt -> <<float>> : ExecutionResult
+\end{lstlisting}
+
+\noindent
+The base case of \texttt{eval\tu s} is when the body of the rule is empty and there is no continuation. This is the case when the whole rule body has been executed and thus we have to return \texttt{Done}.
+
+\begin{lstlisting}
+-------------------------------
+eval_s nop nop ctxt dt -> Done ctxt
+\end{lstlisting}
+
+\noindent
+When the rule body is non-empty, then we must extract the first statement in the statement sequence. We then combine the remaining body of the rule with the current continuation into a single statement sequence by using the function \texttt{addStmt}. This function has two cases: (\textit{i}) both the remaining body of the rule and the continuation are empty, or (\textit{ii}) the body of the rule is non-empty. The first case happens when we are executing the last statement in the rule body. In this case we generate an empty continuation containing \texttt{nop}. In the second case we simply combine the remaining body of the rule and the continuation into a single statement sequence.
+
+\begin{lstlisting}
+a != nop
+---------------------
+addStmt a b -> a;b
+
+-------------------
+addStmt nop nop -> nop
+\end{lstlisting}
+
+\noindent
+Note that the case where only \texttt{b} is \texttt{nop} cannot be generated, because executing a statement will always generate a non-empty continuation, unless it is the last statement of the rule to be executed. This case is captured by \texttt{eval\tu s} (as shown above), which will return \texttt{Done}. When \texttt{Done} is forwarded as result to \texttt{tick}, the body of the rule will be regenerated by replacing it with the initial code of the rule (we reset the rule) as shown in Section \ref{subsec:ch_mcnv_languages_rule_update}.
+
+After the new continuation has been generated, we recursively call \texttt{eval\tu s} by giving it as input the first statement in the rule body.
+
+\begin{lstlisting}
+addStmt b k -> cont
+eval_s a cont ctxt dt -> res
+-------------------------------
+eval_s (a;b) k ctxt dt -> res
+\end{lstlisting}
+
+We now proceed to show how the semantics of the statements is implemented
+
+\subsubsection{Interruption statements}
+Interruptible statements are statements that can pause the execution of a rule: \texttt{wait} and \texttt{yield}. As briefly pointed out before, \texttt{yield} returns as result a meta-data structure \texttt{Yield} containing the continuation of the rule to resume at the next frame, the values to write in the domain fields, and the current program context (the symbol tables). Since the arguments of \texttt{yield} can be expressions, its semantics must evaluate them one by one and return their values.
+
+\begin{lstlisting}
+-------------------------
+evalYield nil ctxt -> nil
+
+eval expr ctxt -> v
+evalYield exprs ctxt -> vs
+-------------------------------------------
+evalYield (expr :: exprs) ctxt -> v :: vs
+
+
+evalYield exprs ctxt -> values
+------------------------------------------------------
+eval_s (yield exprs) k ctxt dt -> Yield k values ctxt
+\end{lstlisting}
+
+\noindent
+The statement \texttt{wait} in Casanova has double semantics: one waits for a timer to elapse and the other until a certain condition is met. In Metacasanova we do not have overloading, thus we are forced to use a different name to model both cases of its semantics. We use \texttt{wait} for the timed and \texttt{when} for the conditional version of the statement.
+
+For the timed version we have two cases: (\textit{i}) the timer has elapsed and we can resume the execution of the rule at the next frame, or (\textit{ii}) the timer is still running, thus we have to suspend the rule. In the first case we return \texttt{Resume} containing the current continuation of the rule body. In the other case we have to suspend the rule, thus we return \texttt{Suspend} where the continuation contains \texttt{wait}, whose timer has been updated by removing \texttt{dt}, concatenated to the current continuation of the rule.
+
+\begin{lstlisting}
+eval expr ctxt -> ($f t)
+t > dt
+<<t - dt>> -> t'
+----------------------------------
+eval_s (wait expr) k ctxt dt -> Suspend (wait $f t');k ctxt
+
+eval expr ctxt -> ($f t)
+t <= dt
+----------------------------------
+eval_s (wait expr) k ctxt dt -> Resume k ctxt
+\end{lstlisting}
+
+\noindent
+The implementation of \texttt{when} is analogous: if the condition is not met then we simply return \texttt{Suspend} where the continuation contains \texttt{when} concatenated with the previous continuation. Otherwise we return \texttt{Resume} containing the current continuation.
+
+\begin{lstlisting}
+eval expr ctxt -> ($b true)
+---------------------------------------------
+eval_s (when expr) k ctxt dt -> Atomic k ctxt
+
+eval expr ctxt -> ($b false)
+------------------------------------------
+eval_s (when expr) k ctxt dt -> Suspend (when expr);k ctxt
+\end{lstlisting}
+
+\subsubsection{Control strucutres}
+Casanova supports a conditional control structure (\texttt{if-then-else}), and two iterative control structures (\textit{while-do} and \texttt{for-do}). The only difference with the usual semantics of control structures lies in \texttt{for-do}, which is like that of Python and F\# as it takes as input a variable that is used to iterate through the elements of a list.
+
+The implementation of the control structures is similar to that of C-{}- with the difference that their body can be interrupted as well. At this purpose, the semantics rules must generate an appropriate continuation that will be handled by \texttt{tick}. The conditional control structure checks if the condition is true or false to select the appropriate code block to execute. After that it returns an \texttt{Atomic} result containing the concatenation of the selected code block with the current continuation of the rule. This is because the evaluation of the condition is an atomic process, i.e. must not pause the execution of the rule. The first statement of the selected code block will be executed immediately after.
+
+\begin{lstlisting}
+eval cond ctxt -> $b true
+-----------------------------------------------------------
+eval_s (if cond then b else c) k ctxt dt -> Atomic b;k ctxt
+
+eval cond ctxt -> $b false
+-----------------------------------------------------------
+eval_s (if cond then b else c) k ctxt dt -> Atomic c;k ctxt
+\end{lstlisting}
+
+\noindent
+\texttt{while-do} follows the same behaviour described in C-{}-, thus if the condition is false we simply skip the loop, otherwise we execute the body followed by the same loop. This time we must encapsulate the code built after the evaluation of the condition in an \texttt{Atomic} result, because the body must be immediately evaluated after checking the condition, as for conditionals.
+
+\begin{lstlisting}
+eval cond ctxt -> $b true
+--------------------------------------------------------------------
+eval_s (while cond b) k ctxt dt -> Atomic b;((while cond b);k) ctxt
+
+eval cond ctxt -> $b false
+--------------------------------------------------------------------
+eval_s (while cond b) k ctxt dt -> Atomic k ctxt
+\end{lstlisting}
+
+\noindent
+The semantics of \texttt{for-do} loop are quite different than what we had defined for C-{}-. The loop defines a variable that is used to iterate each element of a list. The list can be given directly or be an expression that returns a list. Thus, we have to first add to the local variables the one defined in the loop, then evaluate the expression for the list, and finally evaluate the body of the loop itself. Note that lists here are considered lists in the Casanova language and not lists of Metacasanova (thus they are values in Casanova and not meta-data structures).
+
+\begin{lstlisting}
+eval expr ctxt -> ($l nil)
+------------------------------------------
+eval_s (for v in expr b) k ctxt dt -> Atomic k ctxt
+
+eval expr (Context locals e w) -> ($l (x :: xs))
+locals add var x -> updatedLocals
+----------------------------------------------------------------
+eval_s (for ($ var) in expr b) k (Context locals e w) dt -> Atomic b;((for ($ var) in ($l xs) b);k) (Context updatedLocals e w)
+\end{lstlisting}
+
+\noindent
+The base case of the evaluation is when the list is empty. In this case we simply return \texttt{Atomic} containing the current continuation because the loop can be skipped. The recursive case is when the list is non-empty: in this case we first evaluate the expression of the list, then we add the variable defined in the loop to the local variables, assigning it the value of the head of the list. We finally return an \texttt{Atomic} that contains a continuation where the body of the loop is concatenated to the loop itself and the current continuation. \texttt{Atomic} will also contain a program context where the locals now contain the new variable defined in the loop.
+
+Note that, for simplicity, we do not have code block scoping like in C-{}-. This feature can be implemented by replacing the local symbol table with a list of tables as previously shown in Section \ref{subsec:ch_mcnv_languages_expression_semantics}.
+
+\section{Evaluation}
+We evaluated C-{}- and the meta-compiled Casanova against an equivalent implementation of equivalent programs in Python. C-{}- was tested running a program to compute the factorial, while we implemented a program in Metacasanova where some entities patrol an area according to pre-defined checkpoints. In the case of Casanova, this language was chosen based on its use in game development: Python has been used extensively in several games such as Civlization IV \cite{CIV4} or World in Conflict \cite{WIC} because of the native support for coroutines that allow to implement a behaviour similar to that of Casanova rules. In the case of C-{}-, we still use Python because, as we discuss further ahead, the behaviour of this language is much more similar to that of a dynamic language (the name was chosen mainly because of a lack of creativity from the author than because of its similarity with C).
 
 
 \subsection{Performance}
-The performance results are shown in Table \ref{tab:evaluation}. We see that the generated code has performance on the same order as Python. This is mainly due to the fact that the memory, in the metacompiled implementation of Casanova, is managed through a map, and because of the virtuality of the implemented operators. Each time Casanova accesses a field in an entity this must be looked up into the map. To this we add the complexity of dynamic lookups when we must deal with polymorphic results into the rules. 
+From Table \ref{tab:ch_mcnv_languages_casanova_compiler_comparison} we see that the implementation of Casanova 2.0 language in Metacasanova is almost 5 times shorter in terms of lines of code than the previous Casanova implementation in F\#, while the C-{}- implementation is 11 times shorter (Table \ref{tab:mcnv_languages_cmm}). We believe it is worthy noticing that structures with complex behaviours, such as \textit{wait} or \textit{when}, require hundreds of lines of codes with a standard approach (the code lines to define the behaviour of the structure plus the support code to correctly generate the state machine), while in the meta-compiler we just need tens of lines of codes to implement the same behaviour. Moreover we want to point out that the previous Casanova compiler was written in a functional programming language: these languages tend to be more synthetic than imperative languages, so the difference with the same compiler implemented in languages such as C/C++ might be even greater.
 
-From Table \ref{tab:compiler_comparison} we see that the implementation of Casanova 2.0 language in Metacasanova is almost 5 times shorter in terms of lines of code than the previous Casanova implementation in F\#. We believe it is worthy noticing that structures with complex behaviours, such as \textit{wait} or \textit{when}, require hundreds of lines of codes with a standard approach (the code lines to define the behaviour of the structure plus the support code to correctly generate the state machine), while in the meta-compiler we just need tens of lines of codes to implement the same behaviour. Moreover we want to point out that the previous Casanova compiler was written in a functional programming language: these languages tend to be more synthetic than imperative languages, so the difference with the same compiler implemented in languages such as C/C++ might be even greater.
+The readability with respect to the hard-coded compiler code is also improved: we managed to implement the behaviour of synchronization and timing primitives almost imitating one to one the formal semantics of the language definition. In the hard-coded compiler implementation for Casanova 2.0 the semantics are lost in the code for generating finite state machines. Just for comparison, Figure \ref{fig:ch_mcnv_languages_wait_code_generation} shows the code from the Casanova hard-coded compiler to generate part of the state machine necessary to simulate the behaviour of the timed version of \texttt{wait} (the code generation of \texttt{when} has about the same size).
 
-The readability with respect to the hard-coded compiler code is also improved: we managed to implement the behaviour of synchronization and timing primitives almost imitating one to one the formal semantics of the language definition (see the semantics rules in Section \ref{sec:formal_description} and their implementation in Section \ref{sec:casanova3}). In the hard-coded compiler implementation for Casanova 2.0 the semantics are lost in the code for generating finite state machines.
-
-\begin{table}[!h]
+\begin{figure}
 	\centering
-	\tiny	
+	\includegraphics[width=\textwidth]{Figures/wait_code_casanova_compiler}
+	\caption{Code generation of \texttt{wait} in the Casanova compiler}
+	\label{fig:ch_mcnv_languages_wait_code_generation}
+\end{figure}
+
+The performance results are shown in Table \ref{tab:ch_mcnv_casanova_evaluation}. We see that the generated code has performance on the same order of Python, although 3 times slower. This gap is accentuated in the case of C-{}-, which is 50 times slower than Python, because in the case of a simple imperative program, where the use of virtual tables for polymorphic types (as coroutines) is limited, the speed of Python greatly increases.
+
+\begin{table}
+	\centering
 	\begin{tabular}{|c|c|c|}
 		\hline
 		\multicolumn{3}{|c|}{\textbf{Casanova 2.5}} \\
@@ -1001,12 +1168,11 @@ The readability with respect to the hard-coded compiler code is also improved: w
 		\hline
 	\end{tabular}
 	\caption{Patrol sample evaluation}
-	\label{tab:evaluation}
+	\label{tab:ch_mcnv_casanova_evaluation}
 \end{table}
 
-\begin{table}[!h]
+\begin{table}
 	\centering
-	\tiny
 	\begin{tabular}{|c|c|}
 		\hline
 		\multicolumn{2}{|c|}{\textbf{Casanova 2.5 with Metacasanova}} \\
@@ -1061,12 +1227,38 @@ The readability with respect to the hard-coded compiler code is also improved: w
 		\hline			
 	\end{tabular}	
 	\caption{meta-compiler vs standard compiler}
-	\label{tab:compiler_comparison}
+	\label{tab:ch_mcnv_languages_casanova_compiler_comparison}
+\end{table}
+
+\begin{table}
+	\centering
+	\begin{tabular}{|c|c|c|}
+		\hline
+		\textbf{Statement} & \textbf{Metacasanova} & \textbf{C\#}\\
+		\hline
+		\texttt{if-then-else} & 4 & 103 \\
+		\hline
+		\texttt{while} & 7 & 73 \\
+		\hline
+		\texttt{For} & 11 & 81\\
+		\hline
+	\end{tabular}
+	
+	\vspace{0.15cm}
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{C-{}-} & \textbf{Python} \\
+		\hline
+		1.26ms & $2.36 \cdot 10^{-2}$ms \\
+		\hline
+	\end{tabular}
+	\caption{Code length implementation of C-{}- and run-time performance}
+	\label{tab:mcnv_languages_cmm}
 \end{table}
 
 \subsection{Discussion}
 \label{subsec:code_generation_discussion}
-Metacasanova has been evaluated in \cite{DiGiacomo2017} by re-building the DSL for game development Casanova \cite{abbadi2015casanova, abbadithesis2017}. Even though the size of the code required to implement the language has been drastically reduced (almost 1/5 shorter), performance dropped dramatically. We identified a main problem causing the performance decay that, if solved, will improve the performance of the generated code.
+Even though the size of the code required to implement the language has been drastically reduced (almost 1/5 shorter), performance dropped dramatically. The problem lies in the fact that, in order to implement a memory model, in the current version of Casanova we must rely on dynamic access to a symbol table at runtime. Indeed, when we define a new variable or read its value, the semantics contain a rule defining the insertion or the lookup of the variable. Metacasanova generates the code able to run those rules, but the memory operations are thus executed at runtime as dictionary operations.
 
 In order to encode a symbol table in the meta-compiler in the current implementation (used for example to store the variables defined in the local scope of a control structure or to model a class/record data structure), we are left with two options: (\textit{i}) define a custom data structure made of a list of pairs, containing the field/variable name as a string and its value, in the following way
 
@@ -1075,4 +1267,15 @@ Data "table" -> List[Tuple[string, Value]] : SymbolTable
 \end{lstlisting}
 
 \noindent
-or (\textit{ii}) use a dictionary data structure coming from .NET, such as \texttt{ImmutableDictionary}, which was the implementation choice for Casanova. In both cases, the behaviour of the language implemented in Metacasanova will be that of a dynamic language, because whenever the value of a variable or class field must be read, the evaluation rule must look up the symbol table at run time to retrieve the value, whose complexity will be $O(n)$ with the list implementation and $O(\log n)$ with the dictionary implementation. This issue is caused by the fact that, in the current state of Metacasanova, the meta-type system is unaware of the type system of the language that is being implemented in the meta-compiler. This is not a problem limited to Metacasanova but to all meta-compilers having a meta-type system that does not allow embedding of the host language type system. In the next section we propose an extension to Metacasanova to overcome this problem by embedding the type system of the implemented language in the meta-type system of Metacasanova and inlining the code to access the appropriate variable at compile time.
+or (\textit{ii}) use a dictionary data structure coming from .NET, such as\\ \texttt{ImmutableDictionary}, which was the implementation choice for Casanova. In both cases, the behaviour of the language implemented in Metacasanova will be that of a dynamic language, because whenever the value of a variable or class field must be read, the evaluation rule must look up the symbol table at run time to retrieve the value, whose complexity will be $O(n)$ with the list implementation and $O(\log n)$ with the dictionary implementation.
+
+The same applies to type checking: in Section \ref{subsec:ch_mcnv_languages_type_checking} we showed the type rules that check the types of a C-{}- program. In statically-typed languages, type checking is usually performed at compile time and not at runtime. However, in this case Metacasanova will again generate the code to run the type rules, but the actual execution is performed when the program is run, thus the behaviour of C-{}- is more similar to that of a dynamic language rather than a static language (and its performance as well).
+
+This issue is caused by the fact that, in the current state of Metacasanova, the meta-type system is unaware of the type system of the language that is being implemented in the meta-compiler. This means that, as it is, the meta-language is unable to define a statically-typed language. This is not a problem limited to Metacasanova but to all meta-compilers having a meta-type system that does not allow embedding of the host language type system. 
+
+The same applies for the lookup: the access to symbol tables needs not to be dynamic because the symbol table does not grow when the program runs, thus the access to a specific variable could be directly inlined in the code. For example, if we want to access variable \texttt{x}, which is the third entry of the symbol table, we will always perform the same lookup. Thus, this lookup could be simply inlined as an access to the third element of the symbol table. An analogous situation happens for Casanova entities: their structure does not change at runtime, so if we access, for instance, a field \texttt{Velocity} of an entity and that is the third one, then we always perform a lookup on the third element of the symbol table, and this can be inlined directly as well.
+
+In the next section we propose an extension to Metacasanova to overcome this problem by embedding the type system of the implemented language in the meta-type system of Metacasanova and inlining the code to access the appropriate variable at compile time.
+
+\section{Summary}
+In this chapter we showed two examples of how to use Metacasanova to implement programming languages. We started by showing how to implement a small imperative language called C-{}-. We showed an implementation of its semantics and then of its type system. Later we re-implemented the Casanova language, a DSL for game development. We showed how to implement the semantics of interruptible code, which in Casanova had been implemented with state machines, by using continuation-passing style. Metacasanova implementation of Casanova results to be 5 times shorter than that of the hard-coded compiler for Casanova written in F\#. In the case of C-{}- the gap in terms of lines of code is even larger, being the code for its semantics 11 times shorter than a hard-coded implementation. However, the code performance drops dramatically: testing the meta-compiled version of Casanova against Python results in its code being 3 times slower (although on the same order of magnitude), while the C-{}- code is even 50 times slower. The cause of this is that, even thought these languages could be statically-typed, the rule evaluation performs the lookup of variables and types at runtime. This cannot be changed in the current state of the language because the meta-type system of Metacasanova is unaware of the types of the embedded language (i.e. the language that is being implemented in Metacasanova). In the next section we will show a language extension for Metacasanova that relies on \textit{Functors} to embed the type system of languages implemented in Metacasanova in its type system, and to inline the access to variables at compile time.
