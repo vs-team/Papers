@@ -174,7 +174,7 @@ what would happen in embedded Casanova is that the type checker evaluates the ty
 
 \subsection{Inlining the entity fields}
 \label{subsec:ch_functors_inlining}
-From the example above we can notice that, when the program runs, the symbol table used to represent a Casanova entity does not change, nor its entries change position. This means that every time we read or write the same field we perform the same access in the table. In the implementation provided in Section \ref{subsec:ch_mcnv_languages_casanova_semantics} this access requires to evaluate a Metacasanova rule that is able to traverse the dictionary used for the entity symbol table and return the stored value. The traverse is performed every time, regardless of the fact that the field we are trying to access is indeed the same. Moreover, as it was also stated in Section \ref{subsec:ch_mcnv_languages_expression_semanticsvaluation}, we are looking at the very optimistic scenario where we make use of external .NET dictionaries to actually model the entity. If one had to rely solely on language abstractions defined in Metacasanova the symbol table should be modelled as a list of pairs containing field names, represented as strings, and meta-data structures representing values in the embedded language, introducing even a greater overhead. The physical body modelled in such way would then look like
+From the example above we can notice that, when the program runs, the symbol table used to represent a Casanova entity does not change, nor its entries change position. This means that every time we read or write the same field we perform the same access in the table. In the implementation provided in Section \ref{subsec:ch_mcnv_languages_casanova_semantics} this access requires to evaluate a Metacasanova rule that is able to traverse the dictionary used for the entity symbol table and return the stored value. The traverse is performed every time, regardless of the fact that the field we are trying to access is indeed the same. Moreover, as it was also stated in Section \ref{ch:mcnv_languages_evaluation}, we are looking at the very optimistic scenario where we make use of external .NET dictionaries to actually model the entity. If one had to rely solely on language abstractions defined in Metacasanova the symbol table should be modelled as a list of pairs containing field names, represented as strings, and meta-data structures representing values in the embedded language, introducing even a greater overhead. The physical body modelled in such way would then look like
 
 \begin{lstlisting}
 [("Position",(10,10)),("Velocity",(10,0)]
@@ -206,7 +206,7 @@ and thus \texttt{fst PhysicalBodyTable} (access to \texttt{Position}) would retu
 In the following sections we present the language extension required to allow this form of inlining and we show their usage implementing the example above.
 
 \section{Modules and Functors}
-\label{sec:ch_functors_language_extension}
+\label{sec:ch_functors_modules_functors}
 In order to implement the idea about inlining symbol table access and embed the type system of a language inside Metacasanova type system we extend the language with \textit{functors} and \textit{modules}. Functors are a concept borrowed form category theory that here are used in a more narrow sense. Formally a category is defined as follows \cite{asperti1991categories, mitchell1965theory, pierce1991basic}:
 
 \begin{definition}
@@ -221,44 +221,52 @@ In order to implement the idea about inlining symbol table access and embed the 
 	\end{itemize}
 \end{definition}
 
+\noindent
+Functors are mapping between two categories defined as follows:
 
+\begin{definition}
+	Given two categories $\mathcal{C}_1$ and $\mathcal{C}_2$, a \textit{functor} $\mathcal{F}$ from $\mathcal{C}_1$ to $\mathcal{C}_2$ is a mapping such that:
+	
+	\begin{itemize}
+		\item Each object $x$ of $\mathcal{C}_1$ is mapped to an object $\mathcal{F}(x)$ of $\mathcal{C}_2$.
+		\item Each morphism $f: a \rightarrow b$ of $\mathcal{C}_1$ is mapped to a morphism $\mathcal{F}(f): \mathcal{F}(a) \rightarrow \mathcal{F}(b)$ such that
+		\begin{itemize}
+			\item $\mathcal{F}(1_x) = 1_{\mathcal{F}(x)}$.
+			\item For all morphism $f: a \rightarrow b$ and $g: b \rightarrow c$ of $\mathcal{C}_1$ we have that $\mathcal{F}(g \circ f) = \mathcal{F}(g) \circ \mathcal{F}(f)$.
+		\end{itemize}
+	\end{itemize}
+\end{definition}
 
+\noindent
+Informally, functors are transformations between categories that preserve the identity and the associativity properties. In the scope of programming languages the term functor is used with a more narrow sense: they usually define transformations between types. These transformations are functors (actually \textit{endofunctors} since they transform elements of the category of types in elements of the same category) at all effects but not all functors from category theory coincide with functors in a programming language. Popular programming languages that provide functors in this sense are Haskell with \textit{Type Classes} \cite{jones1995functional, kiselyov2004strongly, mcbride2002faking, thompson1999haskell, wadler1989make} and Caml with \textit{Modules} \cite{leroy2000modular, paulson1996ml, wehr2008ml}. Functors in Metacasanova are no different: they define transformations between types. Modules are simply collection of function and functor declarations grouped together under the same name that can be used as types themselves.
 
-\section{Case study}
-Assume that we want to represent a physical body with a \texttt{Position} and a \texttt{Velocity} in a 2D space. This can be defined as a data structure containing two fields for its physical properties (the example below is written in F\#).
+\subsection{Language Extension}
+\label{subsec:ch_functors_language_extension}
+Modules can be defined through the keyword \texttt{Module} followed by a module name and series of construction parameters that are used to create an instance of the module. Constructions parameters have the same form of parameters in normal functions, so they are defined through an identifier and a type. The special symbol \texttt{*} (\textit{kind}) can be used if any type is suitable for that specific argument. Elements of a module can be accessed with the \texttt{.} access operator.
 
 \begin{lstlisting}
-type PhysicalBody = {
-  Position        : Vector2
-  Velocity        : Vector2
-}
-\end{lstlisting}
-
-In the current state of the Metacompiler, a language that wants to support such a data structure, as stated in Section \ref{sec:code_generation}, should define it either with a list of pairs $(field,value)$ or with a dictionary from .NET.
-
-\begin{lstlisting}
-Data "Record" -> List[Tuple[string, Value]] : Record
-\end{lstlisting} 
-
-Accessing the values of the fields requires to iterate through this list (or dictionary) and find the field we want to read, with two evaluation rules such as
-
-\begin{lstlisting}
-field = name
--------------
-getField ((field,value) :: fields) name 
-  -> value
-
-
-field <> name
-getField fields name -> v
--------------
-getField ((field,value) :: fields) name -> v
+Module "M" => ma1 : t1 => ma2 : t2 => ... => ma_k : tk : M {
+  Func "f1" -> ...
+  Func "f2" -> ...
+  Func "f_k" -> ...
+  
+  ...
+} 
 \end{lstlisting}
 
 \noindent
-This could be done immediately by inlining the \textit{getter} (or \textit{setter}) for that field directly in the program.
+Functors are defined similarly to function but using the double arrow instead of the single arrow:
 
-In what follows we add a system of modules and functors to Metacasanova, we explain how the meta-compiler generates the code for them, and we show how to use them to improve the performance of the example above.
+\begin{lstlisting}
+Functor "foo" a1 => a2 => ... => an : T
+\end{lstlisting}
+
+\noindent
+Moreover, since the result of calling a functor is a type, functors can be used wherever a type annotation is required, for example in the declaration of a function
+
+\begin{lstlisting}
+Func "bar" b1 -> b2 -> ... -> (foo a1 a2 ... an) -> ... : U
+\end{lstlisting}
 
 \section{Using Modules and Functors in Metacasanova}
 \label{subsec:record_implementation}
