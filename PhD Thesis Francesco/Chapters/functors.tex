@@ -1,7 +1,231 @@
-In Section \ref{sec:semantics} and Section \ref{sec:code_generation} we presented the semantics of Metacasanova and we showed how the meta-compiler generates the code necessary to represent the elements of the language and the evaluation of the rules expressed in terms of operational semantics. In Section \ref{subsec:code_generation_discussion} we highlighted the problem of performance degradation, due to the additional abstraction layer of the meta-compiler, and identified a possible cause in how the language manages the memory representation. For now, the memory can only be expressed with a dynamic symbol table that must be looked up at run-time in order to retrieve the value of a variable or of a class/record field. In this section we propose an extension to Metacasanova with parametric \textit{Modules} and \textit{Functors} that will allow to inline the access to record fields at compile time and to embed an arbitrary type system into the meta-type system of Metacasanova. Note that in this scope, we use the term functor with the same meaning used in the scope of the language \texttt{CamL}, i.e. a function that takes some types as input and returns a type. In order to provide additional clarity to the explanation, we introduce, in the next section, an example that we use as reference across the whole section.
+In Chapter \ref{ch:metacasanova} and \ref{ch:languages} we have presented the Metacasanova metacompiler and its meta-language and shown how to implement with it a small imperative language, C-{}-, and a DSL for game development, Casanova. The performance analysis showed that, although the development effort for the language compilers was greatly reduced by using Metacasanova, this has come to the cost of performance. The performance decay is due to the fact that the meta-type system of Metacasanova is unaware of the type system of C-{}- or Casanova. This requires all the type checking and access to data structures being performed at runtime, thus making a statically-typed language exhibit the behaviour and performance of dynamically typed languages. In this Chapter we propose a language extension for Metacasanova that is thought to overcome the problem of performance decay and dynamic checks. In this context we use the term \textit{embedded language} to refer to a language that is being implemented in Metacasanova and \textit{embedded program} for a program implemented in an embedded language.
+
+\section{Language extension idea}
+\label{sec:ch_functors_idea}
+The experimental results from Chapter \ref{ch:languages} showed that the performance of Metacasanova is strongly affected by the dynamic type checks and symbol table access at runtime. This is due to the fact that Metacasanova generates the code necessary to evaluate the semantics of accessing the value of a variable in the symbol table that mimics the behaviour of rules in natural semantics, but such evaluation is performed at runtime. However the runtime evaluation is only due to the limitations of the language presented so far, which is not able to build a symbol table while while compiling the meta-program, since
+
+\begin{enumerate}
+	\item The symbol table of a statically-typed language does not grow at runtime because it is built during the compilation.
+	\item The position of an entry for a variable in the symbol table does not change during the program execution, thus every time we perform an access to the same variable, we access the very same element in the symbol table.
+\end{enumerate}
+
+\noindent
+Analogously type checking in a statically-typed language is performed at compilation time rather than at runtime, which is a behaviour typical of dynamic languages such as Python. Metacasanova is forced to do runtime type checking because, at compilation time, the metacompiler only checks for the meta-types, i.e. the types of the language abstractions defined in the meta-language, but not for the program structures of the embedded program itself. This would require to be able to embed the type system of the embedded language into the meta-type system of Metacasanova. In this way the type checker of Metacasanova would be able to check at the same time the types of both the meta-program and of the embedded program. 
+
+To better clarify what stated so far we show in the following section an example of what happens when accessing the field of a Casanova entity with the implementation given in Chapter \ref{ch:languages}. We then proceed to show the idea of a possible solution to overcome the performance decay.
+
+\subsection{Field access in Casanova}
+As we showed in Section \ref{subsec:ch_mcnv_languages_casanova_semantics}, an entity in Casanova embedded in Metacasanova is represented through a map where the key is the field name and the value is the value currently stored in the field. This representation is very similar to that of records or classes. Let us consider the following entity representing a physical body consisting of a \texttt{Position} and a \texttt{Velocity} in a 2D space:
+
+\begin{lstlisting}
+type PhysicalBody = {
+  Position        : Vector2
+  Velocity        : Vector2
+}
+\end{lstlisting}
+
+\noindent
+and the following rules for \texttt{PhysicalBody}
+
+\begin{lstlisting}
+rule Position = Position + Velocity * dt
+
+rule Position =
+  if Position.X > 500f then
+    yield new Vector2(500f,Position.Y)
+  elif Position.X < 0f then
+    yield new Vector2(0f,Position.Y)
+  elif Position.Y < 0f then
+    yield new Vector2(Position.X,0f)
+  elif Position.Y > 500f then
+    yield new Vector2(Position.X,500f)
+\end{lstlisting}
+
+The first rule simply updates the position using the Euler approximation of the differential equation for the velocity
+
+\begin{equation*}
+v(t) = \dfrac{ds(t)}{dt}
+\end{equation*}
+
+\noindent
+while the second rule ensures that the physical body does not exit a specific area, which could represent the playable area in a 2D game.
+
+Assuming that the physical body is in position $(10,10)$, it is represented in Metacasanova through a map as shown in Table \ref{tab:ch_functors_physical_body}.
+
+\begin{table}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{Field} & \textbf{Value} \\
+		\hline
+		Position	& 10 \\
+		\hline
+		Velocity & 10 \\
+		\hline
+	\end{tabular}
+	\caption{Meta-representation of the physical body}
+	\label{tab:ch_functors_physical_body}
+\end{table}
+
+\noindent
+The Metacasanova semantics rule that evaluates the first Casanova rule will evaluate the expression in its body by accessing respectively the field \texttt{Position} and \texttt{Velocity} to compute the expression value. It then stores the expression value in \texttt{Position} as shown in Table \ref{tab:ch_functors_physical_body_access1_1}.
+
+\begin{table}
+	\centering
+	\begin{tabular}{c|c|c|}
+		\cline{2-3}
+		& \textbf{Field} & \textbf{Value} \\
+		\cline{2-3}
+		$\Rightarrow$ & \cellcolor{green}{Position}	& \cellcolor{green}{10,10} \\ 
+		\cline{2-3}
+	  & Velocity & 10,0 \\
+		\cline{2-3}
+	\end{tabular}
+	
+	\vspace{0.15cm}
+	\begin{tabular}{c|c|c|}
+		\cline{2-3}
+		& \textbf{Field} & \textbf{Value} \\
+		\cline{2-3}
+	  & Position	& 10,10 \\ 
+		\cline{2-3}
+		$\Rightarrow$ & \cellcolor{green}{Velocity} & \cellcolor{green}{10,0} \\
+		\cline{2-3}
+	\end{tabular}
+	
+	\vspace{0.15cm}
+	\begin{tabular}{c|c|c|}
+		\cline{2-3}
+		& \textbf{Field} & \textbf{Value} \\
+		\cline{2-3}
+		$\Rightarrow$ & \cellcolor{green}{Position}	& \cellcolor{green}{11,10} \\ 
+		\cline{2-3}
+		& Velocity & 10,0 \\
+		\cline{2-3}
+	\end{tabular}
+
+	\caption{Memory access in the first rule of the Physical Body. We assume \texttt{dt = 0.1} and \texttt{Velocity = (10,0)}}
+	\label{tab:ch_functors_physical_body_access1_1}
+\end{table}
+
+\begin{table}
+	\centering
+	\begin{tabular}{c|c|c|}
+		\cline{2-3}
+		& \textbf{Field} & \textbf{Value} \\
+		\cline{2-3}
+		$\Rightarrow$ & \cellcolor{green}{Position}	& \cellcolor{green}{\fbox{501},10} \\ 
+		\cline{2-3}
+		& Velocity & 10,10 \\
+		\cline{2-3}
+	\end{tabular}
+	
+	\vspace{0.15cm}
+	\begin{tabular}{c|c|c|}
+		\cline{2-3}
+		& \textbf{Field} & \textbf{Value} \\
+		\cline{2-3}
+		$\Rightarrow$ & \cellcolor{green}{Position}	& \cellcolor{green}{501,\fbox{10}} \\ 
+		\cline{2-3}
+		& Velocity & 10,10 \\
+		\cline{2-3}
+	\end{tabular}
+	
+	\vspace{0.15cm}
+	\begin{tabular}{c|c|c|}
+		\cline{2-3}
+		& \textbf{Field} & \textbf{Value} \\
+		\cline{2-3}
+		$\Rightarrow$ & \cellcolor{green}{Position}	& \cellcolor{green}{500,10} \\ 
+		\cline{2-3}
+		& Velocity & 10,10 \\
+		\cline{2-3}
+	\end{tabular}
+	\caption{Memory access in the second rule of the Physical Body. We assume \texttt{Position.X = 501}}
+\end{table}
+
+\noindent
+As for the second rule, assuming that \texttt{Position.Y > 500f}, the rule will access \texttt{Position} three times: (\textit{i}) to evaluate the expression in the conditional, (\textit{ii}) to read \texttt{Position.Y} when instantiating a new vector, and (\textit{iii}) to write the new vector in \texttt{Position}. This situation is shown in Table
+
+It should now appear clear that every time we need to read or write \texttt{Position} we access the first element of the table, while for \texttt{Velocity} we always access the second. In the following snippet we provide an alternative version of the code for the Casanova rules above that shows what really happens in Casanova embedded in Metacasanova :
+
+\begin{lstlisting}
+rule Position = PhysicalBodyTable[0] + PhysicalBodyTable[1] * dt
+  
+rule Position =
+	if PhysicalBodyTable[0].X > 500f then
+		yield new Vector2(500f,PhysicalBodyTable[0].Y)
+	elif PhysicalBodyTable[0].X < 0f then
+		yield new Vector2(0f,PhysicalBodyTable[0].Y)
+	elif PhysicalBodyTable[0].Y < 0f then
+		yield new Vector2(PhysicalBodyTable[0].X,0f)
+	elif PhysicalBodyTable[0].Y > 500f then
+		yield new Vector2(PhysicalBodyTable[0].X,500f)
+\end{lstlisting}
+
+Let us now assume that the program provides an invalid value for the update of \texttt{Position}:
+
+\begin{lstlisting}
+rule Position = "(10,10)"
+\end{lstlisting}
+
+\noindent
+what would happen in embedded Casanova is that the type checker evaluates the type of the expression in the rule body, obtaining \texttt{string}. This type is then compared with that of \texttt{Position}, which is \texttt{Vector2}, and at this point an error would be reported. Again, this would require at runtime to access the first element of a symbol table containing type information about the entity fields. Note that all these lookups are not array accesses but rather dictionary accesses.
+
+\subsection{Inlining the entity fields}
+\label{subsec:ch_functors_inlining}
+From the example above we can notice that, when the program runs, the symbol table used to represent a Casanova entity does not change, nor its entries change position. This means that every time we read or write the same field we perform the same access in the table. In the implementation provided in Section \ref{subsec:ch_mcnv_languages_casanova_semantics} this access requires to evaluate a Metacasanova rule that is able to traverse the dictionary used for the entity symbol table and return the stored value. The traverse is performed every time, regardless of the fact that the field we are trying to access is indeed the same. Moreover, as it was also stated in Section \ref{subsec:ch_mcnv_languages_expression_semanticsvaluation}, we are looking at the very optimistic scenario where we make use of external .NET dictionaries to actually model the entity. If one had to rely solely on language abstractions defined in Metacasanova the symbol table should be modelled as a list of pairs containing field names, represented as strings, and meta-data structures representing values in the embedded language, introducing even a greater overhead. The physical body modelled in such way would then look like
+
+\begin{lstlisting}
+[("Position",(10,10)),("Velocity",(10,0)]
+\end{lstlisting}
+
+Accessing \texttt{Position} would then be performed by a Metacasanova rule that looks for the correct field name and stops when the field in this tuple has been reached:
+
+\begin{lstlisting}
+name = fieldName
+----------------------------------
+getField name ((fieldName,value) :: t) -> value
+
+name <> fieldName
+getField name t -> v
+----------------------------------
+getField name ((fieldName,value) :: t) -> v
+\end{lstlisting}
+
+\noindent
+However the traversal of the tuple would always be the same when looking for a specific field, namely for \texttt{Position} the first Metacasanova rule will always be executed, while for \texttt{Velocity} the first time the second rule will be executed, which in turn recursively evaluates the remaining part of the list. The recursive call will then trigger the first rule at the second step. That being said, since the table does not grow and the access patterns are always the same, we could represent an entity as a nested tuple of pairs, in the fashion of Church encoding \cite{pierce2002types, kleene1935theory}, and inline in the code \texttt{fst PhysicalBodyTable} for \texttt{Position} and \texttt{fst(snd PhysicalBodyTable)} for \texttt{Velocity} whenever we require to access the respective fields, without repeating the same traversal every time. In this way the entity would look like:
+
+\begin{lstlisting}
+PhysicalBodyTable = ("Position",(10,10)),(("Velocity",(10,0)),())
+\end{lstlisting}
+
+\noindent
+and thus \texttt{fst PhysicalBodyTable} (access to \texttt{Position}) would return\\ \texttt{("Position",(10,10))} and \texttt{fst(snd PhysicalBodyTable)} (access to\\ \texttt{Velocity}) would return \texttt{("Velocity",(10,0))}.
+
+In the following sections we present the language extension required to allow this form of inlining and we show their usage implementing the example above.
+
+\section{Modules and Functors}
+\label{sec:ch_functors_language_extension}
+In order to implement the idea about inlining symbol table access and embed the type system of a language inside Metacasanova type system we extend the language with \textit{functors} and \textit{modules}. Functors are a concept borrowed form category theory that here are used in a more narrow sense. Formally a category is defined as follows \cite{asperti1991categories, mitchell1965theory, pierce1991basic}:
+
+\begin{definition}
+	A category $\mathcal{C}$ is made of
+	
+	\begin{itemize}[noitemsep]
+		\item A collection of \textit{objects}.
+		\item A collection of \textit{arrows} or \textit{morphism} between objects. Each morphism starts from a source object and ends into a target object.
+		\item For every triplet of objects, there exists a composition operation $\circ$, such that, given the morphisms $f:a \rightarrow b$ and $g:b \rightarrow c$ then $g \circ f: a \rightarrow c$.
+		\item The composition operation is associative, i.e. $f \circ (g \circ h) = (f \circ g) \circ h$.
+		\item For each object $x$ There exists a morphism $1_x: x \rightarrow x$, called \textit{identity}, such that for every morphism $f:a \rightarrow x$ and $g: x \rightarrow b$ we have that $f \circ 1_x = f$ and $g \circ 1_x = g$.
+	\end{itemize}
+\end{definition}
+
+
+
 
 \section{Case study}
-Assume that we want to represent a physical body with a \texttt{Position} and a \texttt{Velocity} in a 2D space. This can be defined as a data structure containing two fields for its physical properties (the example below is written in F\#). 
+Assume that we want to represent a physical body with a \texttt{Position} and a \texttt{Velocity} in a 2D space. This can be defined as a data structure containing two fields for its physical properties (the example below is written in F\#).
 
 \begin{lstlisting}
 type PhysicalBody = {
@@ -268,21 +492,6 @@ get (x,xs) -> x
 \end{lstlisting}
 
 We want to point out that this optimization has been presented on the specific case of records, but can be generalized for any situations where you would use a symbol table. Indeed any symbol table can be expressed with the representation above as a sequence of pair where the first item is the value of the current variable, and the second item is the continuation of the symbol table.
-
-\section{Functor interpeter}
-Here describe how the inlining process is implemented in the meta-compiler with the type function interpreter
-
-\section{C-{}- optimization}
-Show how to optimize the current C-- implementation by using functors to populate the symbol table.
-
-\section{Casanova 2.5 optimization}
-\begin{itemize}[noitemsep]
-	\item Entity definition with functors.
-	\item Entity traversal with functors (?)
-	\item Rule update definition with functors.
-	\item Evaluation.
-\end{itemize}
-Show how to use functors to define an entity as a Record and how to inline the getter and setter of fields in rules.
 
 \section{Evaluation}
 An extensive evaluation of Casanova implemented in Metacasanova, which we omit for brevity, can be found in \cite{DiGiacomo2017}. The implementation of Casanova operational semantics in Metacasanova is almost 5 times shorter than the corresponding F\# implementation in the hard-coded compiler. In addition to Casanova, we have implemented a subset of the C language called C-{}-. This language supports \texttt{if-then-else}, \texttt{while-loop}, and \texttt{for} statements, as well as local scoping of variables. The total length of the language definition in Metacasanova is 353 lines of code. The corresponding C\# code to implement the operational semantics of the language is 3123 lines, thus the code reduction with Metacasanova is roughly 8.84 times. For comparison, in Table \ref{tab:cmm} it is possible to see the code length to implement three different statements, both in Metacasanova and C\#. We tested C-{}- against Python by computing the average running time to compute the factorial of a number. C-{}- results to be 50 times slower than Python. This result is worse than what we obtained with Casanova, because in order to emulate the interruptible rule mechanism of Casanova in Python you must rely on coroutines that are slower than a program containing simple statements. Moreover, we tested the performance improvement of the optimization using Functors to represent records against the standard one using dynamic symbol tables. The test was run using records with a number of fields ranging from 1 to 10 and updating from 10000 to 1000000 instances of such records. In Table \ref{tab:functors}, we can see that the optimization using Functors leads to a performance increase on average of about 11 times, with peaks of 30 times. The gain increases with the number of fields, thus Functors are particularly effective for records with high number of fields. Figure \ref{fig:chart} shows a chart of the overall performance of the two techniques (the data points are taken from Table \ref{tab:functors}). The horizontal axis contains the amount of fields per record, while the vertical axis contains the number of records that are being updated. We can see that the performance of the dynamic table degrades considerably when increasing the number of fields, and that the higher the amount of records is, the steeper the curve is. On the other hand, the performance of the implementation with Functors is almost constant, regardless of the amount of fields or records that are being updated. Moreover, note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET, which can access the entries in $O(\log n)$. If the symbol table were represented as a meta-data structure in the language the performance would be even worse, since it would have to be encoded as a list of pairs with the field name and its value, and its manipulation would be affected by the evaluation rules that should implement this behaviour. Furthermore, the dynamic lookup should be done also to ensure that the types of the record fields are used consistently (for example to prevent that a record is constructed with incompatible values for its fields), while using the functors in Metacasanova embeds the type system of the language in the meta-type system, whose type safety is checked at compile-time rather than at runtime, and this contributes to further increase the performance.

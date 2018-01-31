@@ -1132,6 +1132,7 @@ The base case of the evaluation is when the list is empty. In this case we simpl
 Note that, for simplicity, we do not have code block scoping like in C-{}-. This feature can be implemented by replacing the local symbol table with a list of tables as previously shown in Section \ref{subsec:ch_mcnv_languages_expression_semantics}.
 
 \section{Evaluation}
+\label{ch:mcnv_languages_evaluation}
 We evaluated C-{}- and the meta-compiled Casanova against an equivalent implementation of equivalent programs in Python. C-{}- was tested running a program to compute the factorial, while we implemented a program in Metacasanova where some entities patrol an area according to pre-defined checkpoints. In the case of Casanova, this language was chosen based on its use in game development: Python has been used extensively in several games such as Civlization IV \cite{CIV4} or World in Conflict \cite{WIC} because of the native support for coroutines that allow to implement a behaviour similar to that of Casanova rules. In the case of C-{}-, we still use Python because, as we discuss further ahead, the behaviour of this language is much more similar to that of a dynamic language (the name was chosen mainly because of a lack of creativity from the author than because of its similarity with C).
 
 
