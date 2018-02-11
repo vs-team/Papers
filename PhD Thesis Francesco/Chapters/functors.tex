@@ -1,4 +1,4 @@
-In Chapter \ref{ch:metacasanova} and \ref{ch:languages} we have presented the Metacasanova metacompiler and its meta-language and shown how to implement with it a small imperative language, C-{}-, and a DSL for game development, Casanova. The performance analysis showed that, although the development effort for the language compilers was greatly reduced by using Metacasanova, this has come to the cost of performance. The performance decay is due to the fact that the meta-type system of Metacasanova is unaware of the type system of C-{}- or Casanova. This requires all the type checking and access to data structures being performed at runtime, thus making a statically-typed language exhibit the behaviour and performance of dynamically typed languages. In this Chapter we propose a language extension for Metacasanova that is thought to overcome the problem of performance decay and dynamic checks. In this context we use the term \textit{embedded language} to refer to a language that is being implemented in Metacasanova and \textit{embedded program} for a program implemented in an embedded language.
+In Chapter \ref{ch:metacasanova} and \ref{ch:languages} we have presented the Metacasanova metacompiler and its meta-language and shown how to implement with it a small imperative language, C-{}-, and a DSL for game development, Casanova. The performance analysis showed that, although the development effort for the language compilers was greatly reduced by using Metacasanova, this has come to the cost of performance. The performance decay is due to the fact that the meta-type system of Metacasanova is unaware of the type system of C-{}- or Casanova. This requires all the type checking and access to data structures being performed at runtime, thus making a statically-typed language exhibit the behaviour and performance of dynamically typed languages. In this Chapter we propose a language extension \cite{DiGiacomo2017SLE} for Metacasanova that is thought to overcome the problem of performance decay and dynamic checks. In this context we use the term \textit{embedded language} to refer to a language that is being implemented in Metacasanova and \textit{embedded program} for a program implemented in an embedded language.
 
 \section{Language extension idea}
 \label{sec:ch_functors_idea}
@@ -15,6 +15,7 @@ Analogously type checking in a statically-typed language is performed at compila
 To better clarify what stated so far we show in the following section an example of what happens when accessing the field of a Casanova entity with the implementation given in Chapter \ref{ch:languages}. We then proceed to show the idea of a possible solution to overcome the performance decay.
 
 \subsection{Field access in Casanova}
+\label{subsec:ch_functors_casanova_example}
 As we showed in Section \ref{subsec:ch_mcnv_languages_casanova_semantics}, an entity in Casanova embedded in Metacasanova is represented through a map where the key is the field name and the value is the value currently stored in the field. This representation is very similar to that of records or classes. Let us consider the following entity representing a physical body consisting of a \texttt{Position} and a \texttt{Velocity} in a 2D space:
 
 \begin{lstlisting}
@@ -267,6 +268,182 @@ Moreover, since the result of calling a functor is a type, functors can be used 
 \begin{lstlisting}
 Func "bar" b1 -> b2 -> ... -> (foo a1 a2 ... an) -> ... : U
 \end{lstlisting}
+
+\noindent
+Functors are evaluated through rules whose behaviour is identical to those used to evaluate functions. The difference lies in the fact that results of functors are evaluated at compile time rather than runtime. Functors results are evaluated by an interpreter that mimics the semantics of rules in natural semantics, in the fashion of the semantics used in the code generation explained in Section \ref{sec:ch_metacasanova_code_generation}. Since the evaluation is performed at compile time, all the values passed to a functor call must be known when compiling the meta-program. This means that the arguments of a functor call can be either types or constants. When an evaluation rule for a functor is called, this is run through the interpreter and a module instance is returned as result. Figure \ref{fig:ch_functors_compiler_architecture} shows the steps performed by the new compiler architecture to include functors interpretation. Functors can be called both in the premises of rules for functors and for rules that evaluate regular functions. In the latter case, the premise will simply instantiate the module that can then be used within the rule itself. This process is shown in Figure \ref{fig:ch_functors_functor_processing}: the functor call is processed by selecting the possible candidate rules to execute it, in the same fashion of what is done for regular functions. At this point the interpreter run the rule and the result of the first one that succeeds is taken. The result of such rule is a module instantiation. The module instantiation is bound to the variable contained in the result of the premise. From that point on, the module instance can be referred by the caller rule.
+
+In the following sections we show how to implement the mechanism of inlining for the record getter and setter described in Section \ref{sec:ch_functors_idea} that makes use of the compile-time interpretation of functors.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{Figures/chapter_functors/compiler_architecture_functors}
+	\caption{Compiler architecture with functor interpreter}
+	\label{fig:ch_functors_compiler_architecture}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{Figures/chapter_functors/functor_rule_processing}
+	\caption{Functor processing}
+	\label{fig:ch_functors_functor_processing}
+\end{figure}
+
+\section{Record implementation with modules}
+\label{sec:ch_functors_record_implementation}
+In Section \ref{subsec:ch_functors_inlining} we showed how Casanova entities can be expressed, at meta-language level, as a tuple of field names and values. We also showed that getters and setters always perform the same steps when looking up for the same field because the entity structure does not change at runtime. In this section we proceed to give an implementation based on functors to implement a Casanova entity. We refer to this implementation as ``Record'', since a Casanova entity is simply a record from the point of view of the data representation and since this solution works in general for any data structure that is isomorphic to a record. From now on we also use, as example, the physical body entity described in Section \ref{subsec:ch_functors_casanova_example}.
+
+A module for records simply contains a functor that returns the type of the record. This functor, in general, can return any type since the type of the record can be ``customized'' and depends on the specific definition given by the programmer (thus it cannot be known beforehand). For this reason we use \textit{kind} as return type for this functor. The functor itself is parameterless since nothing is required to generate the type of a record.
+
+\begin{lstlisting}
+Module "Record" : Record {
+  Functor "RecordType" : * }
+\end{lstlisting}
+
+The data representation of the record will be a tuple as shown in Section \ref{subsec:ch_functors_inlining}. For this purpose, we need two functors that are able to represent the type of a record in a recursive way with one being the type of an empty record (a record with no fields) and another a record field followed by the rest of the record representation. The functor for the empty record simply returns the type of the record module, while the functor to represent a record field takes as input a \texttt{string}, representing the name of the field, \textit{kind} because a record field can have any type, and a \texttt{Record} which represents all the other fields coming after the current one. 
+
+\begin{lstlisting}
+Functor "EmptyRecord" : Record
+Functor "RecordField" => string => * => Record : Record
+\end{lstlisting}
+
+After declaring the functors necessary to build a record, we proceed to define their implementation in the form of rules. The functor for an empty record simply generates a module containing a function \texttt{cons}, that is the constructor for the record, that simply returns unit (because an empty record does not contain any field). Consistently, the functor \texttt{RecordType} implemented by the module will simply return \texttt{unit} as type. Note that a module instantiation must implement \textbf{at least} all the declarations of the module (like for an interface), but can add other declarations and implementations that are not shared by all the module instantiations. For example \texttt{cons} for an empty record is different than the one for a non-empty one.
+
+\begin{lstlisting}
+-------------------
+EmptyRecord => Record {
+
+  Func "cons" : unit
+  
+  ------------------
+  RecordType => unit
+  
+  ------------------
+  cons -> ()
+
+}
+\end{lstlisting}
+
+A record field must be constructed through a functor that takes the field name, the type of the field, and the type of the rest of the record. This functor will construct the type of a record as a \texttt{Tuple}, where the first element is the type of the current field and the second the type of the rest of the record. The constructor of the record field will be a function that takes as input an argument of the type of the current field, a tuple representing the remaining part of the record and returns a tuple combining the current field and the rest of the record.
+
+\begin{lstlisting}
+------------------
+RecordField name type r = Record {
+  Func "cons" -> type -> r.RecordType : RecordType
+
+  ---------------------------------------
+  RecordType => Tuple[type,r.RecordType]
+
+  -------------------
+  cons x xs -> (x,xs)}
+\end{lstlisting}
+
+Consider now the physical body representation given above. We show how to use the functors we have just defined to build an instance of a physical body. First of all we defined a functor \texttt{PhysicalBodyType} that returns a \texttt{Record}.
+
+\begin{lstlisting}
+Functor "PhysicalBodyType" : Record
+\end{lstlisting}
+
+The final representation of the type that should be returned by\\ \texttt{PhysicalBodyType} is \texttt{Tuple[Vector2,Tuple[Vector2,unit]]} because the field \texttt{Position} and \texttt{Velocity} have type \texttt{Vector2}. Note that \texttt{Vector2} can be trivially implemented in Metacasanova as a tuple containing two floating point values. Here we use this type assuming that has already been defined above. The same appiles to \texttt{unit}, which can be defined as a meta-data with no arguments.
+
+The rule to evaluate \texttt{PhysicalBodyType} will call in its premises \texttt{EmptyRecord} and \texttt{RecordField} to generate the type of the tuple appropriately:
+
+\begin{lstlisting}
+EmptyRecord => empty
+RecordField "Velocity" Vector2 empty => velocity
+RecordField "Position" Vector2 velocity => body
+----------------------------
+PhysicalBodyType => body
+\end{lstlisting}
+
+Let us now analyse in detail what the premises generate: the first premise will generate an instance of \texttt{EmptyRecord} and bind it to the variable \texttt{empty}. The instance of this module is parameterless and thus will always be the same every time the functor is invoked. The second premise will instantiate \texttt{RecordField} by using the string \texttt{"Velocity"} as field name, \texttt{Vector2} as field type, and \texttt{empty} as argument for the remaining part of the record (there is no other field after \texttt{Velocity} in the physical body). The instantiation of \texttt{RecordField} produces a rule for the functor \texttt{RecordType}. According to the definition above this functor generates \texttt{Tuple[type,r.RecordType]}. By replacing the argument values provided in the premise, we have that \texttt{type := Vector2} and \texttt{r := empty := EmptyRecord}. Thus \texttt{r.RecordType} uses the functor \texttt{RecordType} in the instance of \texttt{EmptyRecord} which returns the type \texttt{unit} (the call can be seen as \texttt{empty.RecordType}). Thus \texttt{r.RecordType} can be replaced with \texttt{unit}, thus leading to \texttt{Tuple[Vector2, unit]}. Thus the rule for the functor \texttt{RecordType} generated in the module returned by the second premise will be.
+
+\begin{lstlisting}
+-----------------------
+RecordType => Tuple[Vector2,unit]
+\end{lstlisting}
+
+By replacing the argument variables with the values provided in the second premises we can also get the declaration and rule for \texttt{cons}. By replacing again \texttt{type} and \texttt{r.RecordType} as done before, we have that the declaration for \texttt{cons} in the current instance of the module becomes:
+
+\begin{lstlisting}
+Func "cons" -> Vector2 -> unit: Tuple[Vector2,unit]
+\end{lstlisting}
+
+\noindent
+while the corresponding rule will be generated as
+
+\begin{lstlisting}
+--------------------
+cons x xs -> (x,xs)
+\end{lstlisting}
+
+\noindent
+The complete module instance will then look like:
+
+\begin{lstlisting}
+velocity := Record {
+  Func "cons" -> Vector2 -> unit: Tuple[Vector2,unit]
+  
+  -----------------------
+  RecordType => Tuple[Vector2,unit]
+  
+  --------------------
+  cons x xs -> (x,xs)
+}
+\end{lstlisting}
+
+The third premise calls \texttt{RecordField} with \texttt{name := "Position"}, \texttt{type := Vector2}, and \texttt{r := velocity}. Now in the definition of the \texttt{RecordField} module again the functor \texttt{RecordType} returns \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus\\ \texttt{RecordType} for the field \texttt{Position} will be instantiated as
+
+\begin{lstlisting}
+-----------------------
+RecordType => Tuple[Vector2,Tuple[Vector2,unit]]
+\end{lstlisting}
+
+\noindent
+Analogously the declaration of \texttt{cons} will be instantiated as
+
+\begin{lstlisting}
+Func "cons" -> Vector2 -> Tuple[Vector2,unit]: Tuple[Vector2,Tuple[Vector2,unit]]
+\end{lstlisting}
+
+\noindent
+while its rule is the same. The full module instance will then be
+
+\begin{lstlisting}
+body := Record {
+  Func "cons" -> Vector2 -> Tuple[Vector2,unit]: Tuple[Vector2,Tuple[Vector2,unit]]
+  
+  -----------------------
+  RecordType => Tuple[Vector2,Tuple[Vector2,unit]
+  
+  --------------------
+  cons x xs -> (x,xs)
+}
+\end{lstlisting}
+
+\noindent
+which is returned by the functor \texttt{PhysicalBodyType}. In order to build an instance of the physical body, we define a function that returns a value of type \texttt{PhysicalBodyType} (which in turn is simply\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]}):
+
+\begin{lstlisting}
+Func "PhysicalBody" : PhysicalBodyType.RecordType
+
+-----------------------
+PhysicalBody -> PhysicalBodyType.cons((10.0,10.0),((10.0,0.0),()))
+\end{lstlisting}
+
+\noindent
+The rule creates a physical body in position $(10,10)$ moving at velocity $(10,0)$.\\
+
+One of the main arguments in favour of using functors was that they should allow to embed the type system of the embedded language in the meta-type system of Metacasanova. This means that, at compile time, the meta-compiler should be able to detect a physical body that is constructed in the wrong way. Let us then assume that we define another function to build a physical body where the programmer uses a scalar for the velocity instead of a vector:
+
+\begin{lstlisting}
+Func "WrongPhysicalBody" : PhysicalBodyType.RecordType
+
+-------------------------------------
+WrongPhysicalBody ->  PhysicalBodyType.cons((10.0,10.0),(10.0,()))
+\end{lstlisting}
+
+\noindent
+What happens is that \texttt{PhysicalBodyType.RecordType} is equal to\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]]}. At this point the type checker of Metacasanova will successfully match the first element of the tuple returned by the rule, which is correctly provided as a value of type \texttt{Vector2}, but will fail to check the second, which is \texttt{double} where it expects a \texttt{Vector2}. With the implementation based on dictionaries given in Section \ref{subsec:ch_mcnv_languages_casanova_semantics} this check happens dynamically at runtime by means of type rules defined in the meta-program, rather than statically like in this case.
 
 \section{Using Modules and Functors in Metacasanova}
 \label{subsec:record_implementation}
