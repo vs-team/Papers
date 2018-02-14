@@ -243,7 +243,7 @@ Informally, functors are transformations between categories that preserve the id
 
 \subsection{Language Extension}
 \label{subsec:ch_functors_language_extension}
-Modules can be defined through the keyword \texttt{Module} followed by a module name and series of construction parameters that are used to create an instance of the module. Constructions parameters have the same form of parameters in normal functions, so they are defined through an identifier and a type. The special symbol \texttt{*} (\textit{kind}) can be used if any type is suitable for that specific argument. Elements of a module can be accessed with the \texttt{.} access operator.
+Modules can be defined through the keyword \texttt{Module} followed by a module name and series of construction parameters that are used to create an instance of the module. Constructions parameters have a form similar to parameters in normal functions with the difference that, besides specifying the type, we can also specify an identifier for that parameter. The special symbol \texttt{*} (\textit{kind}) can be used if any type is suitable for that specific argument. Elements of a module can be accessed with the \texttt{.} access operator.
 
 \begin{lstlisting}
 Module "M" => ma1 : t1 => ma2 : t2 => ... => ma_k : tk : M {
@@ -444,6 +444,123 @@ WrongPhysicalBody ->  PhysicalBodyType.cons((10.0,10.0),(10.0,()))
 
 \noindent
 What happens is that \texttt{PhysicalBodyType.RecordType} is equal to\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]]}. At this point the type checker of Metacasanova will successfully match the first element of the tuple returned by the rule, which is correctly provided as a value of type \texttt{Vector2}, but will fail to check the second, which is \texttt{double} where it expects a \texttt{Vector2}. With the implementation based on dictionaries given in Section \ref{subsec:ch_mcnv_languages_casanova_semantics} this check happens dynamically at runtime by means of type rules defined in the meta-program, rather than statically like in this case.
+
+\section{Getting Values from Record fields}
+\label{sec:ch_functors_record_getter}
+Getting a value from a record field requires to define a module \texttt{Getter} containing a functor \texttt{GetField} that returns the type of the field that we need to get. This type will be used as the return type of the function\texttt{get} that is able to get that specific field. This function is also contained in this module and takes as argument the record from which we are getting the value and returns, as said above, the value of the field. The module \texttt{Getter} is built using the name of the field that is able to read and the record to read from.
+
+\begin{lstlisting}
+Module "Getter" => (name : string) => (r : Record) : Getter { ... }
+\end{lstlisting}
+
+The functor \texttt{GetType} returns kind because in general the type of the field of a record is arbitrary. The function \texttt{get} uses in its declaration the functor \texttt{RecordType} to determine the type of the record to use and \texttt{GetType} to determine the type of the field to read. The complete module will look like
+
+\begin{lstlisting}
+Module "Getter" => (name : string) => (r : Record) : Getter {
+  Functor "GetType" : *
+  Func "get" -> (r.RecordType) : GetType
+}
+\end{lstlisting}
+
+\noindent
+The getter has two implementations of the rule that instantiates the \texttt{Getter} module: one is used when the current field in the module tuple is the one we are trying to read, and the other that is able to build the correct getter if the field is in the remaining part of the record. The first happens when the name of the current field is the same as the field name provided as argument of the functor \texttt{GetField}. In this case we have the following rule for the functor:
+
+\begin{lstlisting}[caption = Getting a field (case 1),label = lst:ch_functors_getter1]
+name = fieldName
+thisRecord := RecordField name type r
+--------------------------------------
+GetField fieldName (RecordField name type r) => Getter fieldName thisRecord {
+  
+  ---------------
+  GetType => type
+  
+  ---------------
+  get (x,xs) -> x
+}
+\end{lstlisting}
+
+\noindent
+The functor \texttt{GetType} simply returns the type of the current record field, because it is the correct field to read, and \texttt{get} returns the first element of the record tuple, which represents the value stored in the field itself.
+
+When the field we are trying to read is not the one we are currently examining in the record tuple, we must build a getter functor that is able to recursively get the field from the remaining part of the record. At this purpose, we have to extend the \texttt{Getter} with an additional functor \texttt{GetAnotherField} that returns a module instance capable of reading the value from the correct field in the remaining part of the record and its type. The implementation of the rule for this case is the following:
+
+\begin{lstlisting}[caption = Getting a field (case 2),label = lst:ch_functors_getter2]
+name <> fieldName
+thisRecord := RecordField name type r
+-------------------------------------
+GetField fieldName (RecordField name type r) => Getter fieldName type thisRecord {
+		Functor "GetAnotherField" : Getter
+		
+		GetField fieldName r => otherGetter
+		------------------------------
+		GetAnotherField => otherGetter
+		
+		GetAnotherField => g
+		---------------------
+		GetType => g.GetType
+		
+		GetAnotherField => getter
+		getter.get xs -> v
+		------------------
+		get (x,xs) -> v
+  }
+}
+\end{lstlisting}
+
+\noindent
+The rule for the functor \texttt{GetAnotherField} simply calls recursively the rule for \texttt{GetField} with the remaining part of the record. If the next field is the correct one then this time we will use the rule in Listing \ref{lst:ch_functors_getter1}, otherwise the rule in Listing \ref{lst:ch_functors_getter2} will be re-applied until the correct field is reached. The functor \texttt{GetType} simply calls \texttt{GetAnotherField} to obtain the module instance necessary to get the field from the rest of the record, and then calls the functor \texttt{GetType} from that instance. Finally, the function \texttt{get} will again use \texttt{GetAnotherField} and then call the \texttt{get} function from the getter returned by \texttt{GetAnotherField} with the remaining part of the record tuple. This function call will return the desired value that will be used also as result of the current \texttt{get}.
+
+Let us now consider again the physical body implemented with functors in Section \ref{sec:ch_functors_record_implementation} and let us assume that we want to get the value of the field \texttt{Position}. We define a function \texttt{getPos} that takes as input a physical body and returns \texttt{Vector2}. This function will use \texttt{GetField} in its premises to generate the getter for \texttt{Position} and will then call the \texttt{get} function from the generated module instance.
+
+\begin{lstlisting}
+Func "getPos" -> PhysicalBodyType : Vector2
+
+GetField "Position" PhysicalBodyType => getter
+PhysicalBody -> body
+getter.get body -> p
+-----------------
+getPos -> p
+\end{lstlisting}
+
+\noindent
+Note that in the code above we are using the functor \texttt{PhysicalBodyType} and the function \texttt{PhysicalBody} defined in Section \ref{sec:ch_functors_record_implementation}. Now let us analyse step-by-step what happens when we call \texttt{getPos}. The first premise will call the functor \texttt{GetField} with 
+
+\begin{lstlisting}
+fieldName := "Position"
+r := PhysicalBodyType := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
+\end{lstlisting}
+
+\noindent
+At this point the rule for \texttt{GetField} will deconstruct \texttt{RecordField} in its conclusion by means of pattern matching and set 
+
+\begin{lstlisting}
+name := "Position"
+type := Vector2
+r := RecordField "Velocity" Vector2 EmptyRecord
+\end{lstlisting}
+ 
+\noindent
+Since \texttt{name} = \texttt{fieldName} we fall in the case in Listing \ref{lst:ch_functors_getter1}. Thus we instantiate the module \texttt{Getter} by setting the construction arguments to 
+
+\begin{lstlisting}
+name := "Position"
+r := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
+\end{lstlisting}
+
+\noindent
+In this module instance the functor \texttt{GetType} returns \texttt{type :=  Vector2} and \texttt{get} returns the first element of the record tuple. At this point, the third premise will call \texttt{get} from this module instance by passing the record tuple \texttt{((10.0,10.0),((10.0,0.0),()))}, which in turn returns correctly\\ \texttt{(10.0,10.0)}.
+
+Now let us assume that we want to retrieve the value of "Velocity" instead. Again we define a function \texttt{getVel} as follows
+
+\begin{lstlisting}
+Func "getVel" -> PhysicalBodyType : Vector2
+
+GetField "Velocity" PhysicalBodyType => getter
+PhysicalBody -> body
+getter.get body -> v
+-----------------
+getVel -> v
+\end{lstlisting}
 
 \section{Using Modules and Functors in Metacasanova}
 \label{subsec:record_implementation}
