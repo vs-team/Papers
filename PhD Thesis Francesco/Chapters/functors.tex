@@ -239,7 +239,7 @@ Functors are mapping between two categories defined as follows:
 \end{definition}
 
 \noindent
-Informally, functors are transformations between categories that preserve the identity and the associativity properties. In the scope of programming languages the term functor is used with a more narrow sense: they usually define transformations between types. These transformations are functors (actually \textit{endofunctors} since they transform elements of the category of types in elements of the same category) at all effects but not all functors from category theory coincide with functors in a programming language. Popular programming languages that provide functors in this sense are Haskell with \textit{Type Classes} \cite{jones1995functional, kiselyov2004strongly, mcbride2002faking, thompson1999haskell, wadler1989make} and Caml with \textit{Modules} \cite{leroy2000modular, paulson1996ml, wehr2008ml}. Functors in Metacasanova are no different: they define transformations between types. Modules are simply collection of function and functor declarations grouped together under the same name that can be used as types themselves.
+Informally, functors are transformations between categories that preserve the identity and the associativity properties. In the scope of programming languages the term functor is used with a more narrow sense: they usually define transformations between types. These transformations are functors (actually \textit{endofunctors} since they transform elements of the category of types in elements of the same category) at all effects but not all functors from category theory coincide with functors in a programming language. Popular programming languages that provide functors in this sense are Haskell with \textit{Type Classes} \cite{jones1995functional, kiselyov2004strongly, mcbride2002faking, thompson1999haskell, wadler1989make} and Caml with \textit{Modules} \cite{leroy2000modular, paulson1996ml, wehr2008ml}. Functors in Metacasanova are no different: they define transformations between types. Modules are simply collections of function and functor declarations grouped together under the same name that can be used as types themselves.
 
 \subsection{Language Extension}
 \label{subsec:ch_functors_language_extension}
@@ -445,7 +445,7 @@ WrongPhysicalBody ->  PhysicalBodyType.cons((10.0,10.0),(10.0,()))
 \noindent
 What happens is that \texttt{PhysicalBodyType.RecordType} is equal to\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]]}. At this point the type checker of Metacasanova will successfully match the first element of the tuple returned by the rule, which is correctly provided as a value of type \texttt{Vector2}, but will fail to check the second, which is \texttt{double} where it expects a \texttt{Vector2}. With the implementation based on dictionaries given in Section \ref{subsec:ch_mcnv_languages_casanova_semantics} this check happens dynamically at runtime by means of type rules defined in the meta-program, rather than statically like in this case.
 
-\section{Getting Values from Record fields}
+\section{Getting Values from Record Fields}
 \label{sec:ch_functors_record_getter}
 Getting a value from a record field requires to define a module \texttt{Getter} containing a functor \texttt{GetField} that returns the type of the field that we need to get. This type will be used as the return type of the function\texttt{get} that is able to get that specific field. This function is also contained in this module and takes as argument the record from which we are getting the value and returns, as said above, the value of the field. The module \texttt{Getter} is built using the name of the field that is able to read and the record to read from.
 
@@ -464,6 +464,10 @@ Module "Getter" => (name : string) => (r : Record) : Getter {
 
 \noindent
 The getter has two implementations of the rule that instantiates the \texttt{Getter} module: one is used when the current field in the module tuple is the one we are trying to read, and the other that is able to build the correct getter if the field is in the remaining part of the record. The first happens when the name of the current field is the same as the field name provided as argument of the functor \texttt{GetField}. In this case we have the following rule for the functor:
+
+\begin{lstlisting}
+Functor "SetField" => string => Record : Getter
+\end{lstlisting}
 
 \begin{lstlisting}[caption = Getting a field (case 1),label = lst:ch_functors_getter1]
 name = fieldName
@@ -512,8 +516,8 @@ The rule for the functor \texttt{GetAnotherField} simply calls recursively the r
 
 Let us now consider again the physical body implemented with functors in Section \ref{sec:ch_functors_record_implementation} and let us assume that we want to get the value of the field \texttt{Position}. We define a function \texttt{getPos} that takes as input a physical body and returns \texttt{Vector2}. This function will use \texttt{GetField} in its premises to generate the getter for \texttt{Position} and will then call the \texttt{get} function from the generated module instance.
 
-\begin{lstlisting}
-Func "getPos" -> PhysicalBodyType : Vector2
+\begin{lstlisting}[caption = Getter for the Position field, label = lst:ch_functors_position_getter]
+Func "getPos" : Vector2
 
 GetField "Position" PhysicalBodyType => getter
 PhysicalBody -> body
@@ -550,10 +554,10 @@ r := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
 \noindent
 In this module instance the functor \texttt{GetType} returns \texttt{type :=  Vector2} and \texttt{get} returns the first element of the record tuple. At this point, the third premise will call \texttt{get} from this module instance by passing the record tuple \texttt{((10.0,10.0),((10.0,0.0),()))}, which in turn returns correctly\\ \texttt{(10.0,10.0)}.
 
-Now let us assume that we want to retrieve the value of "Velocity" instead. Again we define a function \texttt{getVel} as follows
+Now let us assume that we want to retrieve the value of "Velocity" instead. We define an analogous function \texttt{getVel} as follows
 
 \begin{lstlisting}
-Func "getVel" -> PhysicalBodyType : Vector2
+Func "getVel" : Vector2
 
 GetField "Velocity" PhysicalBodyType => getter
 PhysicalBody -> body
@@ -562,241 +566,294 @@ getter.get body -> v
 getVel -> v
 \end{lstlisting}
 
-\section{Using Modules and Functors in Metacasanova}
-\label{subsec:record_implementation}
-A module definition in Metacasanova is parametric with respect to types, in the sense that a module definition might contain some type parameters, and can be instantiated by passing the specific types to use. A module can contain the definition of data structures, functions, or functors.
+\noindent
+This time the functor \texttt{GetField} is called with
 
 \begin{lstlisting}
-Module "Record" : Record {
-  Functor "RecordType" : * }
-\end{lstlisting}
-
-The symbol \texttt{*} reads \textit{kind} and means that the functor might return any type. Indeed the type of a record (or class) in a programming language can be ``customized'' and depends on its specific definition, thus it is not possible to know it beforehand.
-
-We the define two modules for the \textit{getter} and \textit{setter} of a field of a record. In this example, we use type parameters in the module definitions.
-
-\begin{lstlisting}
-Module "Getter" => (name : string) => (r : Record) {
-  Functor "GetType" : *
-  Func "get" -> (r.RecordType) : GetType }
-  
-Module "Setter" => (name : string) => (r : Record ) {
-  Functor "SetType" : *
-  Func "set" -> (r.RecordType) -> SetType : (r.RecordType) }
+fieldName := "Velocity"
+r := PhysicalBodyType := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
 \end{lstlisting}
 
 \noindent
-These two modules respectively define a functor to retrieve the type of the record field, and a function to get or set its value. Note that in the function definitions \texttt{get} and \texttt{set} we are calling the functor of the \texttt{Record} module to generate the appropriate type for the signature. This is allowed, since the result of a functor is indeed a type.
-
-A record meta-type (i.e. its representation at meta-language level) is recursively defined as a sequence of pairs $(field,type)$, whose termination is given by \texttt{EmptyField}. We thus define the following functors:
+thus the rule in case 2 is triggered. This rule will generate an instance of \texttt{Getter}
 
 \begin{lstlisting}
-Functor "EmptyRecord" : Record
-Functor "RecordField" => string => * => Record : Record
+fieldName := "Velocity"
+type := Vector2
+r := RecordField "Velocity" Vector2 EmptyRecord
 \end{lstlisting}
 
 \noindent
-The first functor defines the end point of a record, which is simply a record without fields. The second functor defines a field as the pair mentioned above followed by other field definitions.
-
-Moreover, we must define two functors that are able to dynamically build the \textit{getter} and \textit{setter} for the field.
+This rule will generate a module containing the auxiliary functor\\ \texttt{GetAnotherField} that is capable to retrieve the correct field in the remaining part of the record. The rule that processes \texttt{GetAnotherField} will call, in its premise, \texttt{GetField} with
 
 \begin{lstlisting}
-Functor "GetField" => string => Record : Getter
-Functor "SetField" => string => Record : Setter
+fieldName := "Velocity"
+r := RecordField "Velocity" Vector2 EmptyRecord
 \end{lstlisting}
 
-The behaviour of functor is expressed, as for normal functions, through a rule in the meta-program. A rule that evaluates a functor returns an instantiation of a module. Note that, inside a module instantiation, it is possible to define and implement functions other than those in the module definition, i.e. the module instantiation must implement \textit{at least} all the functors and functions of the definition. For instance, the following is the type rule instantiating the module for \texttt{EmptyRecord}:
+Since now the name of the field of the getter coincides with the name of the field in \texttt{RecordField}, this premise will now trigger the rule in Listing \ref{lst:ch_functors_getter2} that in turn generates an instance of \texttt{GetField} containing the following:
 
-\begin{lstlisting}
+\begin{lstlisting}[caption = Getter for Velocity generated by \texttt{GetAnotherField}, label = lst:ch_functors_velocity_getter2]
+Func "get" -> Tuple[Vector2,unit] : Vector2
+
 -------------------
-EmptyRecord => Record {
+GetType => Vector2
 
-  Func "cons" : unit
 
-  ------------------
-  RecordType => unit
+----------------
+get (x,xs) -> x
+\end{lstlisting}
 
-  ------------------
-  cons -> ()
+\noindent
+This module instance will be the one returned by the rule of \texttt{GetAnotherField}. The rule of the functor \texttt{GetType} for \texttt{Velocity} will use \texttt{GetAnotherField} to retrieve the correct field type using the module instance generated in Listing \ref{lst:ch_functors_velocity_getter2} and return it (which is \texttt{Vector2}). The rule for the function \texttt{get} will use \texttt{GetAnotherField} to call the the \texttt{get} function from Listing \ref{lst:ch_functors_velocity_getter2} passing the second element of the record tuple as argument and returns the result of this function call.
 
+Note that the module instantiation will be again performed at compile time, thus the only operations performed at runtime are the calls to the \texttt{get} functions contained in the module instantiations.
+
+\section{Setting Values of Record Fields}
+\label{sec:ch_functors_record_setter}
+The setter module is analogous to the getter, except that this time the module must generate a function that, in addition to the record, takes as input the value to write in the field. This function returns a modified copy of the record tuple where the value associated to the field has been changed. For this purpose we need a module containing a functor \texttt{SetType} that returns the type of the field to set. This functor will be used to build the declaration of a function \texttt{set} that is able to set the specified field.
+
+\begin{lstlisting}
+Module "Setter" => (name : string) => (r : Record) : Setter {
+	Functor "SetType" : *
+	Func "set" -> r.RecordType -> SetType : r.RecordType
 }
 \end{lstlisting}
 
 \noindent
-The function \texttt{cons} defines a constructor for the record, which, in the case of an empty record, returns nothing. The module instantiation for a record field evaluates as well \texttt{RecordType}, and has a different definition and evaluation of the function \texttt{cons} (because it is constructed in a different way):
+The declaration of the function \texttt{set} uses \texttt{r.RecordType} to define the type of the record argument, \texttt{SetType} to define the type of the field to set, necessary for the argument containing the value to set, and returns \texttt{r.RecordType}, which is the modified version of the record.
+
+Analogously to the getter, we need a functor that instantiates \texttt{Setter} and has two different implementations of the instantiation rule: one where the field of the current element of the record tuple coincides with the one we want to set, and the other where the field is different and that is able to build a setter for the remaining part of the record tuple.
 
 \begin{lstlisting}
-------------------
-RecordField name type r = Record {
-  Func "cons" -> type -> r.RecordType : RecordType
-  
-  ---------------------------------------
-  RecordType => Tuple[type,r.RecordType]
-  
-  -------------------
-  cons x xs -> (x,xs)} 
+Functor "SetField" => string => Record : Setter
 \end{lstlisting}
 
-\noindent
-Note that the return type of \texttt{cons} is to be intended as calling \texttt{RecordType} of the current module, so as it were \\ \texttt{this.RecordType}.
-The getter of a field must be able to lookup the record data structure in search of the field and generate a function to get the value from it. For this reason, the functor instantiates two separate modules, depending on the name of the field that we are currently examining.
+The first case is implemented as follows:
 
-\begin{lstlisting}[caption = Module instantiations for getters, label = code:getters]
-//Rule 1
+\begin{lstlisting}[caption = Setting a field (case 1), label = lst:ch_functors_setter1]
 name = fieldName
 thisRecord := RecordField name type r
------------------
-GetField fieldName (RecordField name type r) => Getter name thisRecord {
-  GetType => type
-  
-  ---------------
-  get (x,xs) -> x}
+------------------------------
+SetField fieldName (RecordField name type r) => Setter fieldName thisRecord {
 
-//Rule 2
-name <> fieldName
-thisRecord := RecordField name type r
-------------------
-GetField fieldName (RecordField name type r) => Getter name type thisRecord{
-  Functor "GetAnotherField" : Getter
+  ----------------
+  SetType => type
   
-  ---------------
-  GetAnotherField => GetField fieldName r
-  
-  GetAnotherField => g
-  ---------------
-  GetType => g.GetType
-  
-  GetAnotherField => getter
-  getter.get xs -> v
-  -------------------
-  get (x,xs) -> v }
+  ----------------------
+  set (x,xs) v -> (v,xs)
+}
 \end{lstlisting}
 
 \noindent
-Analogously, the setter of a field instantiates two separate modules whether the current field is the one we want to set or not.
+The function \texttt{SetType} simply returns the type of the field in the current \texttt{RecordField}, while the rule for \texttt{set} replaces the first value in the record tuple with the new value. The second rule is implemented as follows
 
-\begin{lstlisting}[caption = Module instantiations for setters, label = code:setters]
-name = lt
+\begin{lstlisting}[caption = Setting a field (case 2), label = lst:ch_functors_setter2]
+name <> fieldName
 thisRecord := RecordField name type r
-----------
-SetField lt (RecordField name type r) => Setter name thisRecord{
+-------------------------------------
+SetField fieldName (RecordField name type r) => Setter fieldName thisRecord {
+  Functor "SetAnotherField" : Setter
   
-  -----------------
-  SetType => type
+  SetField fieldName r => setter
+  -------------------------------
+  SetAnotherField => setter
   
-  -------------------
-  set (x,xs) v -> (v,xs)}
-
-name <> lt
-thisRecord := RecordField name type r
-------------
-SetField lt (RecordField name type r) => Setter name thisRecord{
-  TypeFunc "SetAnotherField" : Setter
-  
+  SetAnotherField => s
   -------------------------
-  SetAnotherField => SetField lt r
-  
-  ----------------------------
-  SetType => type
+  SetType => s.SetType
   
   SetAnotherField => setter
   setter.set xs v -> xs'
-  ----------------------------------
-  set (x,xs) v -> (x,xs') }
+  --------------------
+  set (x,xs) v -> xs'
+}
 \end{lstlisting}
 
-\section{Functor result inlining}
-If a premise or a conclusion contains a call to a functor, this call is evaluated at compile time, rather than at runtime. Metacasanova has been extended with an interpreter which is able to evaluate the result of the functor calls. The behaviour of the interpreter follows the same logic explained when presenting the code generation steps in Section \ref{sec:code_generation}, thus here we do not present the details for brevity. When a rule outputs the instantiation of the module, the generated code will contain only rules of the modules which conclusion contains a function (i.e. functions that output values, not functors). In this way the generated code will contain a different version of those functions depending on the instantiation parameters of the module.
+\noindent
+The functor \texttt{SetAnotherField} is an auxiliary functor that recursively calls \texttt{SetField} with the remaining part of the record. Eventually \texttt{SetField} will trigger the rule in Listing \ref{lst:ch_functors_setter1} when the correct field is encountered. This auxiliary functor is then used in \texttt{SetType} to retrieve the correct type of the record field and in the function \texttt{set} to call the correct \texttt{set} function for the field. The \texttt{set} function in the setter generated by \texttt{SetAnotherField} returns a modified version of the record that is replaced in the tuple.
 
-We now show how to use the implementation of the records given in Section \ref{subsec:record_implementation} for the physical body presented as a case study.
-The definition of the record type for the physical body is done through a functor
-
-\begin{lstlisting}
-Functor "PhysicalBodyType" : Record
-
-EmptyRecord => empty
-RecordField "Velocity" Vector2 empty => velocity
-RecordField "Position" Vector2 velocity => body
---------------------------
-PhysicalBodyType => body
-\end{lstlisting}
-
-This rule is evaluated at compile time by the interpreter that generates one module for each field of the \texttt{PhysicalBody}, containing the constructor. For example, for the field \texttt{Velocity} the interpreter will generate\footnote{Note that here we give a high-level representation of the generated rules that are actually directly generated as C\# code.}
+Let us now consider again the physical body and assume that we want to define a setter for \texttt{Position}. Again we define a function \texttt{setPos} for the field:
 
 \begin{lstlisting}
-Func "cons" -> Vector2 -> unit : Tuple[Vector2,unit]
+Func "setPos" -> Vector2 : PhysicalBodyType
 
-------------------------
-cons x xs -> (x,xs)
-\end{lstlisting}
-
-This because the functor will call the evaluation rule for \texttt{RecordField} with the argument \texttt{(Recordfield "Velocity" Vector2 (EmptyRecord))}. This rule generates the function \texttt{cons} by evaluating the result of the functors\\ \texttt{EmptyRecord.RecordType} and \texttt{RecordField.RecordType}, which respectively produce \texttt{unit} and \texttt{Tuple[Vector2,unit]}.
-
-Instantiating a physical body will just require to build a function that returns the type of the physical body, which is obtained by calling the functor \texttt{PhysicalBodyType}.
-
-\begin{lstlisting}
-Func "PhysicalBody" : PhysicalBodyType.RecordType
-
+SetField "Position" PhysicalBodyType => setter
+PhysicalBody -> body
+setter.set body -> body'
 -----------------------
-PhysicalBody -> PhysicalBodyType.cons((Vector2.Zero,(Vector2.Zero,())))
-\end{lstlisting}
-
-Defining the setter and getter of a field, requires to use the functor \texttt{GetField} to generate the appropriate getter function. After the module has been correctly generated, we can use the getter for the field. For example, in order to get the position field, we use the following function.
-
-\begin{lstlisting}
-Func "getPos" -> PhysicalBodyType : Vector2
-
-GetField "Position" PhysicalBodyType => getter
-getter.get PhysicalBody -> p
--------------------------------
-getPos -> p
-\end{lstlisting}
-
-The result of the premise \texttt{GetField} will be evaluated at compile time through the code in Listing \ref{code:getters} and will instantiate a module containing the following function definition and rule.
-
-\begin{lstlisting}
-Func "get" -> Tuple[Vector2,Tuple[Vector2,unit]] : Vector2
-
--------------------------
-get (x,xs) -> x
+setPos v -> body'
 \end{lstlisting}
 
 \noindent
-Note that the second premise of \texttt{getPos} will immediately call the \texttt{get} generated in this step. The case of \texttt{setPos} is analogous except the setter takes an additional argument.
-
-Reading \texttt{Velocity} analogously uses a functor call to generate a getter:
+Again we are using the functor \texttt{PhysicalBodyType} and the function\\ \texttt{PhysicalBody} defined in Section \ref{sec:ch_functors_record_implementation}. The first premise of this rule will call \texttt{SetField} with
 
 \begin{lstlisting}
-Func "getVel" -> PhysicalBodyType : Vector2
-
-GetField "Velocity" PhysicalBodyType => getter
-getter.get PhysicalBody -> p
--------------------------------
-getVel -> p
+fieldName := "Position"
+name := "Position"
+type := Vector2
+r := RecordField "Velocity" Vector2 EmptyRecord
 \end{lstlisting}
 
 \noindent
-This time the functor will generate two different functions in two separate modules. The first time the record is processed, \texttt{Rule 2} in Listing \ref{code:getters} will be activated (because the first field in the Record is \texttt{Position}). This rule will instantiate an additional module when evaluating the functor call in its premise, which in turn is able to get the \texttt{Velocity} field. The rule for \texttt{get} in the first module will contain in its premise a call to  \texttt{get} of the second module.
+which, in turn, instantiates \texttt{Setter} with 
 
 \begin{lstlisting}
-//Code for module1
-Func "get" -> Tuple[Vector2,Tuple[Vector2,unit]] : Vector2
+name := "Position"
+r := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
+\end{lstlisting}
 
-module2.get xs -> v
--------------------------
-get (x,xs) -> v
+\noindent
+In this module instance \texttt{r.RecordType} will be\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]]} and \texttt{SetType} returns \texttt{Vector2}. The whole instance will look like
 
-//Code for module2 generated by evaluating the functor in the premise of Rule 2
-Func "get" -> Tuple[Vector2,unit] : Vector2
+\begin{lstlisting}
+Func "set" -> Tuple[Vector2,Tuple[Vector2,unit]] -> Vector2 : Tuple[Vector2,Tupe[Vector2,unit]]
 
 ------------------
-get (x,xs) -> x
+SetType => Vector2
+
+
+----------------------
+set (x,xs) v -> (v,xs)
 \end{lstlisting}
 
-We want to point out that this optimization has been presented on the specific case of records, but can be generalized for any situations where you would use a symbol table. Indeed any symbol table can be expressed with the representation above as a sequence of pair where the first item is the value of the current variable, and the second item is the continuation of the symbol table.
+\noindent
+Now let us assume that we want to build a setter for \texttt{Velocity}. We have to define a function \texttt{setVel} as follows
+
+\begin{lstlisting}
+Func "setVel" -> Vector2 : PhysicalBodyType
+
+SetField "Velocity" PhysicalBodyType => setter
+PhysicalBody -> body
+setter.set v -> body'
+-------------------------
+setVel v -> body'
+\end{lstlisting}
+
+\noindent
+The first premise of this rule will now invoke \texttt{SetField} with
+
+\begin{lstlisting}
+fieldName := "Velocity"
+name := "Position"
+type := Vector2
+r := RecordField "Velocity" Vector2 EmptyRecord
+\end{lstlisting}
+
+\noindent
+which will trigger the rule in Listing \ref{lst:ch_functors_setter2} instead. This will create an instance of \texttt{Setter} containing  the auxiliary functor \texttt{SetAnotherField}. The rule for this functor will call in turn \texttt{SetField} with
+
+\begin{lstlisting}
+fieldName := "Velocity"
+name := "Velocity"
+type := Vector2
+r := EmptyRecord
+\end{lstlisting}
+
+\noindent
+that will generate a different instance of \texttt{Setter}, this time using the rule in Listing \ref{lst:ch_functors_setter1}. The auxiliary setter will contain a functor \texttt{SetType} returning \texttt{Vector2} and a function \texttt{set} that inserts the value for \texttt{Velocity} in the record tuple. The \texttt{set} in the auxiliary setter will be used in the setter of \texttt{Velocity} to obtain the modified copy of the record containing the new value. Again all the modules are generated at compile time, thus the only operations performed at runtime are the calls to the \texttt{set} functions of the field setter and eventual auxiliary modules.
+
+\section{Handling errors in getters and setters}
+\label{sec:ch_functors_error_handling}
+In Section \ref{sec:ch_functors_record_getter} and \ref{sec:ch_functors_record_setter} we explained how to use functors to implement getters and setters for the fields of a record. The explanation however did not take into account possible mistakes that could be committed during the definition of setters and getters for a specific record.
+
+A possible mistake that could arise in the process of defining getters and setters would be to provide an incompatible type for the \texttt{get} function of a field. For instance, let us assume that we define \texttt{getPos} as
+
+\begin{lstlisting}
+Func "wrongGetPos" : double
+
+GetField "Position" PhysicalBodyType => getter
+PhysicalBody -> body
+getter.get body -> v
+-----------------
+wrongGetPos -> v
+\end{lstlisting}
+
+\noindent
+As explained above the getter module will contain a function \texttt{get} that returns a \texttt{Vector2}, because that is the type of the field \texttt{Position}. In the process of building the module, this type is automatically retrieved from the definition of \texttt{PhysicalBodyType}. At this point the meta-compiler would report an error message because this wrong definition of \texttt{getPos} returns \texttt{double} but \texttt{get} returns a \texttt{Vector2}. Note that, as previously explained in Section \ref{sec:ch_functors_record_implementation}, this is possible because functors are able to embed the type system of the embedded language into the Metacasanova type system.
+
+
+Another possible mistake is accessing a field that is not defined for the record. For instance, let us assume that someone tries to build a getter for a field that does not exist in physical body, namely a field \texttt{Acceleration}. As usual we would define a function for the getter such as
+
+\begin{lstlisting}
+Func "getAcc" : Vector2
+
+GetField "Acceleration" PhysicalBodyType => getter
+PhysicalBody -> body
+getter.get body -> v
+---------------
+getAcc -> v
+\end{lstlisting}
+
+\noindent
+The first premise of this rule will call the functor \texttt{GetField} with
+
+\begin{lstlisting}
+fieldName := "Acceleration"
+name := "Position"
+type := Vector2
+r := RecordField "Velocity" Vector2 EmptyRecord
+\end{lstlisting}
+
+\noindent
+As seen above, this rule will generate an auxiliary module by recursively call \texttt{GetField} with
+
+\begin{lstlisting}
+fieldName := "Acceleration"
+name := "Velocity"
+type := Vector2
+r : = EmptyRecord
+\end{lstlisting}
+
+\noindent
+but at this point, since again \texttt{fieldName} $\neq$ \texttt{name} we will recursively call \texttt{GetField}. At this point we will fail to run a suitable rule for the functor, since the only two versions we have so far are able to process \texttt{RecordField} and not \texttt{EmptyRecord}, thus the pattern matching in the conclusion would fail. The meta-compiler will in any case fail to generate code, since the functor evaluation will fail and thus the whole code generation, but this approach is not ``clean'', since the meta-compiler will report a generic error regarding the rule execution failure. An alternative to this, is to include a case for the rule that processes \texttt{EmptyRecord}. A getter for an \texttt{EmptyRecord} returns \texttt{()} and \texttt{GetType} returns the type \texttt{unit}. This rule can be implemented as follows:
+
+\begin{lstlisting}
+
+fieldName <> name
+thisRecord := RecordField name type EmptyRecord
+-------------------------------
+GetField fieldName (RecordField name type EmptyRecord) => Getter fieldName thisRecord {
+	
+  ----------------
+  GetType => unit
+  
+  ----------------
+  get (x,xs) -> ()
+}
+\end{lstlisting}
+
+In this way the first premise of the rule of \texttt{getAcc} would generate a getter that takes a physical body and returns \texttt{unit}. When the rule calls this getter and returns \texttt{unit}, this will be incompatible with the return type of \texttt{getAcc} that should be a \texttt{Vector2}. The same can be done for \texttt{setAcc}, that is we extend the rule for \texttt{SetField} with an additional case:
+
+\begin{lstlisting}
+fieldName <> name
+thisRecord := RecordField name type EmptyRecord
+--------------------------
+SetField fieldName (RecordField name type EmptyRecord) => Setter fieldName thisRecord {
+	
+	----------------
+	SetType => unit
+	
+	----------------------
+	set (x,xs) v -> (x,xs)
+}
+\end{lstlisting}
+
+\noindent
+In this way, when invoking \texttt{set} in the premise \texttt{setAcc} the compiler will signal a type error because at some point it will try to use the \texttt{set} for the \texttt{EmptyRecord} with \texttt{Vector2}. Another alternative, which goes beyond the scope of this chapter, would be to allow rules in meta-casanova to output custom compilation errors. In this way we could write the very same rule case done above but this time we would return a compilation error message reporting that the field does not exist.
 
 \section{Evaluation}
-An extensive evaluation of Casanova implemented in Metacasanova, which we omit for brevity, can be found in \cite{DiGiacomo2017}. The implementation of Casanova operational semantics in Metacasanova is almost 5 times shorter than the corresponding F\# implementation in the hard-coded compiler. In addition to Casanova, we have implemented a subset of the C language called C-{}-. This language supports \texttt{if-then-else}, \texttt{while-loop}, and \texttt{for} statements, as well as local scoping of variables. The total length of the language definition in Metacasanova is 353 lines of code. The corresponding C\# code to implement the operational semantics of the language is 3123 lines, thus the code reduction with Metacasanova is roughly 8.84 times. For comparison, in Table \ref{tab:cmm} it is possible to see the code length to implement three different statements, both in Metacasanova and C\#. We tested C-{}- against Python by computing the average running time to compute the factorial of a number. C-{}- results to be 50 times slower than Python. This result is worse than what we obtained with Casanova, because in order to emulate the interruptible rule mechanism of Casanova in Python you must rely on coroutines that are slower than a program containing simple statements. Moreover, we tested the performance improvement of the optimization using Functors to represent records against the standard one using dynamic symbol tables. The test was run using records with a number of fields ranging from 1 to 10 and updating from 10000 to 1000000 instances of such records. In Table \ref{tab:functors}, we can see that the optimization using Functors leads to a performance increase on average of about 11 times, with peaks of 30 times. The gain increases with the number of fields, thus Functors are particularly effective for records with high number of fields. Figure \ref{fig:chart} shows a chart of the overall performance of the two techniques (the data points are taken from Table \ref{tab:functors}). The horizontal axis contains the amount of fields per record, while the vertical axis contains the number of records that are being updated. We can see that the performance of the dynamic table degrades considerably when increasing the number of fields, and that the higher the amount of records is, the steeper the curve is. On the other hand, the performance of the implementation with Functors is almost constant, regardless of the amount of fields or records that are being updated. Moreover, note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET, which can access the entries in $O(\log n)$. If the symbol table were represented as a meta-data structure in the language the performance would be even worse, since it would have to be encoded as a list of pairs with the field name and its value, and its manipulation would be affected by the evaluation rules that should implement this behaviour. Furthermore, the dynamic lookup should be done also to ensure that the types of the record fields are used consistently (for example to prevent that a record is constructed with incompatible values for its fields), while using the functors in Metacasanova embeds the type system of the language in the meta-type system, whose type safety is checked at compile-time rather than at runtime, and this contributes to further increase the performance.
+\label{sec:ch_functors_evaluation}
+In the previous sections we presented an extension to the meta-language of Metacasanova that allows to embed the type system of an embedded language, whose definition is implemented in Metacasanova, in the meta-type system of Metacasanova. We claimed that this would improve the runtime performance of a program written in the embedded language because we could get rid of all the dynamic checks and accesses to meta-data structures used to implement data structures in the embedded language, such as records. In this section we present the experimental evaluation that should produce the evidence to back up this claim. We proceed to describe the experimental set-up and then we comment the results.
+
+\subsection{Experimental Set-up}
+In this experiment we use the implementation of records with functors described in this chapter and we compare its runtime performance with its dynamic counter part, i.e. the implementation that uses dictionaries, that was used to implement the Casanova memory model in Section \ref{subsec:ch_mcnv_languages_casanova_semantics}. The sample measures the run-time of both the functor implementation and the implementation with dynamic tables. We run the test by varying both the amount of record instances and the amount of fields per record. The test is run with a sample of 10000, 100000, and 1000000 record instances and with a number of fields from 1 to 10. We neglect to consider different field types, as the performance of look-up operations is not affected by the type of the fields themselves.
+
+\subsection{Results}
+
+In Table \ref{tab:ch_functors_results}, we can see that the optimization using Functors leads to a performance increase on average of about 11 times, with peaks of 30 times. The gain increases with the number of fields, thus the implementation with functors is particularly effective for records with high number of fields. This is due to the fact that the runtime complexity of a dynamic table depends on the number of entries stored in it (which would be the fields in our case) and thus, when the fields are few, this number is very close to the complexity of the functorial implementation, which is constant. When the amount of fields increases, the performance of the functorial implementation remains the same while the dynamic table one worsens visibly. The constant complexity of the functorial implementation is due to the fact that the meta-compiler builds the functions to look up for a specific field at compile time by generating the appropriate module instances with the functors. The \texttt{get} and \texttt{set} functions described above can either immediately get or set the value of the field and return the result of this operation, or call the getter or setter of an auxiliary module instance that is able to read or write the appropriate field. The only overhead is the overhead of chaining calls to Metacasanova functions, thus the overhead of creating and executing the code that implements the rule behaviour described in Section \ref{sec:ch_metacasanova_code_generation}.
+
+Figure \ref{fig:ch_functors_chart} shows a chart of the overall performance of the two techniques (the data points are taken from Table \ref{tab:ch_functors_results}). The horizontal axis contains the amount of fields per record, while the vertical axis contains the number of records that are being updated. We can see that the performance of the dynamic table degrades considerably when increasing the number of fields, and that the higher the amount of records is, the steeper the curve is. On the other hand, the performance of the implementation with Functors is almost constant, regardless of the amount of fields or records that are being updated. Moreover, note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET. If the symbol table were represented as a meta-data structure in the language, the performance would be even worse, since it would have to be encoded as a list of pairs with the field name and its value, and its manipulation would be affected by the evaluation rules that should implement this behaviour. Furthermore, the dynamic lookup should be done also to ensure that the types of the record fields are used consistently (which is not accounted for here, for example to prevent that a record is constructed with incompatible values for its fields), while this check is done at compile time with functors, thus drastically improving the performance
 
 \begin{table}	
 	\caption{Running time with the functor optimization and the dynamic table with 10000, 100000, and 1000000 records.}
@@ -849,11 +906,14 @@ An extensive evaluation of Casanova implemented in Metacasanova, which we omit f
 		10&	1.00E-03&	2.87E-02&	28.62\\ \hline
 		\multicolumn{2}{c|}{} & \textbf{Average gain} & 11.84\\ \cline{3-4}						
 	\end{tabular}
-	\label{tab:functors}
+	\label{tab:ch_functors_results}
 \end{table}
 
 \begin{figure}
-	\includegraphics[width = \columnwidth]{Figures/functor_chart.jpg}
+	\includegraphics[width = \textwidth]{Figures/chapter_functors/functor_chart}
 	\caption{Execution time of the different memory models}
-	\label{fig:chart}
+	\label{fig:ch_functors_chart}
 \end{figure}
+
+\section{Summary}
+In this chapter we addressed the problem arisen in Chapter \ref{ch:mcnv_languages_evaluation} about the performance of the generated code and the forced dynamic behaviour of languages implemented in Metacasanova. We started by informally state that this issue was due to the fact that it was not possible to embed the type system of a language in the meta-type system of Metacasanova, and this caused all the dynamic lookups and accesses at runtime. This could be avoided by using a meta-language abstraction that allows both to define the type system of the embedded language in terms of the meta-type system of Metacasanova and to generate the code for the accesses to the data structures of the embedded language at compile time. At this purpose, we showed a language extension that provides such abstraction in terms of modules and functors. We then proceeded to provide an example of their usage in the context of record getters and setters for their fields. We then measured the performance gain by comparing the implementation with functors with the one using dynamic tables that was employed for the Casanova language implementation shown in Chapter \ref{ch:mcnv_languages_evaluation}. The results show that the performance of operations on records in the case of functors is faster than up to 30 times with respect to the dynamic table implementation. We have also shown that the performance of such operations in the case of functors is constant with respect to the number of fields to update, while the performance of the dynamic table drastically worsens when the number of fields in a record increase. In the next chapter we will show a further example of use of functors to re-implement Casanova semantics and extend the language with abstractions for the networking behaviour of multiplayer games.
