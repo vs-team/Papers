@@ -1,10 +1,10 @@
 This chapter provides background information on compiler construction and the existing knowledge on meta-compiles. The goal of this chapter is dual: (\textit{i}) it provides the reader with sufficient information to understand the implementation choices done when developing Metacasanova, and (\textit{ii}) outlines the complexity of the process of designing and implementing a compiler, thus giving further motivation to this research work.
 
-In Section \ref{sec:ch_background_compiler_architecture} we outline the general architecture of a compiler by giving a short descriptions of all its components and how they work. In Section \ref{sec:ch_background_compiler_lexer} we give a detailed explanation about \textit{regular expressions} necessary to define the ``words"" of a language, and the lexer, showing how to implement one. In Section \ref{sec:ch_background_parser} we introduce the notion of \textit{context-free grammars} and we show how to implement a parser able to process the grammatical rules of such grammar. In Section \ref{sec:ch_background_parser_generators} we present a parser generator for the language F\# that has been used for the implementation of Metacasanova. In Section \ref{sec:ch_background_parser_monad} we show an alternative to standard parsers in functional programming languages. In Section \ref{sec:ch_background_type_checking} and \ref{sec:ch_background_semantics} we explain how a type system and semantics of a language is expressed. In Section \ref{sec:ch_background_metaprogramming} we introduce the concept of metaprogramming and we show examples using metaprogramming in the abstractions provided by a general purpose language (C++), and with existing dedicated metacompilers.
+In Section \ref{sec:ch_background_compiler_architecture} we outline the general architecture of a compiler by giving a short descriptions of all its components and how they work. In Section \ref{sec:ch_background_compiler_lexer} we give a detailed explanation about \textit{regular expressions} necessary to define the ``words'' of a language, and the \textit{lexer}, showing how to implement one. In Section \ref{sec:ch_background_parser} we introduce the notion of \textit{context-free grammars} and we show how to implement a parser able to process the grammatical rules of such grammar. In this chapter we present a parser generator for the language F\# that has been used for the implementation of Metacasanova, and then show an alternative to standard parsers in functional programming languages. We then explain how a type system and semantics of a language is expressed, and finally we introduce the concept of metaprogramming and we show examples using metaprogramming in the abstractions provided by a general purpose language (C++), and with existing dedicated metacompilers.
 
 \section{Architectural overview of a compiler}
 \label{sec:ch_background_compiler_architecture}
-Compilers are software that read as input a program written in a programming language, called \textit{source language}, and translate it into an equivalent program expressed with another programming language, called \textit{target language}. Usually the target language is machine code, but this is not mandatory. A special kind of compilers are interpreted, that directly execute the program written in the source language rather than translating it into a target language. Some languages, like Java, use a hybrid approach, that is they compile the program into an intermediate language that is later interpreted by a \textit{virtual machine}. Another approach involves the translation into a target high-level language [...].
+Compilers are software that read as input a program written in a programming language, called \textit{source language}, and translate it into an equivalent program expressed with another programming language, called \textit{target language}. Usually the target language is machine code, but this is not mandatory. A special kind of compilers are interpreters, that directly execute the program written in the source language rather than translating it into a target language. Some languages, like Java, use a hybrid approach, that is they compile the program into an intermediate language that is later interpreted by a \textit{virtual machine}. Another approach involves the translation into a target high-level language [...].
 
 Although the architecture of a compiler may slightly vary depending on the specific implementation, the translation process usually consists of the following steps:
 
@@ -31,7 +31,7 @@ Let us consider a finite alphabet $\Sigma$, a \textit{language} is a set of stri
 
 \begin{definition}
 	\label{def:ch_background_regexp}
-	 The following are the possible ways to define regular expressions:
+	 The following are the possible ways to define regular expressions \cite{appel2002javacompiler}:
 	\begin{itemize}[noitemsep]
 		\item \textit{Empty:} The regular expression $\epsilon$ is a language containing only the empty string.
 		\item \textit{Symbol:} $\forall a \in \Sigma$, $\mathbf{a}$ is a string containing the character $a$.
@@ -93,7 +93,7 @@ The regular expression $M^{+}$ contains the concatenation of one or more strings
 The regular expression $M?$ is a shortcut for $M|\epsilon$, thus it can be translated by using the conversion rule for the alternation.
 
 \subsection{Conversion of a NFA into a DFA}
-As stated in Section \ref{sec:ch_background_compiler_lexer}, a NFA might have, for the same state, a set of transitions that process the same symbol (including the empty string since $\epsilon$-transitions are allowed). This means that a NFA must be able to guess which transition to follow when trying to process a token. This is not efficient to implement in a computer, thus it is better to use a DFA where there can be only one way of processing a symbol for a given state. An algorithm to automate such conversion exists and is presented in \cite{aho2007compilers} but there exists an algorithm to directly convert regular expressions into DFA's, as shown in \cite{aho1986compilers}. Below we present the algorithm to convert NFA's into DFA's.
+As stated in Section \ref{sec:ch_background_compiler_lexer}, a NFA might have, for the same state, a set of transitions that process the same symbol (including the empty string since $\epsilon$-transitions are allowed). This means that a NFA must be able to guess which transition to follow when trying to process a token. This is not efficient to implement in a computer, thus it is better to use a DFA where there can be only one way of processing a symbol for a given state. An algorithm to automate such conversion exists and is presented in \cite{aho2007compilers}. Another possible approach is an algorithm to directly convert regular expressions into DFA's, as shown in \cite{aho1986compilers}. Below we present the algorithm to convert NFA's into DFA's.
 
 The informal idea behind the algorithm is the following: since a DFA cannot contain $\epsilon$-transitions or transitions from one state into another containing the same symbols, we have to construct an automaton that skips the $\epsilon$-transitions and pre-calculates the calculation of the sets of states in advance. In order to do so, we need to be able to compute the \textit{closure} of a set of states. Informally the closure of a set of states $S$ is the sates that can be reached by one of the states of $S$ through an $\epsilon$-transition. The formal definition is given below:
 
@@ -162,7 +162,7 @@ Algorithm \ref{alg:ch_background_dfa} performs the conversion into a DFA but we 
 
 \section{Parser}
 \label{sec:ch_background_parser}
-Regular expressions are a concise declarative way to define the lexical structure of the terms of a language, but they are insufficient to describe its syntax, i.e. how to combine tokens together to  make ``sentences'' \cite{appel2002javacompiler, aho2007compilers}. For example, trying to define an arithmetic expression with chained sums would lead to the following (recursive) regular expression:
+Regular expressions are a concise declarative way to define the lexical structure of the terms of a language, but they are insufficient to describe its syntax, i.e. how to combine tokens together to  make ``sentences'' \cite{aho2007compilers, appel2002javacompiler}. For example, trying to define an arithmetic expression with chained sums would lead to the following (recursive) regular expression:
 
 \begin{lstlisting}
 expr = "(" expr "+" expr ")" | digits
@@ -194,12 +194,12 @@ As before we consider a language as a set of tuples of characters taken from a f
 \end{definition}
 
 \noindent
-Note that Definition \ref{def:ch_background_grammar} allows \textit{context-free} grammars to process also regular expression, thus context-free grammars are more expressive then regular expressions. In what follows we assume that the terminal symbols are treated as tokens with regular expressions that can be processed by a lexer, but in general a context-free grammar does not require a lexer DFA to process terminal symbols.
+Note that Definition \ref{def:ch_background_grammar} allows \textit{context-free} grammars to process also regular expressions, thus context-free grammars are more expressive than regular expressions. In what follows we assume that the terminal symbols are treated as tokens with regular expressions that can be processed by a lexer, but in general a context-free grammar does not require a lexer DFA to process terminal symbols.
 
 In order to check if a sentence is valid in the grammar defined for a language, we perform a process called \textit{derivation}: starting from the symbol $S$ of the grammar, we recursively replace non-terminal symbols with the right side of their production. The derivation can be done in different ways: we can start expanding the leftmost non-terminal in the production or the rightmost one. The result of the derivation usually generates a data structure called \textit{parse tree} or \textit{abstract syntax tree}, which connects a non-terminal symbol to the symbols obtained through the derivation; the leaves of the tree are terminal symbols.
 
 \subsection{LR(k) parsers}
-Simple grammars can be parsed by using \textit{left-to-right parse, leftmost-derivation, k-tokens lookahead}, meaning that the parser processes a symbol by performing a derivation starting from the leftmost symbol of the production, and looking at the first \textit{k} tokens of a string of the language. The weakness of this technique is that the parser must predict which production to use only knowing the first k tokens of the right side of the production. For instance, consider the two expression
+Simple grammars can be parsed by using \textit{left-to-right parse, leftmost-\\derivation, k-tokens lookahead} (alse called LL(k) parsers), meaning that the parser processes a symbol by performing a derivation starting from the leftmost symbol of the production, and looking at the first \textit{k} tokens of a string of the language. The weakness of this technique is that the parser must predict which production to use only knowing the first k tokens of the right side of the production. For instance, consider the two expression
 
 \begin{equation*}
 	\begin{array}{l}
@@ -324,7 +324,7 @@ In general parsing tables can be very large, for this reason it is usually wise 
 The process of creating a parser can be automated by using a \textit{Parser Generator}. A Parser generator is a programming language that accepts the definition of the grammar of a language and generates a parser (and a lexer) for it. As programming languages generally have a LALR(1) grammar \cite{appel2002javacompiler}, most of parser generators produce a LALR(1) parser. Since in this research work we used F\# as a development language, in this section we present the F\# lexer and parser generators, belonging to the Yacc generator family, known ans \textit{FsLex} and \textit{FsYacc}.
 
 \subsubsection{Definition of a lexer in FsLex}
-FsLex allows to define the tokens with the regular expression syntax. Each FsLex program begins with a header, where the programmer can specify auxiliary modules and functions to use in the lexer. After the header, it is possible to specify relevant regular expressions that are used by the lexer to analyse the tokens with the standard let-binding syntax of F\#. The right argument of this binding is a regular expression, which can be composed with the combinators for regular expressions seen in Section \ref{subsec:ch_background_automata}. For example the following regular expression can define the syntax for variable names in a programming language:
+FsLex allows to define the tokens with the regular expression syntax. Each FsLex program begins with a header, where the programmer can specify auxiliary modules and functions to use in the lexer. After the header, it is possible to specify relevant regular expressions that are used by the lexer to analyse the tokens with the standard let-binding syntax of F\# \cite{fsharpbinding}. The right argument of this binding is a regular expression, which can be composed with the combinators for regular expressions seen in Section \ref{subsec:ch_background_automata}. For example the following regular expression can define the syntax for variable names in a programming language:
 
 \begin{lstlisting}
 let simpleId = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '_' '0'-'9']+
@@ -342,7 +342,7 @@ rule comparisonOperators = parse
 | "<>" { Parser.NEQ }
 \end{lstlisting}
 
-Note that, in order to provide useful information about the lexing phase, we might need to acces, for instance, to the position of the lexer (for error reporting) or to get the string read by the lexer (for example to generate literals when reading numbers or strings). This information is provided by the \textit{lexer buffer}, which is a data structure generated automatically by the parser generator. For example, if the token needs to store its row and column position in the file for error reporting, the definition above can be changed in this way (note the use of the header to define the function \texttt{range}):
+Note that, in order to provide useful information about the lexing phase, we might need to access, for instance, the position of the lexer (for error reporting), or to get the string read by the lexer (for example to generate literals when reading numbers or strings). This information is provided by the \textit{lexer buffer}, which is a data structure generated automatically by the parser generator. For example, if the token needs to store its row and column position in the file for error reporting, the definition above can be changed in this way (note the use of the header to define the function \texttt{range}):
 
 
 \begin{lstlisting}
@@ -460,7 +460,7 @@ Monadic parsing is an alternative to traditional parsers, such as LR(k) and LALR
 
 \begin{definition}
 	\label{def:ch_background_monad}
-	A \textit{Monad} is a tern made of the following elements:
+	A \textit{Monad} is a triplet made of the following elements:
 	\begin{itemize}[noitemsep]
 		\item A type constructor $M$.
 		\item A unary operation $Return \; :: \; a \rightarrow M \; a$.
@@ -468,10 +468,12 @@ Monadic parsing is an alternative to traditional parsers, such as LR(k) and LALR
 	\end{itemize}
 	where both operations satisfy the following properties:
 	\begin{itemize}[noitemsep]
-		\item $a >>= return \equiv a$.
+		\item $a >>= Return \equiv a$.
 		\item $(a >>= f) >>= g \equiv a >>= (\lambda x.f x >>= g)$.
 	\end{itemize}
 \end{definition}
+
+In other words, a monad is a functional design pattern that consists of a data container that provides two operations: one that takes an element whose type is compatible with the element of the container, and returns an instantiation of the container itself, and the other that defines a transformation between two data containers. Monads are a concept borrowed by functional programming language that comes from the much wider concept from category theory \cite{asperti1991categories, barr1985toposes, barr1990category, pierce1991basic}, whose usage is shown for example in \cite{moggi1991notions, peyton1993imperative,wadler1990comprehending, wadler1995monads}.
 We now proceed to define a parser monad by defining (\textit{i}) the type constructor for the parser, (\textit{ii}) the unary operator, (\textit{iii}) the binary operator, and (\textit{iv}) parser combinators as an example of the extensibility of the parser monad. Note that below we provide an implementation in F\#, which does not have type classes as Haskell, so the parser monad does not use any type argument and directly defines the operators for this specific instance of monad.
 
 \subsubsection{Parser type constructor and monadic operations}
@@ -508,7 +510,7 @@ member this.Bind(p:Parser<'a,'ctxt>, k:'a->Parser<'b,'ctxt>) : Parser<'b,'ctxt> 
 
 \subsubsection{Parser combinators}
 With the parser monad implemented above, we can implement several parser combinators that can be used to define the grammar of a language. Here we show only a small glimpse of the possible combinators that can be implemented.\\\\
-The first parser combinator that we present is the \textit{choice}. The choice takes as input two parsers and runs the first. If the first parser succeeds than its result is returned, otherwise the second is run. If it succeeds its result is return, otherwise the whole parser outputs an error. This combinator is useful, for instance, when there might be two possible choices for a token in a statement. For instance, in either Java or C\# is possible to exchange the order of the access modifier and the static modifier in the method declaration, thus both \texttt{public static} or \texttt{static public} are valid combinations. This combinator would try to parse the declaration in the first way, and if it fails it will try also the second option. Of course if the syntax of both combinations is wrong the parser will fail completely. The code for the combinator is shown below:
+The first parser combinator that we present is the \textit{choice}. The choice takes as input two parsers and runs the first. If the first parser succeeds than its result is returned, otherwise the second is run. If it succeeds its result is return, otherwise the whole parser outputs an error. This combinator is useful, for instance, when there might be two possible choices for a token in a statement. For instance, in both Java and C\# is possible to exchange the order of the access modifier and the static modifier in the method declaration, thus both \texttt{public static} or \texttt{static public} are valid combinations. This combinator would try to parse the declaration in the first way, and if it fails it will try also the second option. Of course if the syntax of both combinations is wrong the parser will fail completely. The code for the combinator is shown below:
 
 \begin{lstlisting}
 static member (++) (p1:Parser<'a,'ctxt>, p2:Parser<'a,'ctxt>) : Parser<'a,'ctxt> = 
@@ -539,7 +541,7 @@ static   member (+) (p1:Parser<'a,'ctxt>, p2:Parser<'b,'ctxt>) : Parser<Either<'
 \end{lstlisting}
 
 \noindent
-Other combinators are possible, but for brevity we have only shown two. It should appear clear how this approach is completely extensible with no limitations. Any combinator would take as input two parsers and define the type of the resulting parser. The implementation will contain the logic to combine two parsers together. For example, another parser combinator is the application of 0 or more times of the same parser.
+Other combinators are possible, but for brevity we have only shown two. It should appear clear how this approach is completely extensible with no limitations. Any combinator would take as input two parsers and define the type of the resulting parser. The implementation will contain the logic to combine two parsers together. For example, another parser combinator is the application of zero or more times of the same parser.
 
 To complete this discussion, we now show how to parse a specific character and a keyword. The parser for a character takes as input the text to process and the character to match. If the input text is empty of course the parser immediately fails because no character will ever be matched. Otherwise if the first character of the text matches the one provided then we return the matched character as result and the rest of the text to process, otherwise we output an error. The function also takes care of updating the position of the parser accordingly and to skip line breaks.
 
@@ -576,7 +578,7 @@ let rec word (w:List<char>) : Parser<List<char>, 'ctxt> =
 
 \section{Type systems and type checking}
 \label{sec:ch_background_type_checking}
-Being able to verify the correctness of a program is a crucial aspect of programming. When dealing with low-level languages is generally difficult to verify and grant the correctness of a program since a language such assembly does not provide abstractions for the purpose. Modern high-level programming languages, on the other hand, generally provide a way to type their constructs. A type system is a syntactic method that assigns a property called \textit{type} to the constructs of a programming language, in order to prove that a program does not have certain unwanted behaviours \cite{pierce2002types}. Type systems are generally expressed in the form of inference rules \cite{cardelli1996type, pierce2002types}, made of a set of premises, that must be verified in order to assign to the language construct the type defined in the conclusion. An inference rule is a logical rule in the form:
+Being able to verify the correctness of a program is a crucial aspect of programming. When dealing with low-level languages, it is generally difficult to verify and grant the correctness of a program since a language such as assembly does not provide abstractions for the purpose. Modern high-level programming languages, on the other hand, generally provide a way to type their constructs. A type system is a syntactic method that assigns a property called \textit{type} to the constructs of a programming language, in order to prove that a program does not have certain unwanted behaviours \cite{pierce2002types}. Type systems are generally expressed in the form of inference rules \cite{cardelli1996type, pierce2002types}, made of a set of premises, that must be verified in order to assign to the language construct the type defined in the conclusion. An inference rule is a logical rule in the form:
 
 \begin{mathpar}
 \mprset{flushleft}
@@ -614,7 +616,7 @@ In these rules $\Gamma$ is the environment. The type rule first evaluates the pr
 	{\Gamma \vdash \text{while \textit{c} do \textit{w} : unit}}
 \end{mathpar}
 
-Typing a construct of the language requires to evaluate its corresponding typing rule. Unlike for parsers, there exist no tools capable of automatically generate a type checker given the type rules definition, thus the behaviour of each type rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following : (\textit{i}) evaluate a premise, (\textit{ii}) if the evaluation of the premise fails then the construct fails the type check and an error is returned, (\textit{iii}) repeat step 1 and 2 until all the premises have been evaluated, and (\textit{iv}) assign the type to the construct that is defined in the rule conclusion.
+Typing a construct of the language requires to evaluate its corresponding typing rule. Unlike for parsers, there exist no tools capable of automatically generating a type checker given the type rules definition, thus the behaviour of each type rule must be implemented in the host language in which the compiler is defined. Independently of the chosen language, the behaviour will always be the following : (\textit{i}) evaluate a premise, (\textit{ii}) if the evaluation of the premise fails then the construct fails the type check and an error is returned, (\textit{iii}) repeat step 1 and 2 until all the premises have been evaluated, and (\textit{iv}) assign the type to the construct that is defined in the rule conclusion.
 
 During this process the compiler generates a data structure called \textit{symbol table}, which contains information about the type checking process and maintains the type environment.
 
@@ -730,7 +732,7 @@ type List<'a> =
 \end{lstlisting}
 
 \noindent
-where the list \texttt{[3,4,5,6]} can be built as \texttt{Cons(3,Cons(4,Cons(5,Cons(6,Empty))))}. This list representation can be defined with template metaprogramming by defining a template specialization for the empty list, and a non-specialized template for a non-empty list.
+where the list \texttt{[3,4,5,6]} can be built as \texttt{Cons(3,Cons\\(4,Cons(5,Cons(6,Empty))))}. This list representation can be defined with template metaprogramming by defining a template specialization for the empty list, and a non-specialized template for a non-empty list.
 
 \begin{lstlisting}
 struct NIL
@@ -780,7 +782,7 @@ struct Int
 \end{lstlisting}
 
 \noindent
-This is necessary in order to be able to store the values of the list elements. At this point, the list can be created by calling \texttt{Cons} and passing the \texttt{Int} data type as argument and. Length can then be used with the type of the list that has been created and then we can access its \texttt{RET} field.
+This is necessary in order to be able to store the values of the list elements. At this point, the list can be created by calling \texttt{Cons} and passing the \texttt{Int} data type as argument. Length can then be used with the type of the list that has been created and then we can access its \texttt{RET} field.
 
 \begin{lstlisting}
 typedef Cons<Int<3>, Cons<Int<4>, Cons<Int<5>, Cons<Int<6>>>>> testList;
@@ -790,7 +792,7 @@ cout << Length<testList>::RET << endl;
 Template metaprogramming complexity can grow exponentially, for example when we want to get the values of the list elements, to the point that a simple function as \texttt{nth} requires several templates. We omit the details here, but the reader can find additional information in Appendix \ref{app:template}.
 %maybe put the code in the appendix
 \subsection{Metacompilers}
-Metacompilers are a special class of compilers used to implement other compilers. A metacompiler takes as input the definition of the syntax, semantics, and possibly the type system of the object language, a program written in the object language, and outputs executable code for it. Metacompilers are written either in a general purpose programming language or in their own meta-language through the process of self-hosting. Self-hosting compilation requires to write a prototypical version of the compiler in another language or an interpreter for it and then use it to compiler the implementation of a subsequent version. In this section we present some examples of existing meta-compilers.
+Metacompilers are a special class of compilers used to implement other compilers. A metacompiler takes as input the definition of the syntax, semantics, and possibly the type system of the object language, a program written in the object language, and outputs executable code for it. Metacompilers are written either in a general purpose programming language or in their own meta-language through the process of self-hosting. Self-hosting compilation requires to write a prototypical version of the compiler in another language or an interpreter for it and then use it to compiler the implementation of a subsequent version. In this section we present three existing meta-compilers: (\textit{i}) META-II for historical reasons to show that research on meta-compilation had actually been made in early 1970's but the capability of early meta-compilers were limited, (\textit{ii}) RML that is based on natural semantics and, for some aspects, similar to Metacasanova, the meta-compiler that we describe in this work, and finally Stratego, a meta-compiler that is based on term-rewriting semantics, to show an alternative approach to meta-compilers based on natural semantics.
 
 \subsubsection{META-II}
 META-II is one of the earliest metacompilers and, for this reason, quite limited in its capabilities. META-II allows to express the syntax of the object language and actions for the code generation. A meta-program in META-II is made of grammatical symbols, meta-variables, and equations that define the terms of the grammar. A symbol is written as a string surrounded by quotes and beginning with a period, a meta-variable is a string starting with a alphabetical character and followed by an arbitrary amount of alphanumerical characters, and an equation is a sequence of consecutive symbols or ids to indicate concatenation. Alternation is defined with the symbol \texttt{/}, which can be used together with the keyword \texttt{.EMPTY} to define alternation. For instance
@@ -827,7 +829,7 @@ SEQA = $ 'A',
 
 \noindent
 represents a sequence containing the letter \texttt{A}.
-META-II allows to associate actions to equation for the code generation. Each action generates assembly code for an interpreter called META-II machine, which is able to execute it. The action of code generation is marked with the keyword \texttt{.OUT}, for instance
+META-II allows to associate actions to equations for the code generation. Each action generates assembly code for an interpreter called META-II machine, which is able to execute it. The action of code generation is marked with the keyword \texttt{.OUT}, for instance
 
 \begin{lstlisting}
 EX3 = .ID .OUT('LD ' *) / '(' EX1 ')'
@@ -839,7 +841,7 @@ generates the literal output and the special symbol found in \texttt{EX3}.
 META-II is a self-hosting compiler, i.e. it is implemented in META-II itself.
 
 \subsubsection{RML}
-RML \cite{pettersson1996compiler} (\textit{Relational Meta-Language}) uses a meta-language based on operational semantics. A program in RML consists of data definitions in a syntax similar to CamL discriminate unions, and relations containing axioms and inference rules. An axiom is an inference rule without premises, while an inference rule generates an output if the premises correctly evaluate. For example the following snippet defines the data type for an arithmetic expression and a symbol table for the evaluation.
+RML \cite{pettersson1996compiler} (\textit{Relational Meta-Language}) uses a meta-language based on operational semantics. A program in RML consists of data definitions in a syntax similar to CamL variants \cite{minsky2013real} or F\# discriminated unions \cite{fsharunions}, and relations containing axioms and inference rules. An axiom is an inference rule without premises, while an inference rule generates an output if the premises correctly evaluate. For example the following snippet defines the data type for an arithmetic expression and a symbol table for the evaluation.
 
 \begin{lstlisting}
 datatype Expr =
@@ -921,7 +923,7 @@ signature
 \end{lstlisting}
 
 \noindent
-Note that Stratego is an untyped language, so types are not statically checked and the compiler only checks that constructors are declared and have the correct arity.
+Note that Stratego is an untyped language, so types are not statically checked and the compiler only checks that constructors are declared and have the correct ariety.
 
 Rewrite rules define how terms are evaluated, for example the following is a rewrite rule to evaluate a binary operator in an arithmetic expression:
 
@@ -934,3 +936,5 @@ Note that rewrite rules support conditionals, i.e. in the rule above we are able
 
 Stratego compiler is a self-hosting compiler, meaning that the Stratego meta-language is defined in the meta-language itself. A first version of Stratego was written in SML, which was then re-used to compile a further iteration written in Stratego. Stratego compiles programs to C, where the code generation transformations were expressed in Stratego itself.
 
+\section{Summary}
+In this chapter we presented the fundamental topics necessary to understand this thesis work. We started by defining the general architecture of a compiler and then we proceeded to show how to implement its single components. We explained how to use regular expressions to define the syntactical elements of a language and how to build a lexer for them. W explained how grammars are described and how to implement a Parser with different techniques (Parser generators based on LR(k) grammars and Monadic Parsers). We explained how to define a type system for a language and how to express its operational semantics. We concluded by presenting three examples of existing meta-compilers. In the next chapter we present the detailed architecture of Metacasanova, a meta-compiler based on operational semantics, that is able to generate .NET code. This meta-compiler shares some similarities with RML, which was presented in this section, but has different additional features, such as multiple inheritance, custom operator notation and ariety, and higher-kinded modules and functors in its language extension presented in Chapter \ref{ch:functors}.

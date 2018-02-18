@@ -355,7 +355,15 @@ RecordField "Position" Vector2 velocity => body
 PhysicalBodyType => body
 \end{lstlisting}
 
-Let us now analyse in detail what the premises generate: the first premise will generate an instance of \texttt{EmptyRecord} and bind it to the variable \texttt{empty}. The instance of this module is parameterless and thus will always be the same every time the functor is invoked. The second premise will instantiate \texttt{RecordField} by using the string \texttt{"Velocity"} as field name, \texttt{Vector2} as field type, and \texttt{empty} as argument for the remaining part of the record (there is no other field after \texttt{Velocity} in the physical body). The instantiation of \texttt{RecordField} produces a rule for the functor \texttt{RecordType}. According to the definition above this functor generates \texttt{Tuple[type,r.RecordType]}. By replacing the argument values provided in the premise, we have that \texttt{type := Vector2} and \texttt{r := empty := EmptyRecord}. Thus \texttt{r.RecordType} uses the functor \texttt{RecordType} in the instance of \texttt{EmptyRecord} which returns the type \texttt{unit} (the call can be seen as \texttt{empty.RecordType}). Thus \texttt{r.RecordType} can be replaced with \texttt{unit}, thus leading to \texttt{Tuple[Vector2, unit]}. Thus the rule for the functor \texttt{RecordType} generated in the module returned by the second premise will be.
+Let us now analyse in detail what the premises generate: the first premise will generate an instance of \texttt{EmptyRecord} and bind it to the variable \texttt{empty}. The instance of this module is parameterless and thus will always be the same every time the functor is invoked. The second premise will instantiate \texttt{RecordField} by using the string \texttt{"Velocity"} as field name, \texttt{Vector2} as field type, and \texttt{empty} as argument for the remaining part of the record (there is no other field after \texttt{Velocity} in the physical body). The instantiation of \texttt{RecordField} produces a rule for the functor \texttt{RecordType}. According to the definition above this functor generates \texttt{Tuple[type,r.RecordType]}. By replacing the argument values provided in the premise, we have 
+
+\begin{lstlisting}
+type := Vector2
+r := empty := EmptyRecord
+\end{lstlisting}
+
+\noindent
+Thus \texttt{r.RecordType} uses the functor \texttt{RecordType} in the instance of \texttt{EmptyRecord} which returns the type \texttt{unit} (the call can be seen as \texttt{empty.RecordType}). Thus \texttt{r.RecordType} can be replaced with \texttt{unit}, thus leading to \texttt{Tuple[Vector2, unit]}. Thus the rule for the functor \texttt{RecordType} generated in the module returned by the second premise will be.
 
 \begin{lstlisting}
 -----------------------
@@ -391,7 +399,16 @@ velocity := Record {
 }
 \end{lstlisting}
 
-The third premise calls \texttt{RecordField} with \texttt{name := "Position"}, \texttt{type := Vector2}, and \texttt{r := velocity}. Now in the definition of the \texttt{RecordField} module again the functor \texttt{RecordType} returns \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus\\ \texttt{RecordType} for the field \texttt{Position} will be instantiated as
+The third premise calls \texttt{RecordField} with 
+
+\begin{lstlisting}
+name := "Position"
+type := Vector2
+r := velocity
+\end{lstlisting}
+
+\noindent
+Now in the definition of the \texttt{RecordField} module again the functor \texttt{RecordType} returns \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus\\ \texttt{RecordType} for the field \texttt{Position} will be instantiated as
 
 \begin{lstlisting}
 -----------------------
