@@ -35,7 +35,7 @@
 	frame = single,
 	breaklines = true,
 	showstringspaces = false,
-	basicstyle = \ttfamily\footnotesize,	
+	basicstyle = \ttfamily\small,	
 	tabsize=2,
 	captionpos=b
 }
@@ -51,16 +51,19 @@
 
 \makeindex
 \begin{document}
-\pagenumbering{gobble}
-\includepdf{Extra/Cover.pdf}
-\newpage
+\cleardoublepage\includepdf{Extra/Cover.pdf}
+\thispagestyle{empty}
 \frontmatter
+\pagenumbering{gobble} %remove numbering
 \maketitle
-
+%\thispagestyle{empty}
+\input{Front/abstract}
+\newpage
+%\thispagestyle{empty}
 \tableofcontents
 
 \mainmatter
-
+\pagenumbering{arabic}
 \chapter{Introduction}
 \label{ch:introduction}
 \epigraph{About the use of language: it is impossible to sharpen a pencil with a blunt axe. It is equally vain to try to do it with ten blunt axes instead.}{Edsger Dijkstra}
@@ -84,6 +87,7 @@
 
 \chapter{Metacasanova optimization}
 \label{ch:functors}
+\epigraph{A monad is just a monoid in the category of endofunctors, what's the problem?}{James Iry}
 \input{Chapters/functors}
 	
 \chapter{Networking primitives in Casanova}
