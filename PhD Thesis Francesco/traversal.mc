@@ -43,8 +43,9 @@ r.RecordType => recordType
 --------------------------
 UpdateEntity r => ElementUpdater recordType {
 
+  recordType.GetType => type
   -----------------------
-  GetType => recordType
+  GetType => type
 
   ru := RecordUpdater r
   ru.update entity dt -> entity'
@@ -122,7 +123,7 @@ UpdateField elementUpdater r name => FieldUpdater r name {
   update rec dt -> field'
 }
 
-//SAMPLE
+//PHYSICAL BODY
 
 Functor "PhysicalBodyType" : Record
 Functor "BodyUpdater" : RecordUpdater
@@ -172,7 +173,7 @@ UpdateTuple FloatUpdater FloatUpdater => vectorUpdater
 UpdateField vectorUpdater PhysicalBodyType "Position" => posUpdate  
 UpdateField vectorUpdater PhysicalBodyType "Velocity" => velUpdate  
 UpdateField vectorUpdater PhysicalBodyType "Acceleration" => accUpdate
-ZeroUpdate PhysicalBodyType => zero
+NoUpdate PhysicalBodyType => zero
 Update VelocityRule zero => velRule
 Update PositionRule velRule => posRule
 Update accUpdate posRule => accFieldUpdate
@@ -189,8 +190,22 @@ BodyUpdater.update body dt -> body'
 ---------------------------
 updateBody body dt -> body'
 
-
-
-
 --------------------------------------------------------------------
 updateBody ((1.0,1.0),((0,0,0.0),((3.0,3.0),()))) 1.0 -> updatedBody
+
+//WORLD
+Functor "WorldType" : Record
+Functor "WorldUpdater" : RecordUpdater
+Functor "BodiesUpdater" : FieldUpdater
+
+RecordField "PhysicalBodies" List[PhysicalBodyType] EmptyRecord => world
+---------------------------------
+WorldType => world
+
+UpdateEntity BodyUpdater => bodyUpdater
+UpdateList bodyUpdater => listUpdater
+UpdateField listUpdater WorldType "PhysicalBodies" => fieldUpdater
+NoUpdate WorldType => zero
+Update fieldUpdater zero => worldUpdater
+--------------------------------------
+WorldUpdater => worldUpdater
