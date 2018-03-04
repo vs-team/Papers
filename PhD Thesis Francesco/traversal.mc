@@ -1,82 +1,196 @@
 Module "RecordUpdater" => (r : Record) : RecordUpdater {
+  Func "RecordType" : *
   Func "update" -> r.RecordType -> float : r.RecordType
 }
 
 Module "FieldUpdater" => (r : Record) => (name : string) : FieldUpdater {
-  Functor "GetType": *
+  Functor "GetRecord" : Record
   Func "update" -> r.RecordType -> float : (GetFieldType r name)
 }
 
-Functor "NoUpdate" : RecordUpdater
-Functor "Update" => FieldUpdater => RecordUpdater => float : RecordUpdater
-Functor "EntityUpdater" => RecordUpdater => string => float : FieldUpdater
-Functor "TupleUpdater" => FieldUpdater => TupleUpdater => string => float : FieldUpdater
-Functor "ListUpdater" => Record => string => FieldUpdater => float : FieldUpdater
+Module "ElementUpdater" => (elementType : *) : ElementUpdater {
+  Functor "GetType" : *
+  Func "update" -> elementType -> float : elementType
+}
+
+Functor "NoUpdate" => Record : RecordUpdater
+Functor "Update" => FieldUpdater => RecordUpdater : RecordUpdater
+Functor "UpdateField" => ElementUpdater => Record => string : FieldUpdater
+Functor "UpdateEntity" => RecordUpdater : ElementUpdater
+Functor "UpdateTuple" => ElementUpdater => ElementUpdater : ElementUpdater
+Functor "UpdateList" => ElementUpdater : ElementUpdater
+Functor "ZeroUpdate" => * : ElementUpdater
 Functor "GetFieldType" => Record => string : *
+Functor "Rule" => Record => string : FieldUpdater
 
 GetField r name => getter
 getter.GetType => type
 ---------------------------
 GetFieldType r name => type
 
+
+-----------------------
+ZeroUpdate type => ElementUpdater type {
+
+  ----------------
+  GetType => type
+
+  ----------------
+  update v dt -> v
+}
+
+r.RecordType => recordType
+--------------------------
+UpdateEntity r => ElementUpdater recordType {
+
+  -----------------------
+  GetType => recordType
+
+  ru := RecordUpdater r
+  ru.update entity dt -> entity'
+  ------------------------------
+  update entity dt -> entity'
+}
+
+updater.GetType => elementType
+---------------------------------
+UpdateList updater => ElementUpdater List[elementType] {
+
+  -----------------
+  GetType => List[elementType]
+
+  --------------------
+  update nil dt -> nil
+
+  updater.update x dt -> x'
+  update xs dt -> xs'
+  -------------------
+  update (x :: xs) dt -> (x' :: xs')
+}
+
+updater.GetType => firstType
+nextUpdater.GetType => nextType
+---------------------------------------------
+UpdateTuple updater nextUpdater => ElementUpdater Tuple[firstType,nextType] {
+
+  -------------------
+  GetType => Tuple[firstType,nextType]
+
+  updater.update x dt -> x'
+  nextUpdater.update x' dt -> xs'
+  ----------------------
+  update (x,xs) dt -> (x',xs')
+}
+
 ---------------------
-NoUpdate => RecordUpdater EmptyRecord {
+NoUpdate r => RecordUpdater r {
+
+  r.RecordType => recordType
+  ----------------------
+  RecordType => recordType
   
   ----------------
   update r dt -> r
 }
 
-
+fieldUpdater.GetRecord => r
 ---------------------------
-Update (FieldUpdater r name) nextUpdate => RecordUpdater r {
+Update fieldUpdater nextUpdater => RecordUpdater r {
 
-  fu := FieldUpdater r name
+  r.RecordType => recordType
+  ------------------------
+  RecordType => recordType
+
   SetField r name => setter
-  fu.update r dt -> v
-  setter.set r v -> r'
-  nextUpdate.update r' dt -> updatedRecord
+  fieldUpdater.update r dt -> v
+  setter.set rec v -> rec'
+  nextUpdater.update rec' dt -> updatedRecord
   ----------------------------
-  update r dt -> updatedRecord
+  update rec dt -> updatedRecord
 }
 
 ----------------------------------------
-EntityUpdater (RecordUpdater r) name dt => FieldUpdater r name {
+UpdateField elementUpdater r name => FieldUpdater r name {
 
-  eUpdater := RecordUpdater r
-  GetField r name => getter
-  getter.GetType => t
-  ------------------------
-  GetType => t
+  ---------------
+  GetRecord => r
 
-  eUpdater := RecordUpdater r
   GetField r name => getter
-  getter.get r -> entity
-  eUpdater.update entity dt -> entity'
+  getter.get rec -> field
+  elementUpdater.update entity dt -> field' 
   -----------------------------
-  update r dt -> entity'
+  update rec dt -> field'
 }
 
+//SAMPLE
 
-----------------------------------
-ListUpdater r name updater dt => FieldUpdater r name {
+Functor "PhysicalBodyType" : Record
+Functor "BodyUpdater" : RecordUpdater
+Functor "FloatUpdater" : ElementUpdater
+Functor "PositionRule" : FieldUpdater
+Functor "VelocityRule" : FieldUpdater
+Func "physicalBody" : PhysicalBodyType
 
-  Func "updateList" -> List[updater.GetType] : List[updater.GetType]
-  
-  elementUpdater.GetType => T
-  ------------------
-  GetType => List[T]
+RecordField "Acceleration" Tuple[float,float] EmptyRecord => acceleration
+RecordField "Velocity" Tuple[float,float] acceleration => velocity
+RecordField "Position" Tuple[float,float] velocity => body
+---------------------------
+PhysicalBodyType => body
+
+ZeroUpdate float => update
+---------------------
+FloatUpdater => update
+
+
+--------------------------------
+PositionRule => FieldUpdater PhysicalBodyType "Position" {
 
   ---------------------
-  updateList nil -> nil
+  GetRecord => PhysicalBodyType
 
-  elementUpdater.update x dt -> x'
-  updateList xs -> xs'
-  ------------------------
-  updateList (x :: xs) -> (x' :: xs')
-
-  GetField r name => getter
-  getter.get r => l
-  updateList l -> l'
-  ---------------------
-  update r dt -> l'
+  getPos body -> position
+  getVel body -> velocity
+  << position + velocity * dt >> -> position'
+  ---------------------------
+  update body dt -> position'
 }
+
+--------------------------------
+VelocityRule => FieldUpdater PhysicalBodyType "Velocity" {
+
+  --------------------
+  GetRecord => PhysicalBodyType
+
+  getVel body -> velocity
+  getAcc body -> acceleration
+  << velocity + acceleration * dt >> -> velocity'
+  ---------------------------
+  update body dt -> velocity'
+}
+
+UpdateTuple FloatUpdater FloatUpdater => vectorUpdater
+UpdateField vectorUpdater PhysicalBodyType "Position" => posUpdate  
+UpdateField vectorUpdater PhysicalBodyType "Velocity" => velUpdate  
+UpdateField vectorUpdater PhysicalBodyType "Acceleration" => accUpdate
+ZeroUpdate PhysicalBodyType => zero
+Update VelocityRule zero => velRule
+Update PositionRule velRule => posRule
+Update accUpdate posRule => accFieldUpdate
+Update velUpdate accFieldUpdate => velFieldUpdate
+Update posUpdate velFieldUpdate => bodyUpdater
+--------------------------
+BodyUpdater => bodyUpdater
+
+
+
+
+
+BodyUpdater.update body dt -> body'
+---------------------------
+updateBody body dt -> body'
+
+
+
+
+--------------------------------------------------------------------
+updateBody ((1.0,1.0),((0,0,0.0),((3.0,3.0),()))) 1.0 -> updatedBody
