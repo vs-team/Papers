@@ -1,5 +1,5 @@
 Module "RecordUpdater" => (r : Record) : RecordUpdater {
-  Func "RecordType" : *
+  Functor "RecordType" : *
   Func "update" -> r.RecordType -> float : r.RecordType
 }
 
@@ -43,9 +43,8 @@ r.RecordType => recordType
 --------------------------
 UpdateEntity r => ElementUpdater recordType {
 
-  recordType.GetType => type
   -----------------------
-  GetType => type
+  GetType => recordType
 
   ru := RecordUpdater r
   ru.update entity dt -> entity'
