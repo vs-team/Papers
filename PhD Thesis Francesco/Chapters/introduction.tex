@@ -158,8 +158,6 @@ let sumList l = l |> List.fold (+) 0
 \subsubsection*{Graphics programming}
 Rendering a scene in a 3D space is often performed by relying on dedicated hardware. Modern graphics processors rely on shaders to create various effects that are rendered in the 3D scene. Shaders are written in domain-specific languages, such as GLSL or HLSL [...], that offer abstractions to compute operations at GPU level that are often used in computer graphics, such as vertices and pixel transformations, matrix multiplications, and interpolation of textures. Listing \ref{lst:ch1_hlsl_code} shows the code to implement light reflections in HLSL. At line 4 you can, for example, see the use of matrix multiplication provided as a language abstraction in HLSL.
 
-\begin{minipage}{\linewidth}
-
 \begin{lstlisting}[numbers = left, caption = HLSL code to compute the light reflection, label = lst:ch1_hlsl_code]
 VertexShaderOutput VertexShaderSpecularFunction(VertexShaderInput input, float3 Normal : NORMAL)
 {
@@ -173,12 +171,10 @@ VertexShaderOutput VertexShaderSpecularFunction(VertexShaderInput input, float3 
   return output;
 }
 \end{lstlisting}
-\end{minipage}
 
 \subsubsection*{Game programming}
 Computer games are a field where domain-specific languages are widely employed, as they contain complex behaviours that often require special constructs to model timing event-based primitives, or to execute tasks in parallel. These behaviours cannot be modelled, for performance reasons, by using threads. Therefore, in the past, domain-specific languages which provide these abstractions have been implemented. [...]. In Listing \ref{lst:ch1_sqf_code} an example of the SQF domain-specific language for the game ArmA2 is shown. This language offers abstractions to wait for a specific amount of time, to wait for a condition, and to spawn scripts that run in parallel to the callee, that you can respectively see at lines 18, 12, and 10.
 
-\begin{minipage}{\linewidth}
 \begin{lstlisting}[numbers = left, caption = ArmA 2 scripting language, label = lst:ch1_sqf_code]
 "colorCorrections" ppEffectAdjust [1, pi, 0, [0.0, 0.0, 0.0, 0.0], [0.05, 0.18, 0.45, 0.5], [0.5, 0.5, 0.5, 0.0]];  
 "colorCorrections" ppEffectCommit 0;  
@@ -206,12 +202,10 @@ titleCut ["", "BLACK FADED", 999];
 	titleCut ["", "BLACK IN", 5];
 };
 \end{lstlisting}
-\end{minipage}
 
 \subsubsection*{Shell scripting languages}
 Shell scripting languages, such as the \textit{Unix Shell script}, are used to manipulate files or user input in different ways. They generally offer abstractions to the operating system interface in the form of dedicated commands. Listing \ref{lst:ch1_shell_code} shows an example of a program written in Unix shell script to convert an image from JPG to PNG format. At line 3 you can see the use of the statement \texttt{echo} to display a message in the standard output.
 
-\begin{minipage}{\linewidth}
 \begin{lstlisting}[numbers = left, caption = Unix shell code, label = lst:ch1_shell_code]
 for jpg; do                                  
   png="${jpg%.jpg}.png"                    
@@ -226,7 +220,6 @@ done
 echo all conversions successful              
 exit 0
 \end{lstlisting}
-\end{minipage}
 
 \subsubsection*{Advantages and disadvantages}
 High-level programming languages offer a variety of abstractions over the specific hardware the program targets. The obvious advantage of this is that the programmer does not need to be an expert of the underlying hardware architecture or instruction set. A further advantage is that the available abstractions are closer to the semi-formal description of the underlying algorithm as pseudo-code. This produces two desirable effects: (\textit{i}) the readability of the program is increased as the available abstractions are closer to the natural language than the equivalent machine code, and (\textit{ii}) that being able to mimic the semi-formal version of an algorithm, which is generally how the algorithm is presented and on which its correctness is proven, grants a higher degree of correctness in the specific implementation [...].

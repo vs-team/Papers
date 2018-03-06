@@ -39,15 +39,15 @@ ZeroUpdate type => ElementUpdater type {
   update v dt -> v
 }
 
-r.RecordType => recordType
+recordUpdater.RecordType => recordType
 --------------------------
-UpdateEntity r => ElementUpdater recordType {
+UpdateEntity recordUpdater => ElementUpdater recordType {
 
   -----------------------
   GetType => recordType
 
-  ru := RecordUpdater r
-  ru.update entity dt -> entity'
+  
+  recordUpdater.update entity dt -> entity'
   ------------------------------
   update entity dt -> entity'
 }

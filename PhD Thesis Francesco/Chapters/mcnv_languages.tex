@@ -755,6 +755,7 @@ typeStmt tables (for init condition step do block) -> tables,t_unit
 In this section we have presented a small imperative language called C-{}- that supports variable scoping, a decisional control structure, and two different iterative control structures (\textit{while} and \textit{for} loops). We have shown how to define its semantics in term of Metacasanova rules and, in the same fashion, how to define its type system and build a type checker. Although being a complete language rather complex on its own, C-{}- lacks some features like functions that programmers would expect. Although it would not be hard to extend this language with these additional features, in the next section we opt to introduce an existing domain-specific language for game development called \textit{Casanova}. This language presents interesting and unusual language features, such as the possibility to use built-in control structures that interrupt the flow of parts of its programs, thus we believe it would be a better example to show the capabilities of Metacasanova in terms of language design.
 
 \section{The Casanova language}
+\label{sec:ch_mcnv_languages_casanova_language}
 In the previous section we have shown how to implement a small imperative language using Metacasanova. In this section we show the implementation in Metacasanova of Casanova, a Domain-Specific Language for game development. We first give an informal explanation about how the language works and then we show an implementation of the language semantics.
 
 \subsection{The structure of a Casanova program}

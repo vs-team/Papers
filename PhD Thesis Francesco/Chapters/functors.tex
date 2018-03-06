@@ -569,7 +569,7 @@ r := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
 \end{lstlisting}
 
 \noindent
-In this module instance the functor \texttt{GetType} returns \texttt{type :=  Vector2} and \texttt{get} returns the first element of the record tuple. At this point, the third premise will call \texttt{get} from this module instance by passing the record tuple \texttt{((10.0,10.0),((10.0,0.0),()))}, which in turn returns correctly\\ \texttt{(10.0,10.0)}.
+In this module instance the functor \texttt{GetType} returns \texttt{type :=  Vector2} and \texttt{get} returns the first element of the record tuple. At this point, the third premise will call \texttt{get} from this module instance by passing the record tuple\\ \texttt{((10.0,10.0),((10.0,0.0),()))}, which in turn returns correctly \texttt{(10.0,10.0)}.
 
 Now let us assume that we want to retrieve the value of "Velocity" instead. We define an analogous function \texttt{getVel} as follows
 
@@ -872,7 +872,8 @@ In Table \ref{tab:ch_functors_results}, we can see that the optimization using F
 
 Figure \ref{fig:ch_functors_chart} shows a chart of the overall performance of the two techniques (the data points are taken from Table \ref{tab:ch_functors_results}). The horizontal axis contains the amount of fields per record, while the vertical axis contains the number of records that are being updated. We can see that the performance of the dynamic table degrades considerably when increasing the number of fields, and that the higher the amount of records is, the steeper the curve is. On the other hand, the performance of the implementation with Functors is almost constant, regardless of the amount of fields or records that are being updated. Moreover, note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET. If the symbol table were represented as a meta-data structure in the language, the performance would be even worse, since it would have to be encoded as a list of pairs with the field name and its value, and its manipulation would be affected by the evaluation rules that should implement this behaviour. Furthermore, the dynamic lookup should be done also to ensure that the types of the record fields are used consistently (which is not accounted for here, for example to prevent that a record is constructed with incompatible values for its fields), while this check is done at compile time with functors, thus drastically improving the performance
 
-\begin{table}	
+\begin{table}
+	\centering
 	\caption{Running time with the functor optimization and the dynamic table with 10000, 100000, and 1000000 records.}
 	\begin{tabular}{|c|c|c|c|}
 		\hline
