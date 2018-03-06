@@ -390,6 +390,9 @@ The rule for this functor extract in its premise the type of the record by calli
 recordUpdater.RecordType => recordType
 --------------------------
 UpdateEntity recordUpdater => ElementUpdater recordType {
+
+	----------------------
+	GetType => recordType
  
   recordUpdater.update entity dt -> entity'
   ------------------------------
@@ -405,4 +408,66 @@ Functor "UpdateList" => ElementUpdater : ElementUpdater
 \end{lstlisting}
 
 \noindent
-The updater for the list 
+The rule for \texttt{UpdateList} extracts in its premise the type of the elements of the list by calling the functor \texttt{GetType} in the element updater provided as input. It then instantiates an \texttt{ElementUpdater} with the type \texttt{List} using as argument for the generic type the type of the element extracted in its premise. The \texttt{update} function for the list is recursive: its base case is the empty list, for which it simply returns an empty list. For a non-empty list the rule for this function uses the element updater in its premise to update the head of the list and then recursively calls the \texttt{update} of the list on the tail to updater the remaining part.
+
+\begin{lstlisting}
+updater.GetType => elementType
+---------------------------------
+UpdateList updater => ElementUpdater List[elementType] {
+
+  -----------------
+  GetType => List[elementType]
+
+  --------------------
+  update nil dt -> nil
+
+  updater.update x dt -> x'
+  update xs dt -> xs'
+  -------------------
+  update (x :: xs) dt -> (x' :: xs')
+}
+\end{lstlisting}
+
+\noindent
+The updater for tuples is built by defining a functor that takes as input two element updaters, one for the current element of the tuple, and one for the second one. Note that it is possible to recursively provide a tuple updater as a second updater to support the update of tuples containing more than two elements. For example, the updater for \texttt{Tuple[PhysicalBody,Tuple[PhysicalBody,\\PhysicalBody]]} would require to pass an entity updater and recursively a tuple updater. The declaration of this fuctor is thus:
+
+\begin{lstlisting}
+Functor "UpdateTuple" => ElementUpdater => ElementUpdater : ElementUpdater
+\end{lstlisting}
+
+\noindent
+The rule for \texttt{UpdateTuple} uses in its premises \texttt{GetType} from the first updater and the second updater to obtain the types of the first and second element of the tuple. It then instantiates \texttt{ElementUpdater} with the tuple type called with the type of the first and second element as arguments for the generics. The \texttt{update} function runs the \texttt{update} of the first updater on the first element of the tuple and the second updater on the second element.
+
+\begin{lstlisting}
+updater.GetType => firstType
+nextUpdater.GetType => nextType
+---------------------------------------------
+UpdateTuple updater nextUpdater => ElementUpdater Tuple[firstType,nextType] {
+
+  -------------------
+  GetType => Tuple[firstType,nextType]
+
+  updater.update x dt -> x'
+  nextUpdater.update x' dt -> xs'
+  ----------------------
+  update (x,xs) dt -> (x',xs')
+}
+\end{lstlisting}
+
+Finally, we need a \texttt{ZeroUpdate} that is required for fields whose values do not change with respect to time, namely all those that do not fall in the three categories above. The functor \texttt{ZeroUpdate} takes as input any type and builds an \texttt{ElementUpdater} with that type. The rule for \texttt{update} simply returns the value of the field as it is.
+
+\begin{lstlisting}
+Functor "ZeroUpdate" => * : ElementUpdater
+
+-----------------------
+ZeroUpdate type => ElementUpdater type {
+
+  ----------------
+  GetType => type
+
+  ----------------
+  update v dt -> v
+}
+\end{lstlisting}
+
+\subsection{Updatable Fields and Records}
