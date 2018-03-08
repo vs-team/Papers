@@ -483,7 +483,7 @@ Module "Getter" => (name : string) => (r : Record) : Getter {
 The getter has two implementations of the rule that instantiates the \texttt{Getter} module: one is used when the current field in the module tuple is the one we are trying to read, and the other that is able to build the correct getter if the field is in the remaining part of the record. The first happens when the name of the current field is the same as the field name provided as argument of the functor \texttt{GetField}. In this case we have the following rule for the functor:
 
 \begin{lstlisting}
-Functor "SetField" => string => Record : Getter
+Functor "GetField" => string => Record : Getter
 \end{lstlisting}
 
 \begin{lstlisting}[caption = Getting a field (case 1),label = lst:ch_functors_getter1]

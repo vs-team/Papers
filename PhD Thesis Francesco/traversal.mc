@@ -102,7 +102,7 @@ Update fieldUpdater nextUpdater => RecordUpdater r {
   RecordType => recordType
 
   SetField r name => setter
-  fieldUpdater.update r dt -> v
+  fieldUpdater.update rec dt -> v
   setter.set rec v -> rec'
   nextUpdater.update rec' dt -> updatedRecord
   ----------------------------
@@ -117,7 +117,7 @@ UpdateField elementUpdater r name => FieldUpdater r name {
 
   GetField r name => getter
   getter.get rec -> field
-  elementUpdater.update entity dt -> field' 
+  elementUpdater.update field dt -> field' 
   -----------------------------
   update rec dt -> field'
 }

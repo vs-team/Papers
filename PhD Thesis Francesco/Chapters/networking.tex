@@ -471,3 +471,77 @@ ZeroUpdate type => ElementUpdater type {
 \end{lstlisting}
 
 \subsection{Updatable Fields and Records}
+The field updater is instantiated by a functor that takes as input an element updater, a record containing the field, and the name of the field to update. Its declaration is the following:
+
+\begin{lstlisting}
+Functor "UpdateField" => ElementUpdater => Record => string : FieldUpdater
+\end{lstlisting} 
+
+\noindent
+The rule for the \texttt{update} function creates in its premises a field getter through the record and the field name passed as input. It then call the function \texttt{get} of the getter with the record instance taken as input to get the value of the field. It then uses the \texttt{update} function from the element updater taken as input from the functor to update the field.
+
+\begin{lstlisting}
+----------------------------------------
+UpdateField elementUpdater r name => FieldUpdater r name {
+
+  ---------------
+  GetRecord => r
+
+  GetField r name => getter
+  getter.get rec -> field
+  elementUpdater.update field dt -> field' 
+  -----------------------------
+  update rec dt -> field'
+}
+\end{lstlisting}
+
+\noindent
+The record updater is built by a functor \texttt{Update} that takes as input a field updater, a record updater to update the next part of the record, and returns an instance of the \texttt{RecordUpdater} module. The rule that evaluates the functor extracts the record from the field updater in its premise and passes it to the module constructor for the record updater. The rule for \texttt{update} generates a setter for the field by using the record and the field name. It then calls the field updater passing the record instance and \texttt{dt} as input. This premise will return the updated value for the field. The following premise uses the \texttt{set} function from the previously generated setter to update the record with the new value of the field. After this step it calls the \texttt{update} function of the record updater passed as function argument, which is recursively able to update the remaining part of the record. The result of this update is then returned as final result. Both the functor declaration and the rule for it are provided below
+
+\begin{lstlisting}
+Functor "Update" => FieldUpdater => RecordUpdater : RecordUpdater
+
+fieldUpdater.GetRecord => r
+---------------------------
+Update fieldUpdater nextUpdater => RecordUpdater r {
+
+  r.RecordType => recordType
+  ------------------------
+  RecordType => recordType
+
+  SetField r name => setter
+  fieldUpdater.update rec dt -> v
+  setter.set rec v -> rec'
+  nextUpdater.update rec' dt -> updatedRecord
+  ----------------------------
+  update rec dt -> updatedRecord
+}
+\end{lstlisting}
+
+\noindent
+Note that it is possible to provide different field updaters for the same field, as it is possible that, besides the standard Casanova traversal, one wants to define a custom way of updating the field through a Casanova rule.
+
+In order to stop this otherwise infinite recursive process, we must also generate a record updater that simply returns the record as it is. We build such updater through the functor \texttt{NoUpdate}. This functor takes as input a record and instantiates its updater with it. The updater contains a rule for the \texttt{update} function that simply returns the record as it is. The implementation for this updater is provided below:
+
+\begin{lstlisting}
+Functor "NoUpdate" => Record : RecordUpdater
+
+---------------------
+NoUpdate r => RecordUpdater r {
+
+  r.RecordType => recordType
+  ----------------------
+  RecordType => recordType
+  
+  ----------------
+  update r dt -> r
+}
+\end{lstlisting}
+
+\noindent
+Finally, rules can be implemented as a field updater that is instantiated by a functor taking as input the record and the field name. The \texttt{update} function will contain the specific code that the rule will perform. In the following section we will provide the implementation of the physical body simulation and show how to use functors to generate the field updater for rules.
+
+\subsection{Physical Body Simulation with Functors}
+\label{subsec:ch_networking_simulation}
+
+
