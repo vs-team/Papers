@@ -543,5 +543,84 @@ Finally, rules can be implemented as a field updater that is instantiated by a f
 
 \subsection{Physical Body Simulation with Functors}
 \label{subsec:ch_networking_simulation}
+In this section we present the implementation with functors of the simulation in Casanova presented in Section \ref{subsec:ch_networking_casanova_update}. The simulation consists of a set of bodies that moves according to their physical properties. As previously done in Section \ref{sec:ch_functors_record_implementation}, we create a functor that builds the record module instance for the physical body:
 
+\begin{lstlisting}
+Functor "PhysicalBodyType" : Record
 
+RecordField "Acceleration" Tuple[float,float] EmptyRecord => acceleration
+RecordField "Velocity" Tuple[float,float] acceleration => velocity
+RecordField "Position" Tuple[float,float] velocity => body
+---------------------------
+PhysicalBodyType => body
+\end{lstlisting}
+
+\noindent
+At this point, we define the updaters for the physical body fields. Its fields consist of a tuple with two floating point values. Since floating-point values do not require to be updated in Casanova, we create an updater for the floating-point numbers by using the \texttt{ZeroUpdate} functor that instantiates \texttt{ElementUpdater} with an \texttt{update} function that simply returns the input value.
+
+\begin{lstlisting}
+Functor "FloatUpdater" : ElementUpdater
+
+ZeroUpdate float => zero
+--------------------------
+FloatUpdater => zero
+\end{lstlisting}
+
+\noindent
+\texttt{ZeroUpdate} calls \texttt{ElementUpdater} with \texttt{elementType := float}. The instance of this module will then contain the following functor rule and function declaration\footnote{Note that the evaluation rule for it is always the same for each instance of a module, so we omit it for brevity}.
+
+\begin{lstlisting}
+Func "update" -> float -> float : float
+
+-----------------
+GetType => float
+\end{lstlisting}
+
+\noindent
+At this point we can define the element updater for the \texttt{Tuple} that contains the floating point values. This time we use the functor \texttt{UpdateTuple} to instantiate the \texttt{ElementUpdater} module by passing twice \texttt{FloatUpdater} to it. When we do so, we have that (see the definition of the rule for this functor):
+
+\begin{lstlisting}
+updater := FloatUpdater
+nextUpdater := FloatUpdater
+firstType := updater.GetType := float
+nextType := nextUpdater.GetType = float
+\end{lstlisting}
+
+\noindent
+Thus \texttt{ElementUpdater} will be called with \texttt{elementType := Tuple[float,float]}. This module instance will then contain the following functor rule and function declaration:
+
+\begin{lstlisting}
+Func "update" -> Tuple[float,float] -> float : Tuple[float,float]
+
+-----------------------------
+GetType => Tuple[float,float]
+\end{lstlisting}
+
+\noindent
+We now build the field updaters for the two Casanova rules of the physical body. In order to do so, we define two functors that build their field updaters:
+
+\begin{lstlisting}
+Functor "PositionRule" : FieldUpdater
+Functor "VelocityRule" : FieldUpdater
+\end{lstlisting}
+
+\noindent
+\texttt{PositionRule} will instantiate \texttt{FieldUpdater} in the following evaluation rule:
+
+\begin{lstlisting}
+--------------------------------
+PositionRule => FieldUpdater PhysicalBodyType "Position" {
+
+  ---------------------
+  GetRecord => PhysicalBodyType
+
+  getPos body -> position
+  getVel body -> velocity
+  << position + velocity * dt >> -> position'
+  ---------------------------
+  update body dt -> position'
+}
+\end{lstlisting}
+
+\noindent
+Note that \texttt{getPos} and \texttt{getVel} are functions able to retrieve respectively the position and velocity from a physical body, analogously to what was done in Section \ref{sec:ch_functors_record_getter}. The \texttt{update} function uses these two functions in its premises to retrieve the value of the position and velocity and then updates the position according to the differential equation described in Section \ref{subsec:ch_functors_casanova_example}.
