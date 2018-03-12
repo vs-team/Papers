@@ -208,3 +208,60 @@ NoUpdate WorldType => zero
 Update fieldUpdater zero => worldUpdater
 --------------------------------------
 WorldUpdater => worldUpdater
+
+//COROUTINES
+
+//example
+entity PhysicalBody = {
+  Position        : Tuple[float,float]
+  Velocity        : Tuple[float,float]
+  Acceleration    : Tuple[float,float]
+
+  rule Position = Position + Velocity * dt
+  rule Velocity = Velocity + Acceleration * dt
+  rule Velocity =
+    wait Position.X < 0 || Position.X > 640 || Position.Y < 0 || Position.Y > 480
+    yield (-Velocity.X,-Velocity.Y)
+}
+
+Module "FieldUpdater" => (r : Record) => (name : string) : FieldUpdater {
+  Functor "GetRecord" : Record
+  Func "update" -> r.RecordType -> float : Tuple[(GetFieldType r name),stmt]
+}
+
+Functor "Coroutine" => Record => string => stmt : FieldUpdater
+
+-----------------------
+Coroutine r name stmts => FieldUpdater r name {
+
+  Func "tick" -> r.RecordType -> List[stmt] -> float : Tuple[r.RecordType,stmt]
+  Func "eval_s" -> r.RecordType -> stmt -> float : Tuple[r.RecordType,stmt]
+
+  -----------------------------
+  GetRecord => PhysicalBodyType
+
+
+  eval_s body stmts dt -> (res,updatedStatements)
+  --------------------------
+  tick body nop dt -> (res,updatedStatements)
+
+
+  eval_s body stmt dt -> (res,updatedStatements)
+  -----------------------------
+  tick body stmt dt -> (res,updatedStatements)
+
+
+  -------------------------
+  eval_s nop nop dt -> (v,nop)
+
+  addStmt b k -> cont
+  eval_s a cont ctxt dt -> (v,k)
+  -------------------------------
+  eval_s (a;b) k ctxt dt -> (v,k)
+
+  GetField r name => getter
+  getter.get body -> (v,k)
+  tick body k dt -> (v',k')
+  -------------------------
+  update body dt -> (v',k')
+}

@@ -279,7 +279,7 @@ In Section \ref{subsec:ch_mcnv_languages_casanova_semantics} we showed an implem
 
 \subsection{Casanova entity update}
 \label{subsec:ch_networking_casanova_update}
-In Section \ref{subsec:ch_mcnv_languages_casanova_semantics} we described the memory representation of a Casanova entity in Metacasanova and how the rules of an entity are updated. What was skipped for brevity was to describe how the system behind Casanova updates the entities of a Casanova program. As briefly described in Section \ref{sec:ch_mcnv_languages_casanova_language}, the structure of a program in Casanova is a tree, whose root is a special entity called \textit{World}. The world entity can contain fields that are instances of other entities as well, thus creating an additional level in the program tree. This is, of course, allowed also for regular entities, thus the height of the tree is arbitrary. Each entity might contain a set of rules that describe its dynamic behaviour with respect to time, thus they are updated by considering the time difference between the current and the previous update (\textit{frames}). Updating a rule is enforced by traversing the entity tree, thus when the field of an entity is an entity itself, the system will first update the entity instance contained in the field and then update the current entity. Casanova also natively supports lists and tuples as valid data types, and this requires to handle their update as well: a tuple or a list might themselves contain instances of entities that must be updated accordingly. In the case of a list of entities, we must run the update on each element, while in the case of a tuple we must examine each element and check whether it requires an update or not. This process might become very complex, as list and tuples can be combined together in infinite many ways, thus the process recursively calls the proper update depending on the type of the field.
+In Section \ref{subsec:ch_mcnv_languages_casanova_semantics} we described the memory representation of a Casanova entity in Metacasanova and how the rules of an entity are updated. What was skipped for brevity was to describe how the system behind Casanova updates the entities of a Casanova program. As briefly described in Section \ref{sec:ch_mcnv_languages_casanova_language}, the structure of a program in Casanova is a tree, whose root is a special entity called \textit{World}. The world entity can contain fields that are instances of other entities as well, thus creating an additional level in the program tree. This is, of course, allowed also for regular entities, thus the height of the tree is arbitrary. Each entity might contain a set of rules that describe its dynamic behaviour with respect to time, thus they are updated by considering the time difference between the current and the previous update (\textit{frames}). Updating a rule is enforced by traversing the entity tree, thus when the field of an entity is an entity itself, the system will first update the entity instance contained in the field and then update the current entity. Casanova also natively supports lists and tuples as valid data types, and this requires to handle their update as well: a tuple or a list might themselves contain instances of entities that must be updated accordingly. In the case of a list of entities, we must run the update on each element, while in the case of a tuple we must examine each element and check whether it requires an update or not. This process is called \textit{update traversal} and might become very complex, as list and tuples can be combined together in infinite many ways, thus the process recursively calls the proper update depending on the type of the field.
 
 At this purpose, let us consider a simulation consisting of an arbitrary amount of physical bodies, in the fashion of what was used in Section \ref{subsec:ch_functors_casanova_example}. The world entity will contain a list of physical bodies that are updated during the simulation. The Casanova code that described such a simulation is the following:
 
@@ -314,7 +314,7 @@ In this simulation, the update starts from \texttt{World}. This entity contains 
 \end{figure}
 
 \subsection{Update in Metacasanova}
-\label{subsec:ch+networking_update_metacasanova}
+\label{subsec:ch_networking_update_metacasanova}
 The update mechanism described in Section \ref{subsec:ch_networking_casanova_update} can of course be integrated in the implementation of Casanova described in Chapter \ref{ch:languages}. In order to do so, we should dynamically look into the dictionary at each update, extract the field and perform an update according to the following cases:
 
 \begin{itemize}[noitemsep]
@@ -668,3 +668,93 @@ Let us now consider the following physical body instance
 
 \noindent
 and let us see what happens when we call the \texttt{update} function of the \texttt{BodyUpdater}. The function will invoke the tuple updater which returns the tuple as it is, set the field to this value (which does not change), and recursively call \texttt{update} from the next updater. The following two updaters are the same, so the effect is identical. The updater for the position rule will instead run the \texttt{update} code of the module instance generated by the rule functor and update the field of the record accordingly. This will generate a record instance containing the field with the updated value. This new record instance is then recursively passed to the next \texttt{update} call where the \texttt{update} of the module instance generated by the rule functor for velocity is invoked. The updated record is then returned in an analogous way. At this point the \texttt{update} of the module instance generated by \texttt{NoUpdate} is called, which simply returns the record as it is.
+
+We now repeat the same process to define the world entity. We thus define a functor to build the record for the world, which contains a single field that is a list of physical bodies.
+
+\begin{lstlisting}
+Functor "WorldType" : Record
+
+RecordField "PhysicalBodies" List[PhysicalBodyType] EmptyRecord => world
+---------------------------------
+WorldType => world
+\end{lstlisting}
+
+\noindent
+The updater for the world simply uses the \texttt{BodyUpdater} functor generated above to build a record instance that contains the update function for a physical body. It then builds a list updater passing as argument \texttt{BodyUpdater} (note that this is correct as this functor accepts a record updater as parameter).
+
+\begin{lstlisting}
+Functor "WorldUpdater" : RecordUpdater
+
+UpdateEntity BodyUpdater => bodyUpdater
+UpdateList bodyUpdater => listUpdater
+UpdateField listUpdater WorldType "PhysicalBodies" => fieldUpdater
+NoUpdate WorldType => zero
+Update fieldUpdater zero => worldUpdater
+--------------------------------------
+WorldUpdater => worldUpdater
+\end{lstlisting}
+
+\noindent
+The rule for the functor creates in its first premise an entity updater by passing the updater for the physical body. This updater allows to update each element in the list of physical bodies stored in the world entity. The second premise creates an updater for the whole list by passing the entity updater created at the previous step. This updater instantiates a module that is able to traverse the whole list and update each element by means of the entity updater. The third premise creates a field updater for \texttt{PhysicalBodies} by using the list updater, and the fourth creates as usual a \texttt{NoUpdate} to stop the update process. Finally, the last premise assembles the two field updaters into a record updater for the world entity. At this point, in order to update the world entity, it is enough to call this functor and access the \texttt{update} function for the world record.
+
+We think it is worthy of note that all the updaters presented so far are built at compile time and that the only component that will be generated in the target code is the \texttt{update} function. This means that we get rid of all the dynamic lookups, described in Section \ref{subsec:ch_networking_update_metacasanova} in the entity field introduced in Section  to inspect the type of the field itself and decide whether or not we require to perform the recursive update process on it. The update traversal with functors is instead generated at compile time, thus the structure of the update is pre-computed during the compilation step, and its execution delegated at runtime. This is possible because the structure of the update does not change with the execution of the program.
+
+\subsection{Interruptible rules with functors}
+\label{subsec:ch_networking_interruptible_rules}
+With what shown so far, we can implement the update traversal of the fields of a Casanova entity and we can implement Casanova rules as updaters that act on the fields of an entity. However, we have not described yet how to implement the mechanism of rule interruption described in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}. At this purpose, we have to refactor the implementation of the updaters seen so far: we assume that now the record field of a Casanova entity contains not only the value but a list of statements that represent the continuation of its rule, which represents the code left to execute after the rule is paused. The continuation will have type \texttt{stmt}, where \texttt{stmt} is a meta-data structure representing a statement in Casanova like shown in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}. The reader should keep into account that we can compose a sequence of statements through the \texttt{;} operator introduced in the same section. The field updater must be refactored as well: its update function now does not only return the updated field value but also the continuation of the rule:
+
+\begin{lstlisting}
+Module "FieldUpdater" => (r : Record) => (name : string) : FieldUpdater {
+  Functor "GetRecord" : Record
+  Func "update" -> r.RecordType -> float : Tuple[(GetFieldType r name),stmt]
+}
+\end{lstlisting}
+
+\noindent
+In this way we are correctly able to generate the declaration of the update function depending on the type of the field and, at the same time, to store the updated continuation of the rule. We now define a new functor called \texttt{Coroutine} that generates an instance of a field updater. The instantiation of the module should also contain a function \texttt{tick} that is able to correctly process the continuation of the rule and, when its body has been fully evaluated, to restart from the beginning. It should also contain a definition of all the Casanova statements introduced in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}. For brevity here we show only how to re-implement \texttt{wait}, \texttt{when}, and \texttt{yield}, all the others can be adjusted analogously to those. The following is the declaration of the Coroutine functor:
+
+\begin{lstlisting}
+Functor "Coroutine" => Record => string => stmt : FieldUpdater
+\end{lstlisting}
+
+\noindent
+This functor takes the record and the name of the fields the rule is updating, as well as a list of statements that represents the body of the coroutine and produces a field updater enriched with the utility functions mentioned above (remember that a module instance must contain the implementation of at least all the declarations provided in the module declaration). From now on we provide the snippets of the implementations in the module in isolation, but the reader should keep in mind that they are defined within the scope of the module instance. The first function that we implement is \texttt{update}. This function is almost identical from the version described in Section \ref{subsec:ch_networking_simulation}, but this time the getter of the field will return both the value and the continuation of the rule built so far. We then call a \texttt{tick} function (see below) that is able to process the continuation of the rule. This function in genera produces a pair containing the updated field value (when we encounter a \texttt{yield} statement) and the new continuation produced by the current execution of the rule. Note that the implementation of \texttt{update} is correctly able to return a pair because it has been redefined above in the new version of \texttt{FieldUpdater}.
+
+\begin{lstlisting}
+GetField r name => getter
+getter.get body -> (v,k)
+tick entity k dt -> (v',k')
+-------------------------
+update entity dt -> (v',k')
+\end{lstlisting}
+
+\noindent
+The \texttt{tick} function takes a record instance as input, a list of statements, and \texttt{dt} and returns the pair of value and continuation produced by the evaluation of the rule body. The function calls \texttt{eval\tu s} that is similar to the homonym function presented in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}, with the difference that it now returns a pair of value field and list of statements compatible with the required result.
+
+\begin{lstlisting}
+Func "tick" -> r.RecordType -> List[stmt] -> float : Tuple[r.RecordType,List[stmt]]
+Func "eval_s" -> r.RecordType -> stmt -> float : Tuple[r.RecordType,stmt]
+
+
+eval_s entity stmts dt -> res
+--------------------------
+tick entity nop dt -> res
+
+eval_s entity statements dt -> (v,(atomic;k))
+tick entity k dt -> res
+-----------------------------------
+tick entity statements dt -> res
+
+eval_s entity statements dt -> res
+-----------------------
+tick entity statements dt -> res
+\end{lstlisting}
+
+\noindent
+The function \texttt{tick} comes in three versions: the first one is executed when the rule has completed its execution and the body of the original rule should be rebuilt. In this case the function simply calls \texttt{eval\tu s} with the statements provided as argument of the functor \texttt{Coroutine}. The second one is when we evaluate an atomic statement: at this purpose we introduce a placeholder statement \texttt{atomic} that is returned in the continuation after an atomic statement has been evaluated. This case forces \texttt{tick} to be immediately re-evaluated without interrupting the rule execution. The third case happens when the rule evaluation has previously produced a continuation. In this case we pass the continuation instead of the original body of the rule to \texttt{eval\tu s}.
+
+\subsection{Evaluation}
+\label{subsec:ch_networking_evaluation}
+
+\section{Casanova Networking Primitives with Functors}
+\label{sec:ch_networking_functor_networking}
