@@ -148,11 +148,12 @@ PositionRule => FieldUpdater PhysicalBodyType "Position" {
   ---------------------
   GetRecord => PhysicalBodyType
 
-  getPos body -> position
-  getVel body -> velocity
-  << position + velocity * dt >> -> position'
+  getPos body -> (xp,yp)
+  getVel body -> (xv,yv)
+  <<xp + xv * dt>> -> xp'
+  <<yp + yv * dt>> -> yv'
   ---------------------------
-  update body dt -> position'
+  update body dt -> (xp',yp')
 }
 
 --------------------------------
@@ -161,11 +162,12 @@ VelocityRule => FieldUpdater PhysicalBodyType "Velocity" {
   --------------------
   GetRecord => PhysicalBodyType
 
-  getVel body -> velocity
-  getAcc body -> acceleration
-  << velocity + acceleration * dt >> -> velocity'
+  getVel body -> (xv,yv)
+  getAcc body -> (xa,ya)
+  << xv + xa * dt >> -> xv'
+  << yv + ya * dt >> -> yv'
   ---------------------------
-  update body dt -> velocity'
+  update body dt -> (xv',yv')
 }
 
 UpdateTuple FloatUpdater FloatUpdater => vectorUpdater
