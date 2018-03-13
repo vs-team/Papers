@@ -715,6 +715,12 @@ In this way we are correctly able to generate the declaration of the update func
 
 \begin{lstlisting}
 Functor "Coroutine" => Record => string => stmt : FieldUpdater
+
+----------------------------
+Coroutine r name stmts => FieldUpdater r name {
+  ... 
+  // see the implementation below
+}
 \end{lstlisting}
 
 \noindent
@@ -752,6 +758,118 @@ tick entity statements dt -> res
 
 \noindent
 The function \texttt{tick} comes in three versions: the first one is executed when the rule has completed its execution and the body of the original rule should be rebuilt. In this case the function simply calls \texttt{eval\tu s} with the statements provided as argument of the functor \texttt{Coroutine}. The second one is when we evaluate an atomic statement: at this purpose we introduce a placeholder statement \texttt{atomic} that is returned in the continuation after an atomic statement has been evaluated. This case forces \texttt{tick} to be immediately re-evaluated without interrupting the rule execution. The third case happens when the rule evaluation has previously produced a continuation. In this case we pass the continuation instead of the original body of the rule to \texttt{eval\tu s}.
+
+The function \texttt{eval\tu s} is very similar to its old counterpart, but this time it returns the pair of value and continuation resulting from the evaluation of the first statement in the current rule continuation. In the case of an empty continuation (the only statement is \texttt{nop}) then we return an empty continuation. The field of the value is unchanged so we use its getter to retrieve the value an return it in the result.
+
+\begin{lstlisting}
+GetField r name => getter
+getter.get entity -> (v,cont)
+-------------------------------
+eval_s entity nop dt -> (v,nop)
+\end{lstlisting}
+
+We now proceed to describe how \texttt{wait} and \texttt{yield} behaves. \texttt{wait} as usual simply checks whether the timer has elapsed. If that is the case, then it returns the continuation preceded by an \texttt{atomic} statement to force the immediate re-evaluation in \texttt{tick}. Otherwise it updates the timer by subtracting \texttt{dt} seconds and builds another \texttt{wait} statements that is placed in the continuation. In both cases the statement returns the current value of the field the rule is updating because it is untouched in the semantics of \texttt{wait}. Note that we use the function \texttt{eval} already described in the first implementation of Casanova in Metacasanova. The behaviour of this function is exactly the same, except that now, if we need to retrieve the value of a specific field for the computation of the expression result, we can use the \texttt{GetField} functor to build the appropriate getter and thus save on performance.
+
+\begin{lstlisting}
+Data "wait" -> Expr : stmt
+
+eval entity expr -> t
+t <= 0.0
+GetField r name => getter
+getter.get entity -> (v,cont)
+---------------------------------------------
+eval_s entity (wait expr;k) dt => (v,(atomic;k))
+
+eval entity expr -> t
+t > 0.0
+GetField r name => getter
+getter.get entity -> (v,cont)
+---------------------------------------------
+eval_s entity (wait t;k) dt => (v,(wait(t - dt);k))
+\end{lstlisting}
+
+\noindent
+Note that the correct \texttt{getter} is generated at compile time, so the overhead of accessing the field value is minimal as shown in Section \ref{sec:ch_functors_evaluation}. The statement \texttt{when} behaves in the very same way, except that this time 
+
+
+Finally \texttt{yield} simply evaluates the expression whose value is used to set the field and then returns it in the result of the evaluation. Note that the statement evaluation does not set the field itself, but as seen before it delegates this operation to the record updater. This is because the result of calling the setter on a record returns the updated record instance and not a value compatible with the field. Note also that the evaluation of \texttt{yield} does not produce \texttt{atomic} like for \texttt{wait} because according to Casanova semantics the \texttt{yield} stops the rule execution for one frame.
+
+\begin{lstlisting}
+eval entity expr -> v
+--------------------------------
+eval_s (yield expr;k) dt -> (v,k)
+\end{lstlisting}
+
+\noindent
+It is worthy of note that, having placed the semantics of Casanova in a module instantiation, the language is able to build ad-hoc semantics for each specific field that we need to update through the rule. In other words, calling the coroutine functor with a specific field produces a different version of the language semantics at compile time, where the statements that need to access the value of the field contain directly the getter of that field generated at run-time. This allows us to incorporate the benefits of the record lookup optimization described in Chapter \ref{ch:functors} in the language semantics.
+
+The final modification that we need to implement is on the record updater. The record updater now receives the pair of field value and rule continuation that must be stored in the field after its update. The updater uses the new generated pair to update both the field value and its rule continuation. This continuation will be used at the next update to evaluate the remaining part of the rule
+
+\begin{lstlisting}
+fieldUpdater.GetRecord => r
+---------------------------
+Update fieldUpdater nextUpdater => RecordUpdater r {
+
+  r.RecordType => recordType
+  ------------------------
+  RecordType => recordType
+
+  SetField r name => setter
+  fieldUpdater.update rec dt -> (v,k)
+  setter.set rec (v,k) -> rec'
+  nextUpdater.update rec' dt -> updatedRecord
+  ----------------------------
+  update rec dt -> updatedRecord
+}
+\end{lstlisting}
+
+\subsubsection{Multiple rules updating the Same Field and Local variables}
+To conclude this section we want to point out that, in the implementation of interruptible rules described above, we implicitly make the assumption that only one rule is updating each field of the record. Indeed the rule continuation is saved in the field itself, thus if multiple rules are affecting the same field we would need to store their continuations separately, which is not possible in the current implementation. A naive approach would be to allow to store a list of statements, one for each rule acting on that field, where each element is the continuation of a specific rule. This approach affects the performance because we would need to iterate the whole list every time we need to update a rule. Since the number of rules updating a field does not change at run time, we can instead use a record to store their continuations whose structure is provided at compile time. In this way it will be possible to retrieve the continuation of a rule just by using a getter that is generated at compile time. Here we just briefly sketch the implementation for brevity. A schematic representation of the implementation can also be seen in Figure \ref{fig:ch_networking_interruptible_rules}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{Figures/chapter_networking/interruptible_rules}
+  \caption{Schematic representation of the implementation of the interruptible rules}
+  \label{fig:ch_networking_interruptible_rules}
+\end{figure}
+
+A field of the entity record must be adapted now to contain not only the field value, but a record instance used to store the continuations of the Casanova rules affecting that field. Since a record requires a name for each field, we can expand the coroutine functor to take a string representing an identifier for each rule:
+
+\begin{lstlisting}
+Functor "Coroutine" => string => Record => string => stmt : FieldUpdater
+
+
+---------------------------
+Coroutine ruleId r name => FieldUpdater r name {
+  ...
+}
+\end{lstlisting}
+
+\noindent
+Now the first string in the declaration of the functor represents the rule identifier, while the other arguments have the same semantics (record and field of the record the rule can modify). When a Casanova statement requires to store the continuation it can use \texttt{ruleId} to build the setter for the record field of the continuation record. It then calls the function \texttt{set} from the setter module instance to save the continuation of each rule. In this way every rule acting on the record is able to store separately its continuation in the continuation record. As an example, we provide below the evaluation rule for the \texttt{wait} statement that updates the continuation in this implementation:
+
+\begin{lstlisting}
+eval entity expr -> t
+t > 0.0
+GetField r name => getter
+getter.get entity -> (v,cont)
+SetField cont ruleId => continuationSetter
+continuationSetter.set (wait(t - dt);k) -> cont'
+---------------------------------------------
+eval_s entity (wait t;k) dt => (v,cont')
+\end{lstlisting}
+
+\noindent
+Another aspect that has not been considered yet is how to define variables local to the rule (local bindings). Since the set of local bindings is known at compile time, we can modify the continuation record to store not only the continuation itself, but also the state of the local bindings as record of bindings. In this way an element of the continuation record, that we can now call rule state, stores not only the statements of the rule left to evaluate but also the state of the local bindings. When we need to read the value of a binding or update it, we can again use a getter or setter by accessing the rule state and getting or setting the appropriate field for the binding from the binding record. A schematic representation of this implementation can be seen in Figure \ref{fig:ch_networking_interruptible_rules_with_state}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{Figures/chapter_networking/interruptible_rules_with_state}
+  \caption{Schematic representation of the implementation of interruptible rules with local bindings}
+  \label{fig:ch_networking_interruptible_rules_with_state}
+\end{figure}
+
+As final remark, we point out that the use of records to store the rule continuations and local bindings show how the record optimization introduced in Chapter \ref{ch:functors} can also be adapted to implement a generic symbol table to store various information regarding the language elements that are needed during the execution of the generated code, thus making this approach extremely flexible for different situations.
 
 \subsection{Evaluation}
 \label{subsec:ch_networking_evaluation}

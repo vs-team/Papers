@@ -234,7 +234,7 @@ Functor "Coroutine" => Record => string => stmt : FieldUpdater
 -----------------------
 Coroutine r name stmts => FieldUpdater r name {
 
-  Func "tick" -> r.RecordType -> List[stmt] -> float : Tuple[r.RecordType,stmt]
+  Func "tick" -> r.RecordType -> stmt -> float : Tuple[r.RecordType,stmt]
   Func "eval_s" -> r.RecordType -> stmt -> float : Tuple[r.RecordType,stmt]
 
   -----------------------------
@@ -251,17 +251,47 @@ Coroutine r name stmts => FieldUpdater r name {
   tick body stmt dt -> (res,updatedStatements)
 
 
-  -------------------------
-  eval_s nop nop dt -> (v,nop)
-
-  addStmt b k -> cont
-  eval_s a cont ctxt dt -> (v,k)
+  GetField r name => getter
+  getter.get entity -> (v,cont)
   -------------------------------
-  eval_s (a;b) k ctxt dt -> (v,k)
+  eval_s entity nop dt -> (v,nop)
+
+  t <= 0.0
+  GetField r name => getter
+  getter.get entity -> (v,cont)
+  ---------------------------------------------
+  eval_s entity (wait t;k) dt => (v,(atomic;k))
+
+  t > 0.0
+  GetField r name => getter
+  getter.get entity -> (v,cont)
+  ---------------------------------------------
+  eval_s entity (wait t;k) dt => (v,(wait(t - dt);k))
+
+  eval entity expr -> v
+  ---------------------------
+  eval_s entity (yield expr;k) dt -> (v,k)
 
   GetField r name => getter
-  getter.get body -> (v,k)
-  tick body k dt -> (v',k')
+  getter.get entity -> (v,k)
+  tick entity k dt -> (v',k')
   -------------------------
-  update body dt -> (v',k')
+  update entity dt -> (v',k')
+}
+
+
+fieldUpdater.GetRecord => r
+---------------------------
+Update fieldUpdater nextUpdater => RecordUpdater r {
+
+  r.RecordType => recordType
+  ------------------------
+  RecordType => recordType
+
+  SetField r name => setter
+  fieldUpdater.update rec dt -> (v,k)
+  setter.set rec (v,k) -> rec'
+  nextUpdater.update rec' dt -> updatedRecord
+  ----------------------------
+  update rec dt -> updatedRecord
 }
