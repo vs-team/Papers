@@ -1,4 +1,4 @@
-In this section we introduce the basic concepts of the implementation of multiplayer game development for Casanova 2. This implementation aims to relieve the programmer of the complexity of hard-coding the network implementation for an online game, while preserving encapsulation in code. We show that code analysis is required to generate the appropriate network primitives to send and receive data. Finally, we present a simple multiplayer game to show a concrete example.
+In Chapter \ref{ch:functors} we presented a language extension for Metacasanova that allows to drastically improve the performance of the generated code with functors. In this chapter we show how this language extension can be used to improve the performance and further extend the domain-specific language Casanova implemented in Metacasanova with language primitives for online multiplayer game development. We start this chapter by introducing the problem of developing an online multiplayer game and the existing approaches. We then propose a language extension for Casanova to integrate primitives to support network data synchronization that should aid the developer of online multiplayer games, which has also been peresented in \cite{DIGIACOMO201725}. We then proceed to show how to implement the entity update for Casanova by using functors in Metacasanova and evaluate its performance gain. We conclude the chapter by showing that functors can be used to further extend Casanova in Metacasanova with the same networking primitives that we had earlier introduced.
 
 \section{Introduction}
 Adding multi-player support to games is a highly desirable feature. By letting players interact with each other, new forms of gameplay, cooperation, and competition emerge without requiring any additional design of game mechanics \cite{granberg2014david}. This allows a game to remain fresh and playable, even after the single player content has been exhausted. For example, consider any modern AAA (AAA refers to games with the highest development budgets\cite{wolf2008video}) game such as \textit{Halo 4}. After months since its initial release, most players have exhausted the single player, narrative-driven campaign. Nevertheless the game remains heavily in use thanks to multiplayer modes, which in effect extended the life of the game significantly. This phenomenon is even more evident in games such as \textit{World of Warcraft} or \textit{EVE}, where multiplayer is the only modality of play and there is no single-player experience.
@@ -116,6 +116,7 @@ Let us consider a simple shooter game where each player controls a space ship. P
 \end{enumerate}
 
 \section{Implementation}
+\label{sec:ch_networking_casanova_networking_primitives}
 Each of the scenarios described above requires specific language extensions. These extensions identify connection, ownership (master/slave), and various send and receive primitives. In this section, we introduce each primitive by using a multiplayer game example \footnote{The game source code and executable can be found at \url{https://github.com/vs-team/casanova-mk2/wiki/Networking-extension}}. We now give an implementation of the shooter game presented above, using the extended version of Casanova 2 with network primitives. 
 
 The \texttt{world} contains a list of ships controlled by each player.
@@ -325,7 +326,7 @@ The update mechanism described in Section \ref{subsec:ch_networking_casanova_upd
 \end{itemize}
 
 \noindent
-The cases above are translated into four rules in Metacasanova. The first three will use pattern-matching to decide whether the examined field is a list, a tuple, or an entity. The fourth one is a default rule that simply returns the field as it is. Moreover, each entity should carry with it a list of rules that are updated as well, where all the get and set operations require dynamic lookups in the symbol table of the entity.
+The cases above are translated into four rules in Metacasanova. The first three will use pattern-matching to decide whether the examined field is a list, a tuple, or an entity. The fourth one is a default rule that simply returns the field as it is. Moreover, each entity should store a list of rules that are updated as well, where all the get and set operations require dynamic lookups in the symbol table of the entity.
 
 Repeating the traversal of the entity tree at each update at runtime is unnecessary since
 
@@ -835,14 +836,14 @@ To conclude this section we want to point out that, in the implementation of int
   \label{fig:ch_networking_interruptible_rules}
 \end{figure}
 
-A field of the entity record must be adapted now to contain not only the field value, but a record instance used to store the continuations of the Casanova rules affecting that field. Since a record requires a name for each field, we can expand the coroutine functor to take a string representing an identifier for each rule:
+A field of the entity record must be adapted now to contain not only the field value, but a record instance used to store the continuations of the Casanova rules affecting that field. Since a record requires a name for each field, we can expand the coroutine functor to take a string representing an identifier for each rule and the continuation record itself:
 
 \begin{lstlisting}
-Functor "Coroutine" => string => Record => string => stmt : FieldUpdater
+Functor "Coroutine" => string => Record => Record => string => stmt : FieldUpdater
 
 
 ---------------------------
-Coroutine ruleId r name => FieldUpdater r name {
+Coroutine ruleId continuation r name => FieldUpdater r name {
   ...
 }
 \end{lstlisting}
@@ -916,3 +917,138 @@ To conclude, we want to point out that this evaluation is a worst-case scenario,
 
 \section{Casanova Networking Primitives with Functors}
 \label{sec:ch_networking_functor_networking}
+In the previous chapter we described in detail how to implement the logic of the Casanova update traversal with functors in Metacasanova. We also further extended its first implementation with interruptible rules. In this section we show a sketch of how to use functors to implement the networking primitives introduced in Casanova in Section \ref{sec:ch_networking_casanova_networking_primitives}. In what follows we assume that the data transfer primitives are defined in an external library that we assume it is given, since the same applies to the implementation presented in Section \ref{sec:ch_networking_casanova_networking_primitives}, and the send and receive primitives simply generate calls to this library.
+
+\subsection{Network Record}
+\label{subsec:ch_networking_network_record}
+In order to implement the logic of master/slave entities we need to store additional information in a Casanova entity to know if its instance has been created locally (thus being master). At this purpose we use a functor \texttt{NetworkRecord} to create an instance of a record module to store this information. This functor takes as input a record representing a Casanova entity and builds a new record instance by adding a boolean field used to store the ownership status.
+
+\begin{lstlisting}
+Functor "NetworkRecord" => Record : Record 
+
+RecordField "__isLocal" bool r => r'
+--------------------------------------
+NetworkRecord r => networkRecord
+\end{lstlisting}
+
+\subsection{Connection}
+\label{subsec:ch_networking_connection}
+In order to implement the semantics of a connecting rule we have to modify the field (we rely on the implementation with the record seen in Figure \ref{fig:ch_networking_interruptible_rules}) to store not only the rule continuation but also its connection state. Note that, with this change, we have to change the return type of \texttt{tick} as well, because now the field is a triplet and not a pair. We also define a functor \texttt{ConnectingCoroutine} that instantiate a field updater sharing the same implementation that we generate from a normal coroutine, except for the logic of the function \texttt{update}. 
+
+\begin{lstlisting}
+Functor "ConnectingCoroutine" => string => Record => Record => string => stmt : FieldUpdater
+\end{lstlisting}
+
+\noindent
+This time \texttt{update} has three evaluation rules. The first one creates a getter to retrieve the current field. It then calls the getter generated at the previous step to read the value of the connection status stored in the field. The following clause performs a check on the connection status. If the value is true then the clause fails and thus the rest of the premises is not executed because the whole evaluation rule fails and we skip to the next evaluation rule. If the value is false then we run the code of the rule. At this point if the continuation after the rule update is empty then the connecting rule has terminated its execution and we set to \texttt{true} the connection status. 
+
+\begin{lstlisting}
+----------------------------------
+ConnectingCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+  ...
+  
+  
+  GetField r field => getter
+  GetField continuation ruleName => contGetter
+  getter.get entity -> (v,(connected,cont))
+  connected = false
+  tick entity k dt -> (v',(c',k'))
+  contGetter.get k' -> nop
+  --------------------------
+  update entity dt -> (v',(true,k'))
+  
+  ...
+}
+\end{lstlisting}
+
+\noindent
+The second evaluation rule differs from the first only in the fact that it is executed when the Casanova rule returns a non-empty continuation. In this case we do not set the connection status to \texttt{true} because the connecting rule has not terminated its execution yet.
+
+\begin{lstlisting}
+----------------------------------
+ConnectingCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+  ...
+  
+  
+  GetField r field => getter
+  GetField continuation ruleName => contGetter
+  getter.get entity -> (v,(connected,cont))
+  connected = false
+  tick entity k dt -> (v',(c',k'))
+  --------------------------
+  update entity dt -> (v',(c',k'))
+  
+  ...
+}
+\end{lstlisting}
+
+\noindent
+The third and final case of the evaluation rule is when the connection status has already been set to \texttt{true}; this means that the Casanova rule has already been evaluated completely during a previous update and does not need to be executed again.\\
+
+\begin{lstlisting}
+----------------------------------
+ConnectingCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+  ...
+  
+
+  GetField r field => getter
+  getter.get entity -> (v,(connected,continuation))
+  connected = true
+  getter.get entity -> (v,k)
+  ------------------------
+  update entity dt -> (v,k)
+  
+  ...
+
+} 
+\end{lstlisting}
+
+\noindent
+In the case of a connected rule, we need to be able to detect a new connection. This can be done in different ways: one possible solution is that when a client sends its data during the \texttt{connecting} phase, it sends also information about the connection. This step is handled at low level by the connection primitives. A Casanova rule marked as \texttt{connected} starts with a \texttt{wait} statement that checks if a new client has connected to the system. For the remaining part the rule behaves like a normal coroutine. Of course when the rule body has been completely evaluated, then it stops again until a new client connects, since the whole body will be reconstructed and thus also the \texttt{wait} statement
+
+\subsection{Local and Remote Entities}
+\label{subsec:ch_networking_local_and_remote}
+The behaviour of master and slave rules can be modelled through dedicated functors that generate different instances for the field updater, in the same fashion as the \texttt{connecting} rule. We thus define two new functors \texttt{MasterCoroutine} and \texttt{SlaveCoroutine}. \texttt{MasterCoroutine} generates a field updater that has two different evaluation rules for \texttt{update}. The first one builds a getter for the field \texttt{\tu\tu isLocal}. It then uses it to read its value from the current entity and uses a clause to check whether the entity is local. At this point, if the entity is not local, the whole evaluation rule fails and the next one is run. Otherwise the rule body is run and the field updated accordingly to its specific code.
+
+\begin{lstlisting}
+Functor "MasterCoroutine" => string => Record => Record => string => stmt : FieldUpdater
+
+----------------------------------------
+ MasterCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+   ...
+   
+   GetField r "__isLocal" => localGetter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = true
+   tick entity k dt -> (v',(c',k'))
+   ------------------------------
+   update entity dt -> (v',(c',k'))
+   
+   ...
+\end{lstlisting}
+
+\noindent
+The second evaluation rule 
+\begin{lstlisting}
+Functor "MasterCoroutine" => string => Record => Record => string => stmt : FieldUpdater
+
+----------------------------------------
+ MasterCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+   ...
+   
+   GetField r "__isLocal" => localGetter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = true
+   tick entity k dt -> (v',(c',k'))
+   ------------------------------
+   update entity dt -> (v',(c',k'))
+   
+   GetField r "__isLocal" => localGetter
+   GetField r field => getter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = false
+   getter.get entity -> (v,(c,k))
+   ------------------------------
+   update entity dt -> (v,(c,k))
+ }
+\end{lstlisting}

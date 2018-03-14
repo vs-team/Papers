@@ -297,3 +297,53 @@ Update fieldUpdater nextUpdater => RecordUpdater r {
   ----------------------------
   update rec dt -> updatedRecord
 }
+
+//NETWORKING
+Functor "NetworkRecord" => Record : Record 
+Functor "ConnectingCoroutine" => string => Record => Record => string => stmt : FieldUpdater
+Functor "MasterCoroutine" => string => Record => Record => string => stmt : FieldUpdater
+Functor "SlaveCoroutine" => string => Record => Record => string => stmt : FieldUpdater
+
+RecordField "__isLocal" bool r => r'
+--------------------------------------
+NetworkRecord r => networkRecord
+
+
+
+----------------------------------
+ConnectingCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+  ...
+  
+  
+  GetField r field => getter
+  GetField continuation ruleName => contGetter
+  getter.get entity -> (v,(connected,cont))
+  connected = false
+  tick entity k dt -> (v',(c',k'))
+  contGetter.get k' -> nop
+  --------------------------
+  update entity dt -> (v',(true,k'))
+
+  GetField r field => getter
+  GetField continuation ruleName => contGetter
+  getter.get entity -> (v,(connected,cont))
+  connected = false
+  tick entity k dt -> (v',(c',k'))
+  --------------------------
+  update entity dt -> (v',(c',k'))
+
+  GetField r field => getter
+  getter.get entity -> (v,(connected,continuation))
+  connected = true
+  getter.get entity -> (v,k)
+  ------------------------
+  update entity dt -> (v,k)
+
+}
+
+----------------------------------------
+ MasterCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+   ...
+
+   
+ }
