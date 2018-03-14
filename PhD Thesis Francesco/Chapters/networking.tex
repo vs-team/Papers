@@ -1,6 +1,6 @@
 In Chapter \ref{ch:functors} we presented a language extension for Metacasanova that allows to drastically improve the performance of the generated code with functors. In this chapter we show how this language extension can be used to improve the performance and further extend the domain-specific language Casanova implemented in Metacasanova with language primitives for online multiplayer game development. We start this chapter by introducing the problem of developing an online multiplayer game and the existing approaches. We then propose a language extension for Casanova to integrate primitives to support network data synchronization that should aid the developer of online multiplayer games, which has also been peresented in \cite{DIGIACOMO201725}. We then proceed to show how to implement the entity update for Casanova by using functors in Metacasanova and evaluate its performance gain. We conclude the chapter by showing that functors can be used to further extend Casanova in Metacasanova with the same networking primitives that we had earlier introduced.
 
-\section{Introduction}
+\section{Multi-player Support in Games}
 Adding multi-player support to games is a highly desirable feature. By letting players interact with each other, new forms of gameplay, cooperation, and competition emerge without requiring any additional design of game mechanics \cite{granberg2014david}. This allows a game to remain fresh and playable, even after the single player content has been exhausted. For example, consider any modern AAA (AAA refers to games with the highest development budgets\cite{wolf2008video}) game such as \textit{Halo 4}. After months since its initial release, most players have exhausted the single player, narrative-driven campaign. Nevertheless the game remains heavily in use thanks to multiplayer modes, which in effect extended the life of the game significantly. This phenomenon is even more evident in games such as \textit{World of Warcraft} or \textit{EVE}, where multiplayer is the only modality of play and there is no single-player experience.
 
 \paragraph{Challenges}
@@ -24,7 +24,7 @@ Networking in games is usually built with either very low-level or very high-lev
 
 High-level protocols such as RDP, reflection-based serialization, frameworks (such as Pastry, netty.io), etc. can also be used. These methods greatly simplify networking code, but are rarely used in complex games and scenarios. The requirements of performance mean that many high-level protocols or mechanisms are insufficient, either because they are too slow computationally (especially when they rely on reflection or events) or because they transmit too much data across the network.
 
-\section{Motivation}
+\section{Motivation for a Language-based Solution}
 
 To avoid the problems of both existing approaches, we propose a middle ground. We observe that networking fundamental abstractions upon which the actual code and protocols are built do not vary substantially between games, even though the code that needs to be written to implement them does. The similarity comes from the fact that the ways to serialize, synchronize, and predict the behaviour of entities are relatively standard and described according to a limited series of general ideas. The difference, on the other hand, comes from the fact that low-level protocols need to be adapted to the specific structure of the game world and the data structures that make it up. Until now, common primitives have not been syntactically and semantically captured inside existing domain-specific languages for game development \cite{bhatti2009domain}. Using the right level of abstraction, these general patterns of networking can be captured, while leaving full customization power in the hand of the developer (to apply such primitives to any kind of game).
 
@@ -51,7 +51,7 @@ In the following we discuss some existing networking tools used in game developm
 
 The Unity Engine uses a similar approach based on networking components, synchronized at every frame, and RPC's to define custom synchronization events.
 
-Unfortunately, customization comes at the cost of the level of detail that developers must face. Using RPC's require a deep knowledge of the engine and writing lots of code, as discussed in Section \ref{Common issues}.
+Unfortunately, customization comes at the cost of the level of detail that developers must face. Using RPC's require a deep knowledge of the engine and writing lots of code. 
 
 In this section we introduce a small example that addresses the requirements of designing a multiplayer game. We then present an architecture that aims to fulfil these requirements.
 
@@ -117,9 +117,7 @@ Let us consider a simple shooter game where each player controls a space ship. P
 
 \section{Implementation}
 \label{sec:ch_networking_casanova_networking_primitives}
-Each of the scenarios described above requires specific language extensions. These extensions identify connection, ownership (master/slave), and various send and receive primitives. In this section, we introduce each primitive by using a multiplayer game example \footnote{The game source code and executable can be found at \url{https://github.com/vs-team/casanova-mk2/wiki/Networking-extension}}. We now give an implementation of the shooter game presented above, using the extended version of Casanova 2 with network primitives. 
-
-The \texttt{world} contains a list of ships controlled by each player.
+Each of the scenarios described above requires specific language extensions. These extensions identify connection, ownership (master/slave), and various send and receive primitives. In this section, we introduce each primitive by using a multiplayer game example. We now give an implementation of the shooter game presented above, using the extended version of Casanova 2 with network primitives. The \texttt{world} contains a list of ships controlled by each player.
 \begin{lstlisting}
 world Shooter = {
 Ships  : [Ship]
@@ -714,7 +712,7 @@ Module "FieldUpdater" => (r : Record) => (name : string) : FieldUpdater {
 \end{lstlisting}
 
 \noindent
-In this way we are correctly able to generate the declaration of the update function depending on the type of the field and, at the same time, to store the updated continuation of the rule. We now define a new functor called \texttt{Coroutine} that generates an instance of a field updater. The instantiation of the module should also contain a function \texttt{tick} that is able to correctly process the continuation of the rule and, when its body has been fully evaluated, to restart from the beginning. It should also contain a definition of all the Casanova statements introduced in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}. For brevity here we show only how to re-implement \texttt{wait}, \texttt{when}, and \texttt{yield}, all the others can be adjusted analogously to those. The following is the declaration of the Coroutine functor:
+In this way we are correctly able to generate the declaration of the update function depending on the type of the field and, at the same time, to store the updated continuation of the rule. We now define a new functor called \texttt{Coroutine} that generates an instance of a field updater. The instantiation of the module should also contain a function \texttt{tick} that is able to correctly process the continuation of the rule and, when its body has been fully evaluated, to restart from the beginning. It should also contain a definition of the evaluation rules of all the Casanova statements introduced in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}. For brevity here we show only how to re-implement \texttt{wait}, \texttt{when}, and \texttt{yield}, all the others can be adjusted analogously to those. The following is the declaration of the Coroutine functor:
 
 \begin{lstlisting}
 Functor "Coroutine" => Record => string => stmt : FieldUpdater
@@ -727,7 +725,7 @@ Coroutine r name stmts => FieldUpdater r name {
 \end{lstlisting}
 
 \noindent
-This functor takes the record and the name of the fields the rule is updating, as well as a list of statements that represents the body of the coroutine and produces a field updater enriched with the utility functions mentioned above (remember that a module instance must contain the implementation of at least all the declarations provided in the module declaration). From now on we provide the snippets of the implementations in the module in isolation, but the reader should keep in mind that they are defined within the scope of the module instance. The first function that we implement is \texttt{update}. This function is almost identical from the version described in Section \ref{subsec:ch_networking_simulation}, but this time the getter of the field will return both the value and the continuation of the rule built so far. We then call a \texttt{tick} function (see below) that is able to process the continuation of the rule. This function in genera produces a pair containing the updated field value (when we encounter a \texttt{yield} statement) and the new continuation produced by the current execution of the rule. Note that the implementation of \texttt{update} is correctly able to return a pair because it has been redefined above in the new version of \texttt{FieldUpdater}.
+This functor takes the record and the name of the fields the rule is updating, as well as a list of statements that represents the body of the coroutine and produces a field updater enriched with the utility functions mentioned above (remember that a module instance must contain the implementation of at least all the declarations provided in the module declaration). From now on we provide the snippets of the implementations in the module in isolation, but the reader should keep in mind that they are defined within the scope of the module instance. The first function that we implement is \texttt{update}. This function is almost identical from the version described in Section \ref{subsec:ch_networking_simulation}, but this time the getter of the field will return both the value and the continuation of the rule built so far. We then call a \texttt{tick} function (see below) that is able to process the continuation of the rule. This function in general produces a pair containing the updated field value (when we encounter a \texttt{yield} statement) and the new continuation produced by the current execution of the rule. Note that the implementation of \texttt{update} is correctly able to return a pair because it has been redefined above in the new version of \texttt{FieldUpdater}.
 
 \begin{lstlisting}
 GetField r name => getter
@@ -771,31 +769,28 @@ getter.get entity -> (v,cont)
 eval_s entity nop dt -> (v,nop)
 \end{lstlisting}
 
-We now proceed to describe how \texttt{wait} and \texttt{yield} behaves. \texttt{wait} as usual simply checks whether the timer has elapsed. If that is the case, then it returns the continuation preceded by an \texttt{atomic} statement to force the immediate re-evaluation in \texttt{tick}. Otherwise it updates the timer by subtracting \texttt{dt} seconds and builds another \texttt{wait} statements that is placed in the continuation. In both cases the statement returns the current value of the field the rule is updating because it is untouched in the semantics of \texttt{wait}. Note that we use the function \texttt{eval} already described in the first implementation of Casanova in Metacasanova. The behaviour of this function is exactly the same, except that now, if we need to retrieve the value of a specific field for the computation of the expression result, we can use the \texttt{GetField} functor to build the appropriate getter and thus save on performance.
+We now proceed to describe how \texttt{wait} and \texttt{yield} behaves. \texttt{wait} as usual simply checks whether the timer has elapsed. If that is the case, then it returns the continuation preceded by an \texttt{atomic} statement to force the immediate re-evaluation in \texttt{tick}. Otherwise it updates the timer by subtracting \texttt{dt} seconds and builds another \texttt{wait} statements that is placed in the continuation. In both cases the statement returns the current value of the field the rule is updating because it is untouched in the semantics of \texttt{wait}.
 
 \begin{lstlisting}
-Data "wait" -> Expr : stmt
-
-eval entity expr -> t
 t <= 0.0
 GetField r name => getter
 getter.get entity -> (v,cont)
 ---------------------------------------------
-eval_s entity (wait expr;k) dt => (v,(atomic;k))
+eval_s entity (wait t;k) dt => (v,(atomic;k))
 
-eval entity expr -> t
 t > 0.0
 GetField r name => getter
 getter.get entity -> (v,cont)
+<<t - dt>> -> t'
 ---------------------------------------------
-eval_s entity (wait t;k) dt => (v,(wait(t - dt);k))
+eval_s entity (wait t;k) dt => (v,(wait t';k))
 \end{lstlisting}
 
 \noindent
 Note that the correct \texttt{getter} is generated at compile time, so the overhead of accessing the field value is minimal as shown in Section \ref{sec:ch_functors_evaluation}. The statement \texttt{when} behaves in the very same way, except that this time 
 
 
-Finally \texttt{yield} simply evaluates the expression whose value is used to set the field and then returns it in the result of the evaluation. Note that the statement evaluation does not set the field itself, but as seen before it delegates this operation to the record updater. This is because the result of calling the setter on a record returns the updated record instance and not a value compatible with the field. Note also that the evaluation of \texttt{yield} does not produce \texttt{atomic} like for \texttt{wait} because according to Casanova semantics the \texttt{yield} stops the rule execution for one frame.
+Finally \texttt{yield} simply evaluates the expression whose value is used to set the field and then returns it in the result of the evaluation. Note that we use the function \texttt{eval} already described in the first implementation of Casanova in Metacasanova. The behaviour of this function is exactly the same, except that now, if we need to retrieve the value of a specific field for the computation of the expression result, we can use the \texttt{GetField} functor to build the appropriate getter and thus save on performance. Also note that the statement evaluation does not set the field itself, but as seen before it delegates this operation to the record updater. This is because the result of calling the setter on a record returns the updated record instance and not a value compatible with the field. Note also that the evaluation of \texttt{yield} does not produce \texttt{atomic} like for \texttt{wait} because according to Casanova semantics the \texttt{yield} stops the rule execution for one frame.
 
 \begin{lstlisting}
 eval entity expr -> v
@@ -1008,7 +1003,7 @@ In the case of a connected rule, we need to be able to detect a new connection. 
 
 \subsection{Local and Remote Entities}
 \label{subsec:ch_networking_local_and_remote}
-The behaviour of master and slave rules can be modelled through dedicated functors that generate different instances for the field updater, in the same fashion as the \texttt{connecting} rule. We thus define two new functors \texttt{MasterCoroutine} and \texttt{SlaveCoroutine}. \texttt{MasterCoroutine} generates a field updater that has two different evaluation rules for \texttt{update}. The first one builds a getter for the field \texttt{\tu\tu isLocal}. It then uses it to read its value from the current entity and uses a clause to check whether the entity is local. At this point, if the entity is not local, the whole evaluation rule fails and the next one is run. Otherwise the rule body is run and the field updated accordingly to its specific code.
+The behaviour of master and slave rules can be modelled through dedicated functors that generate different instances for the field updater, in the same fashion as the \texttt{connecting} rule. We thus define two new functors \texttt{MasterCoroutine} and \texttt{SlaveCoroutine}. \texttt{MasterCoroutine} generates a field updater that has two different evaluation rules for \texttt{update}. The first one builds a getter for the field \texttt{\tu\tu isLocal}. It then uses it to read its value from the current entity and uses a clause to check whether the entity is local. At this point, if the entity is not local, the whole evaluation rule fails and the next one is run. Otherwise the Casanova rule body is run and the field updated accordingly to its specific code.
 
 \begin{lstlisting}
 Functor "MasterCoroutine" => string => Record => Record => string => stmt : FieldUpdater
@@ -1028,20 +1023,11 @@ Functor "MasterCoroutine" => string => Record => Record => string => stmt : Fiel
 \end{lstlisting}
 
 \noindent
-The second evaluation rule 
+The second evaluation rule is used when the entity is not local. In this case the semantics of a \texttt{master} rule is simply not to be executed. In order to emulate this behaviour we simply return the content of the field as it is (including all the information on the Casanova rule state).
 \begin{lstlisting}
-Functor "MasterCoroutine" => string => Record => Record => string => stmt : FieldUpdater
-
 ----------------------------------------
  MasterCoroutine ruleName continuation r field stmts => FieldUpdater r field {
    ...
-   
-   GetField r "__isLocal" => localGetter
-   localGetter.get entity -> (isLocal,(c,k))
-   isLocal = true
-   tick entity k dt -> (v',(c',k'))
-   ------------------------------
-   update entity dt -> (v',(c',k'))
    
    GetField r "__isLocal" => localGetter
    GetField r field => getter
@@ -1050,5 +1036,40 @@ Functor "MasterCoroutine" => string => Record => Record => string => stmt : Fiel
    getter.get entity -> (v,(c,k))
    ------------------------------
    update entity dt -> (v,(c,k))
+   
+   ...
  }
 \end{lstlisting}
+
+\noindent
+The \texttt{SlaveCoroutine} functor behaves in an analogous way: it generates two evaluation rules for \texttt{update} that are complementary to those of the \texttt{MasterCoroutine}. In this case the Casanova rule is updated only if the field \texttt{\tu\tu isLocal} is false. If this is not the case the second evaluation rule is triggered and it returns simply the field as it is.
+
+\begin{lstlisting}
+----------------------------------------
+ SlaveCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+   ...
+
+   GetField r "__isLocal" => localGetter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = false
+   tick entity k dt -> (v',(c',k'))
+   ------------------------------
+   update entity dt -> (v',(c',k'))
+
+   GetField r "__isLocal" => localGetter
+   GetField r field => getter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = true
+   getter.get entity -> (v,(c,k))
+   ------------------------------
+   update entity dt -> (v,(c,k))
+   
+   ... 
+ }
+\end{lstlisting}
+
+\noindent
+As a final note we want to point out that, since now the semantics of Casanova is encapsulated into the \texttt{FieldUpdater} instance generated by the \texttt{Coroutine} functor, by introducing different kinds of functors able to build the field updaters for coroutines we would need to duplicate the code of the semantics in the field updater modules instantiated by each functor. This is, of course, not a good a practice and the issue can be circumvented by creating an additional module, which we can call \texttt{CasanovaSemantics}, that contains the semantics of all the statements of Casanova. This module is instantiated in each field updater for coroutines by an utility functor defined internally to each field updater. When we need to refer to the semantics of a specific Casanova statement we simply call this functor to generate an instance of the module containing it and then we use it to access the particular evaluation rule that we require for the statement.
+
+\section{Summary}
+In this chapter we have presented an extension for the domain-specific language for game development Casanova that introduces abstractions to define the synchronization mechanisms for a multiplayer online game. We then showed a re-implementation of Casanova with functors in Metacasanova and evaluated its performance. The evaluation shows that this new implementation has a running time roughly 42 times faster than the implementation of Casanova shown in Chapter \ref{ch:languages}. We have also shown that functors are flexible enough to implement completely the mechanism of interruptible rules of Casanova and also to implement the same networking abstractions presented for the hard-coded version of the Casanova compiler, of which we provided a sketch. In the next chapter we conclude this dissertation by answering the research questions proposed in Chapter \ref{ch:introduction} and we draw our conclusions.

@@ -345,5 +345,46 @@ ConnectingCoroutine ruleName continuation r field stmts => FieldUpdater r field 
  MasterCoroutine ruleName continuation r field stmts => FieldUpdater r field {
    ...
 
+   GetField r "__isLocal" => localGetter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = true
+   tick entity k dt -> (v',(c',k'))
+   ------------------------------
+   update entity dt -> (v',(c',k'))
+
+   GetField r "__isLocal" => localGetter
+   GetField r field => getter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = false
+   getter.get entity -> (v,(c,k))
+   ------------------------------
+   update entity dt -> (v,(c,k))
+   
+   ...
+
+   
+ }
+
+----------------------------------------
+ SlaveCoroutine ruleName continuation r field stmts => FieldUpdater r field {
+   ...
+
+   GetField r "__isLocal" => localGetter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = false
+   tick entity k dt -> (v',(c',k'))
+   ------------------------------
+   update entity dt -> (v',(c',k'))
+
+   GetField r "__isLocal" => localGetter
+   GetField r field => getter
+   localGetter.get entity -> (isLocal,(c,k))
+   isLocal = true
+   getter.get entity -> (v,(c,k))
+   ------------------------------
+   update entity dt -> (v,(c,k))
+   
+   ...
+
    
  }
