@@ -614,11 +614,12 @@ PositionRule => FieldUpdater PhysicalBodyType "Position" {
   ---------------------
   GetRecord => PhysicalBodyType
 
-  getPos body -> position
-  getVel body -> velocity
-  << position + velocity * dt >> -> position'
+  getPos body -> (xp,yp)
+  getVel body -> (xv,yv)
+  <<xp + xv * dt>> -> xp'
+  <<yp + yv * dt>> -> yv'
   ---------------------------
-  update body dt -> position'
+  update body dt -> (xp',yp')
 }
 \end{lstlisting}
 
@@ -632,11 +633,12 @@ VelocityRule => FieldUpdater PhysicalBodyType "Velocity" {
   --------------------
   GetRecord => PhysicalBodyType
 
-  getVel body -> velocity
-  getAcc body -> acceleration
-  << velocity + acceleration * dt >> -> velocity'
+  getVel body -> (xv,yv)
+  getAcc body -> (xa,ya)
+  << xv + xa * dt >> -> xv'
+  << yv + ya * dt >> -> yv'
   ---------------------------
-  update body dt -> velocity'
+  update body dt -> (xv',yv')
 }
 \end{lstlisting}
 
@@ -873,6 +875,44 @@ As final remark, we point out that the use of records to store the rule continua
 
 \subsection{Evaluation}
 \label{subsec:ch_networking_evaluation}
+In the previous sections we showed how to use functors to implement the entity update traversal of the domain-specific language for game development Casanova. Based on the preliminary analysis performed in Chapter \ref{ch:functors}, we claimed that using functors would improve the performance of the implementation of Casanova in Metacasanova given in Chapter \ref{ch:languages} by, at the same time, inlining the access to the entity fields and pre-building the traversal for the Casanova program at compile time, instead of dynamically accessing the fields from a dictionary and inspecting their type to perform the update traversal at every update. In this section we show the experimental results that show the performance of this implementation in comparison to the first dynamic implementation presented in Chapter \ref{ch:languages}.
+
+\subsubsection{Experimental Setup}
+For this evaluation we have implemented the physical body simulation that was presented in the previous sections. The simulation has been run for 10000 frames, which roughly correspond to 3 minutes assuming an average update rate of 60 frames/second, with a number of physical bodies ranging from 100 to 1000. Each physical body is randomly generated, that is, its initial position, velocity, and acceleration is randomly generated. We measured the time at the beginning and at the end of the execution of the whole simulation and we averaged the total time by the number of frames the simulation has been running for. We then compared the result with what obtained for the implementation shown in Chapter \ref{ch:languages}.
+
+\subsubsection{Results}
+In Table \ref{tab:ch_networking_evaluation} we can see that the update time is in the order of milliseconds or one tenth of milliseconds where the dynamic implementation was in the order of one hundredth of seconds with 1000 entities. This corresponds roughly to a frame rate of 939 frames/second for the functor implementation versus 28 frames/second. The performance gain ranges from a maximum of 55.397 to a minimum of 33.117 times with an avarage gain of 42.508 times. This comes with no surprise, since in Section \ref{sec:ch_functors_evaluation} we tested the gain of accessing record fields with the functor implementation compared to the dynamic tables, and we had an average gain of roughly 11 times. The gap with the dynamic implementation here is even greater because, to the cost of accessing dynamic tables at runtime to retrieve the values of the entity fields, we have to add the performance loss of performing the update traversal and the rule execution dynamically. Figure \ref{fig:ch_networking_chart} shows a chart where the horizontal axis represents the number of entities in the simulation, while the horizontal axis represents the average frame update time with that number of entities in seconds.
+
+To conclude, we want to point out that this evaluation is a worst-case scenario, since the implementation shown in this Chapter makes use exclusively of Metacasanova meta-data structures to represent the values of the entity fields while the simulation shown in Chapter \ref{ch:languages} uses \texttt{Vector2} from the Monogame library. This means that this simulation has an additional overhead due to accessing the components of a tuple via pattern matching, and due to the use of value types versus reference types. The performance shown here could be improved by using \texttt{Vector2} from an external library instead of \texttt{Tuple[float, float]} to store the position, velocity, and acceleration of a physical body.
+\begin{table}
+  \centering
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{|c|c|c|c|}
+  \hline
+  \textbf{Entity number} &\textbf{Update time (functors)} &	\textbf{Update time (dynamic)} &	\textbf{Performance Gain} \\
+  \hline
+  100 &	0.000063 & 0.00349 & 55.397\\
+  \hline
+  250 &	0.000173 & 0.00911 & 52.659\\
+  \hline
+  500 &	0.000428 & 0.01716 & 40.093\\
+  \hline
+  750 &	0.000777 & 0.02597 & 33.423\\
+  \hline
+  1000 & 0.001065 &	0.03527 & 33.117\\
+  \hline
+  \multicolumn{2}{c|}{} & \textbf{Average gain} & 42.938 \\ \cline{3-4}	
+  \end{tabular}}
+ 	\caption{Update time for one frame of the functor implementation of Casanova and the dynamic implementation shown in Chapter \ref{ch:languages}. The time is measured in seconds}
+  \label{tab:ch_networking_evaluation}
+\end{table}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{Figures/chapter_networking/chart}
+  \caption{Execution time of Casanova implemented with functors vs the dynamic implementation}
+  \label{fig:ch_networking_chart}
+\end{figure}
 
 \section{Casanova Networking Primitives with Functors}
 \label{sec:ch_networking_functor_networking}
