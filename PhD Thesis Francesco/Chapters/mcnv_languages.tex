@@ -1298,7 +1298,7 @@ Data "table" -> List[Tuple[string, Value]] : SymbolTable
 \end{lstlisting}
 
 \noindent
-or (\textit{ii}) use a dictionary data structure coming from .NET, such as\\ \texttt{ImmutableDictionary}, which was the implementation choice for Casanova. In both cases, the behaviour of the language implemented in Metacasanova will be that of a dynamic language, because whenever the value of a variable or class field must be read, the evaluation rule must look up the symbol table at run time to retrieve the value, whose complexity will be $O(n)$ with the list implementation and $O(\log n)$ with the dictionary implementation.
+or (\textit{ii}) use a dictionary data structure coming from .NET, such as\\ \texttt{ImmutableDictionary} \footnote{For a motivation about the choice of the dictionary implementation we point the reader to Section \ref{sec:ch_functors_evaluation}}, which was the implementation choice for Casanova. In both cases, the behaviour of the language implemented in Metacasanova will be that of a dynamic language, because whenever the value of a variable or class field must be read, the evaluation rule must look up the symbol table at run time to retrieve the value.
 
 The same applies to type checking: in Section \ref{subsec:ch_mcnv_languages_type_checking} we showed the type rules that check the types of a C-{}- program. In statically-typed languages, type checking is usually performed at compile time and not at runtime. However, in this case Metacasanova will again generate the code to run the type rules, but the actual execution is performed when the program is run, thus the behaviour of C-{}- is more similar to that of a dynamic language rather than a static language (and its performance as well).
 

@@ -876,7 +876,7 @@ Figure \ref{fig:ch_functors_chart} shows a chart of the overall performance of t
 After both these considerations and those presented in Chapter \ref{sec:ch_mcnv_languages_evaluation} a legitimate doubt could be about the choice of the implementation of the dynamic tables. We mentioned multiple times that we chose to use a tree-based implementation of the dictionary, but a valid objection could be that one could use a HashTable whose complexity is $O(1)$. This assumption cannot be applied to this case for the following reasons:
 
 \begin{itemize}
-\item The hash table access operations have a complexity of $O(1)$ when the number of entries stored in it is very big. Indeed the definition of big-oh says that $f(n) = O(g(n))$ if
+\item The hash table access operations have a complexity of $O(1)$ when the number of entries stored in it is very big. Indeed the definition of big-oh states that $f(n) = O(g(n))$ if
 \begin{align*}
 \exists c \in \mathbb{R}: \lim_{n \to \infty}\dfrac{f(n)}{g(n)} = c
 \end{align*}
