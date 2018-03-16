@@ -1,0 +1,24 @@
+This chapter provides an answer to the problem statement and research questions presented in Section \ref{sec:ch1_problem_statement}. The goal of the first research question is measuring the benefits of using a Metacompiler in terms of development speed when used to implement a domain-specific language for game development with respect to the implementation measured in code length. The goal of the second research question is aimed to determine the trade-off between a manual implementation of the language and an implementation with Metacasanova. The goal of the third research question is to identify reasons for this trade-off and propose an optimization to reduce it. The last part of this chapter answers the problem statement, provides an overview of future work and adds final remarks for this thesis.
+
+\section{Answer to research questions}
+\label{sec:ch_conclusion_answer_research_questions}
+The three research questions stated in Section \ref{sec:ch1_problem_statement} are now answered  in Sections \ref{subsec:ch_conclusion_rq1}, \ref{subsec:ch_conclusion_rq2}, and \ref{subsec:ch_conclusion_rq3} respectively.
+
+\subsection{Ease of development}
+\label{subsec:ch_conclusion_rq1}
+
+The first research question reads:\\
+
+\researchQuestion{To what extent can a meta-compiler reduce the amount of code required to create a compiler for a given programming language?}\\
+
+The answer to this research question is derived from the results shown in Chapter \ref{ch:languages}: in Section \ref{sec:ch_mcnv_languages_evaluation} we showed how the use of Metacasanova reduces the effort in term of code writing for the compiler of Casanova as the code required for the definition of the language semantics is roughly 5 times shorter in Metacasanova than the hard-coded version of the compiler written in F\#. This improvement is due to the fact that, in Metacasanova, it is possible to express the semantics of the language by mimicking almost directly the definition of Casanova written in natural semantics. 
+
+\subsection{Performance trade-off}
+\label{subsec:ch_conclusion_rq2}
+
+\researchQuestion{How much is the performance loss introduced by the meta-compiler with respect to an implementation written in a language compiled with a traditional compiler and is this loss acceptable when considering game development?}
+
+\subsection{Optimization}
+\label{subsec:ch_conclusion_rq3}
+
+\researchQuestion{What is the cause of the performance degradation when employing a meta-compiler and how can this be improved?}
