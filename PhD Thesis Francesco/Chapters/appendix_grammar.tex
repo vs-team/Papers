@@ -1,5 +1,75 @@
-In this section we provide the grammar of Metacasanova in Backus-Naur Form \cite{knuth1964backus}. For brevity we provide only the grammar productions and not the tokens. Note that this version includes the language extension described in Chapter \ref{ch:functors}.
+In this section we provide the grammar of Metacasanova in Backus-Naur Form \cite{knuth1964backus}. For brevity we provide only the grammar productions and not the tokens (written in capital letters). Note that this version includes the language extension described in Chapter \ref{ch:functors}.
 
 \begin{lstlisting}
+
+
+moduleId = '*' | ID
+
+moduleArg = ['('] ID ':' moduleId [')']
+
+moduleDeclaration = 'Module' STRING '=>' { moduleArg } ':' ID { NEWLINE } '{' { declaration } '}'
+
+program =
+  { NEWLINE } { NAMESPACE dottedPath newLineSeq } { includeStmts } { declaration } { subtype } { rule }
+  
+includeStmts = 'include' STRING
+  
+dottedPath = ID { '.' ID }
+
+declarations = { declaration }
+
+genericSeq = '[' ID { ',' ID } ']'
+
+typeArg = ID | argSeq | '<<' STRING '>>'
+
+funcArg = '*' | typeArg
+
+declArgs =
+| STRING { '->' typeArg }
+| { '->' typeArg } STRING { '->' typeArg }
+| { '->' typeArg } STRING
+
+funcArgs = 
+| STRING { '=>' funcArg }
+| { '=>' funcArg } STRING { '=>' funcArg }
+| { '=>' funcArg } STRING
+
+priority = 'Priority' INT
+associativty = 'Associativity' ('left' | 'right')
+
+declaration =
+| "Func" { genericSeq }  declArgs ':' typeArg [ priority ] [ associativity ]
+| "Data" { genericSeq }  declArgs ':' typeArg [ priority ] [ associativity ]
+| "Functor" funcArgs ':' typeArg [ priority ] [ associativity ]
+
+literal =
+| INT
+| FLOAT
+| STRING
+| UNIT
+//...
+
+arg =
+| '(' argSeq ')'
+| literal
+| dottedPath
+| CUSTOMOPERATOR
+
+argSeq = arg { arg }
+
+subtype = ID 'is' ID
+
+comOp =
+| '=' | '>' | '<' | '>=' | '<>'
+
+premise = 
+| argSeq '->' argSeq
+| argSeq compOp argSeq
+| argSeq '=>' argSeq
+
+rule = 
+| { premise } '--' { '-' } argSeq '->' argSeq
+| { premise } '--' { '-' } argSeq '=>' argSeq { NEWLINE } '{' program '}'
+
 
 \end{lstlisting}
