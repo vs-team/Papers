@@ -21,7 +21,7 @@ Data "$b" -> <<bool>> : Value Priority 300
 \end{lstlisting}
 
 \noindent
-Note that we are using the .NET data types to represent the actual values stored in the meta-data structures. We also define the following type equivalence, since values are atomic cases of expressions and can be used as such:
+Note that we are using the .NET data types to represent the actual values stored in the meta-data structures. We also define the following subtype, since values are atomic cases of expressions and can be used as such:
 
 \begin{lstlisting}
 Value is Expr
@@ -35,7 +35,7 @@ Data "$" -> <<string>> : Id Priority 300
 \end{lstlisting}
 
 \noindent
-Variables can be used as atomic expressions as well, so we need an additional type equivalence
+Variables can be used as atomic expressions as well, so we need an additional subtype
 
 \begin{lstlisting}
 Id is Expr

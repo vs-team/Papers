@@ -458,7 +458,7 @@ A Metacasanova program is mainly organized in three parts:
 
 \begin{enumerate}
 	\item \textit{Data and function declarations:} in this part it is possible to specify data structures, that define the syntactic constructs of the language, and functions used to evaluate terms of the language through rules.
-	\item \textit{Subtype declarations:} in this part it is possible to specify polymorphism through type equivalence by stating that a type $T_1$ is a subtype of another type $T_2$.
+	\item \textit{Subtype declarations:} in this part it is possible to specify sub-typing by stating that a type $T_1$ is a subtype of another type $T_2$.
 	\item \textit{Rule definitions:} in this part the programmer defines the type or semantics rules necessary to describe the type system or behaviour of the abstractions of the programming language.
 \end{enumerate}
 
@@ -639,7 +639,7 @@ Note that also, with this implementation choice, it is possible to support diffe
 
 \section{Parsing}
 \label{sec:ch_metacasanova_parsing}
-In this section we explain in detail the grammar of Metacasanova and we present the architecture of its parser. A full description of the Metacasanova grammar in BNF can be found in Appendix \ref{app:metacasanova_grammar}. The parser has been built in FsYacc (see Section \ref{sec:ch_background_parser_generators}) and completed by a post-processing module that executes some required transformation on the generated AST that are not convenient to perform during the parsing phase. As explained informally in Section \ref{sec:ch_metacasanova_metacasanova_overview}, a Metacasanova program is made of four main sections: (\textit{i}) a part containing inclusion directives, (\textit{ii}) a part containing the declarations of the meta-data stracutures and evaluation functions used in the program, (\textit{iii}) a part containing type equivalences, and (\textit{iv}) a part containing evaluation rules that define the behaviour of the meta-program. The definition of the first part is trivial, because it is just a sequence of directives starting with the keyword \texttt{include} and followed by a file name. We will instead describe in detail the other parts.
+In this section we explain in detail the grammar of Metacasanova and we present the architecture of its parser. A full description of the Metacasanova grammar in BNF can be found in Appendix \ref{app:metacasanova_grammar}. The parser has been built in FsYacc (see Section \ref{sec:ch_background_parser_generators}) and completed by a post-processing module that executes some required transformation on the generated AST that are not convenient to perform during the parsing phase. As explained informally in Section \ref{sec:ch_metacasanova_metacasanova_overview}, a Metacasanova program is made of four main sections: (\textit{i}) a part containing inclusion directives, (\textit{ii}) a part containing the declarations of the meta-data stracutures and evaluation functions used in the program, (\textit{iii}) a part containing subtype definitions, and (\textit{iv}) a part containing evaluation rules that define the behaviour of the meta-program. The definition of the first part is trivial, because it is just a sequence of directives starting with the keyword \texttt{include} and followed by a file name. We will instead describe in detail the other parts.
 	
 \subsection{Declarations}
 \label{sec:ch_metacasanova_parser_declarations}
@@ -690,7 +690,7 @@ type TypeDeclOrName =
 This data structure is later transformed by the parser post-processor in a \textit{symbol declaration}. A symbol declaration contains all the information about a declaration, including the data or function name, the types of the arguments, the priority, and the generic types. This information is later exploited by the type checker to verify the consistency of the declarations and type check the rest of the program.
 
 \subsubsection{Subtype declarations}
-Type equivalence has been presented as a separate part of the program but it has a tight relationship with the declarations. A type equivalence has the form
+Subtyping has been presented as a separate part of the program but it has a tight relationship with the declarations. A subtype definition has the form
 
 \begin{lstlisting}
 T1 is T2
@@ -1100,14 +1100,13 @@ In case (\textit{ii}) we must compare two Arrow types otherwise the test fails i
 In case (\textit{iii}) the test succeeds if one of the types (either the provided one or the expected one) is external or unsafe; it also succeeds if both types are Zero types.
 
 \subparagraph{Testing type compatibility}
-
-Type equivalence might succeed in only two cases: (\textit{i}) when testing two Argument Types, and when testing two Arrow Types; in all other cases the test fails immediately. In what follows we write $t_1 \equiv t_2$ to say that $t_1$ is compatible with $t_2$.\\\\
-In case \textit{i} we have to check if the provided type is paired with the expected type in a type equivalence map stored in the symbol table. If the lookup in the map is unsuccessful then an error is returned.\\\\
+Compatibility might succeed in only two cases: (\textit{i}) when testing two Argument Types, and when testing two Arrow Types; in all other cases the test fails immediately. In what follows we write $t_1 \equiv t_2$ to say that $t_1$ is compatible with $t_2$.\\\\
+In case \textit{i} we have to check if the provided type is paired with the expected type in a subtype map stored in the symbol table. If the lookup in the map is unsuccessful then an error is returned.\\\\
 In case \textit{ii} again we consider $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$. This time we check if $t_1 \equiv t_2$ and then we recursively check the equivalence of $t_2 \rightarrow ... \rightarrow t_n$ with $u_m \rightarrow ... \rightarrow u_m$. Again, the equivalence test fails if $n \neq m$ because we will end up comparing an Argument Type with an Arrow Type.
 
 \section{Code generation}
 \label{sec:ch_metacasanova_code_generation}
-Metacasanova uses C\# as target language and generates code compatible with any library compiled in the .NET framework. In this phase we must (\textit{i}) generate the appropriate abstractions in C\# to represent meta-data structures and their type equivalence, and (\textit{ii}) generate the code to implement the semantics of the rule evaluation, as described in Section \ref{subsec:ch_metacasanova_formalization}. Note that the modularity of the architecture of the Metacasanova meta-compiler is flexible enough to replace the C\# code generation with another language of choice, provided that the proper code generation functions are re-written for the new target language.
+Metacasanova uses C\# as target language and generates code compatible with any library compiled in the .NET framework. In this phase we must (\textit{i}) generate the appropriate abstractions in C\# to represent meta-data structures and their subtyping, and (\textit{ii}) generate the code to implement the semantics of the rule evaluation, as described in Section \ref{subsec:ch_metacasanova_formalization}. Note that the modularity of the architecture of the Metacasanova meta-compiler is flexible enough to replace the C\# code generation with another language of choice, provided that the proper code generation functions are re-written for the new target language.
 
 \subsection{Meta-data structures code generation}
 The type of each data structure is generated as an interface in C\#. Each data structure defined in Metacasanova is mapped to a \texttt{class} in C\# that implements such interface. The class contains as many fields as the number of arguments the data structure contains. Each field is given an automatic name \texttt{argC} where \texttt{C} is the index of the argument in the data structure definition. The data structure symbols used in the definition might be pre-processed and replaced in order to avoid illegal characters in the C\# class definition. The class contains an additional field that stores the original name of the data structure before the replacement is performed, used for its ``pretty print''. For example the data structure.
