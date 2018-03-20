@@ -458,7 +458,7 @@ A Metacasanova program is mainly organized in three parts:
 
 \begin{enumerate}
 	\item \textit{Data and function declarations:} in this part it is possible to specify data structures, that define the syntactic constructs of the language, and functions used to evaluate terms of the language through rules.
-	\item \textit{Type equivalence declarations:} in this part it is possible to specify polymorphism through type equivalence by stating that a type $T_1$ is equivalent to another type $T_2$.
+	\item \textit{Subtype declarations:} in this part it is possible to specify polymorphism through type equivalence by stating that a type $T_1$ is a subtype of another type $T_2$.
 	\item \textit{Rule definitions:} in this part the programmer defines the type or semantics rules necessary to describe the type system or behaviour of the abstractions of the programming language.
 \end{enumerate}
 
@@ -490,7 +490,7 @@ Func "eval" -> Expr : Value
 \end{lstlisting}
 
 \noindent
-A polymorphic data structure is defined through the keyword \texttt{is}, which specifies that a type $T_1$ is equivalent to another type $T_2$. For example the following code specifies that a data structure of type \texttt{Value}, such as a list, can be used also as an expression of type \texttt{Expr}.
+Subtyping is defined through the keyword \texttt{is}, which specifies that a type $T_1$ can be used in place of another type $T_2$. For example the following code specifies that a data structure of type \texttt{Value}, such as a list, can be used also as an expression of type \texttt{Expr}.
 
 \begin{lstlisting}
 Data "$l" -> List : Value 
@@ -639,7 +639,7 @@ Note that also, with this implementation choice, it is possible to support diffe
 
 \section{Parsing}
 \label{sec:ch_metacasanova_parsing}
-In this section we explain in detail the grammar of Metacasanova and we present the architecture of its parser. The parser has been built in FsYacc (see Section \ref{sec:ch_background_parser_generators}) and completed by a post-processing module that executes some required transformation on the generated AST that are not convenient to perform during the parsing phase. As explained informally in Section \ref{sec:ch_metacasanova_metacasanova_overview}, a Metacasanova program is made of four main sections: (\textit{i}) a part containing inclusion directives, (\textit{ii}) a part containing the declarations of the meta-data stracutures and evaluation functions used in the program, (\textit{iii}) a part containing type equivalences, and (\textit{iv}) a part containing evaluation rules that define the behaviour of the meta-program. The definition of the first part is trivial, because it is just a sequence of directives starting with the keyword \texttt{include} and followed by a file name. We will instead describe in detail the other parts.
+In this section we explain in detail the grammar of Metacasanova and we present the architecture of its parser. A full description of the Metacasanova grammar in BNF can be found in Appendix \ref{app:metacasanova_grammar}. The parser has been built in FsYacc (see Section \ref{sec:ch_background_parser_generators}) and completed by a post-processing module that executes some required transformation on the generated AST that are not convenient to perform during the parsing phase. As explained informally in Section \ref{sec:ch_metacasanova_metacasanova_overview}, a Metacasanova program is made of four main sections: (\textit{i}) a part containing inclusion directives, (\textit{ii}) a part containing the declarations of the meta-data stracutures and evaluation functions used in the program, (\textit{iii}) a part containing type equivalences, and (\textit{iv}) a part containing evaluation rules that define the behaviour of the meta-program. The definition of the first part is trivial, because it is just a sequence of directives starting with the keyword \texttt{include} and followed by a file name. We will instead describe in detail the other parts.
 	
 \subsection{Declarations}
 \label{sec:ch_metacasanova_parser_declarations}
@@ -689,25 +689,25 @@ type TypeDeclOrName =
 
 This data structure is later transformed by the parser post-processor in a \textit{symbol declaration}. A symbol declaration contains all the information about a declaration, including the data or function name, the types of the arguments, the priority, and the generic types. This information is later exploited by the type checker to verify the consistency of the declarations and type check the rest of the program.
 
-\subsubsection{Type equivalence declarations}
+\subsubsection{Subtype declarations}
 Type equivalence has been presented as a separate part of the program but it has a tight relationship with the declarations. A type equivalence has the form
 
 \begin{lstlisting}
 T1 is T2
 \end{lstlisting}
 
-where T1 and T2 are two meta-type names. They are used to specify that meta-type T1 is equivalent to meta-type T2 and can replace any argument of type T2 while constructing meta-data structures or calling functions. The grammar rule that defines a type equivalence declaration is
+where T1 and T2 are two meta-type names. They are used to specify that meta-type T1 is a subtype of the meta-type T2 and can replace any argument of type T2 while constructing meta-data structures or calling functions. The grammar rule that defines a subtype declaration is
 
 \begin{lstlisting}
 ID IS ID newLineSeq
 \end{lstlisting}
 
 \noindent
-where \texttt{ID} is the same regular expression used for type names. Again successive equivalence declarations should be separated by one or more line breaks. The grammar production generates a list of pairs in the AST containing the types involved in the equivalence. This data structure will be processed at a later stage by the type checker to generate an equivalence table.
+where \texttt{ID} is the same regular expression used for type names. Again successive subtype declarations should be separated by one or more line breaks. The grammar production generates a list of pairs in the AST containing the types involved in the subtyping. This data structure will be processed at a later stage by the type checker to generate an equivalence table.
 
 \subsection{Rules}
 \label{sec:ch_metacasanova_parser_rules}
-Rules in Metacasanova are the language elements used to define the behaviour of the meta-program. A rule consists of a set of premises followed by a conclusion. Premises and conclusion are separated by a fraction line. Premises and conclusion are made of a left part consisting of a sequence of arguments, and a right part that can contain either a variable or a sequence of arguments. We call the left part of this syntactical structure the \textit{function call}, while the right part is the \textit{result}. Premises differ from the conclusion as, besides function calls, they can also contain \textit{bindings} and \textit{clauses}. Bindings are simply ways to rename values in the premises in the fashion of bindings in functional languages, while clauses are boolean predicates. Moreover, premises can also contain .NET code to directly emit, which can contain any C\# code. The syntax of emitted code is the same as that of a normal premise, except the \textit{function call} is replaced by the code to emit enclosed in double angular brackets. The following is the grammar production defining a premise\footnote{ \texttt{BIND} is the symbol \texttt{:=}}:
+Rules in Metacasanova are the language elements used to define the behaviour of the meta-program. A rule consists of a set of premises followed by a conclusion. Premises and conclusion are separated by a fraction line. Premises and conclusion are made of a left part consisting of a sequence of arguments, and a right part that can contain either a variable or a sequence of arguments. We call the left part of this syntactical structure the \textit{function call}, while the right part is the \textit{result}. Premises differ from the conclusion as, besides function calls, they can also contain \textit{bindings} and \textit{clauses}. Bindings are simply ways to rename values in the premises in the fashion of bindings in functional languages, while clauses are boolean predicates. Moreover, premises can also contain .NET code to be directly emitted, which can contain any C\# code. The syntax of emitted code is the same as that of a normal premise, except the \textit{function call} is replaced by the code to emit enclosed in double angular brackets. The following is the grammar production defining a premise\footnote{ \texttt{BIND} is the symbol \texttt{:=}}:
 
 \begin{lstlisting}
 premise:
@@ -1056,7 +1056,7 @@ the first argument of \texttt{eval} in the conclusion is an explicit data argume
 
 \begin{definition}
 \label{def:ch_metacasanova_type_compatibility}
-	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$ the set of type equivalence declarations, then we say that the type $t_1$ is \textit{compatible} with $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
+	Let $T$ be the set of types defined in a meta-program and $E = \lbrace (t_i,t_j) \; | \; t1 \in T \wedge t2 \in T \rbrace$ the set of subtype declarations, then we say that the type $t_1$ is \textit{compatible} with $t_2$ if either $t_1 = t_2$ or $\exists (t_i,t_j) \in E \; | \; t_1 = t_i \wedge t_2 = t_j$.
 \end{definition}
 
 \subsubsection{Checking the conclusion}

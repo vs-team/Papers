@@ -152,7 +152,7 @@ The evaluation of boolean expression is analogous: we show again only the evalua
 evalExpr tables expr1 -> ($b val1)
 evalExpr tables expr2 -> ($b val2)
 <<val1 && val2>> -> b
-----------------------------------------------------------------------
+----------------------------------
 evalExpr tables expr1 && expr2 -> b
 \end{lstlisting}
 
@@ -164,7 +164,7 @@ As for the comparison operators, we can use a clause in the premise to avoid usi
 evalEpxr tables expr1 -> val1
 evalExpr tables expr2 -> val2
 val1 == val2
-------------------------------------------------
+-----------------------------------------------
 evalExpr tables (expr1 equals expr2) -> $b true
 
 evalEpxr tables expr1 -> val1
@@ -183,7 +183,7 @@ For inequality operators we must rely on external code for the computation is Me
 evalExpr tables expr1 -> ($i val1)
 evalExpr tables expr2 -> ($i val2)
 << val1 < val2 >> -> boolResult
----------------------------------------------------------
+---------------------------------------------------
 evalExpr tables (expr1 ls expr2) -> ($b boolResult)
 \end{lstlisting}
 
@@ -332,7 +332,7 @@ Evaluating \texttt{if-then-else} requires two rules, depending on the result of 
 evalExpr tables condition -> $b true
 emptyDictionary -> table
 eval (table :: tables) thenBlock -> table' :: tables''
--------------------------------------------------------------------
+-------------------------------------------
 eval tables (if condition then thenBlock else elseBlock) -> tables''
 \end{lstlisting}
 
@@ -374,7 +374,7 @@ The rule that evaluates conditionals when the condition is false is analogous, e
 evalExpr tables condition -> $b false
 emptyDictionary -> table
 eval (table :: tables) elseBlock -> table' :: tables''
---------------------------------------------------------------------
+--------------------------------------------
 eval tables (if condition then thenBlock else elseBlock) -> tables''
 \end{lstlisting}
 
@@ -911,7 +911,7 @@ When the rule evaluation returns \texttt{Done}, it means that the rule statement
 evalRule r fields globals -> Done (Context newLocals newFields newGlobals)
 tick originals rs newFields newGlobals dt -> (State updatedRules updatedFields updatedGlobals)
 st := State (original::updatedRules) updatedFields updatedGlobals
---------------------------------------------------------------
+---------------------------------------------
 tick (original::originals) (r::rs) fields globals dt -> st
 \end{lstlisting}
 
@@ -1093,11 +1093,11 @@ The implementation of the control structures is similar to that of C-{}- with th
 
 \begin{lstlisting}
 eval cond ctxt -> $b true
------------------------------------------------------------
+---------------------------------------------
 eval_s (if cond then b else c) k ctxt dt -> Atomic b;k ctxt
 
 eval cond ctxt -> $b false
------------------------------------------------------------
+---------------------------------------------
 eval_s (if cond then b else c) k ctxt dt -> Atomic c;k ctxt
 \end{lstlisting}
 
@@ -1124,7 +1124,7 @@ eval_s (for v in expr b) k ctxt dt -> Atomic k ctxt
 
 eval expr (Context locals e w) -> ($l (x :: xs))
 locals add var x -> updatedLocals
--------------------------------------
+------------------------------------------
 eval_s (for ($ var) in expr b) k (Context locals e w) dt -> Atomic b;((for ($ var) in ($l xs) b);k) (Context updatedLocals e w)
 \end{lstlisting}
 
@@ -1302,7 +1302,7 @@ or (\textit{ii}) use a dictionary data structure coming from .NET, such as\\ \te
 
 The same applies to type checking: in Section \ref{subsec:ch_mcnv_languages_type_checking} we showed the type rules that check the types of a C-{}- program. In statically-typed languages, type checking is usually performed at compile time and not at runtime. However, in this case Metacasanova will again generate the code to run the type rules, but the actual execution is performed when the program is run, thus the behaviour of C-{}- is more similar to that of a dynamic language rather than a static language (and its performance as well).
 
-This issue is caused by the fact that, in the current state of Metacasanova, the meta-type system is unaware of the type system of the language that is being implemented in the meta-compiler. This means that, as it is, the meta-language is unable to define a statically-typed language. This is not a problem limited to Metacasanova but to all meta-compilers having a meta-type system that does not allow embedding of the host language type system. 
+This issue is caused by the fact that, in the current state of Metacasanova, the meta-type system is unaware of the type system of the language that is being implemented in the meta-compiler. This means that, as it is, the meta-language is unable to define a statically-typed language. This is not a problem limited to Metacasanova but to all meta-compilers having a meta-type system that does not allow embedding of the object language type system. 
 
 The same applies for the lookup: the access to symbol tables needs not to be dynamic because the symbol table does not grow when the program runs, thus the access to a specific variable could be directly inlined in the code. For example, if we want to access variable \texttt{x}, which is the third entry of the symbol table, we will always perform the same lookup. Thus, this lookup could be simply inlined as an access to the third element of the symbol table. An analogous situation happens for Casanova entities: their structure does not change at runtime, so if we access, for instance, a field \texttt{Velocity} of an entity and that is the third one, then we always perform a lookup on the third element of the symbol table, and this can be inlined directly as well.
 

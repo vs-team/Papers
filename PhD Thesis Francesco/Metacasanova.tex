@@ -21,6 +21,7 @@
 \usepackage{algorithmicx}
 \usepackage{float}
 \usepackage{rotating}
+\usepackage{balance}
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage[top=2cm,bottom=1.5cm,left=2cm,right=2.5cm]{geometry}
 \author{Francesco Di Giacomo}
@@ -39,6 +40,14 @@
 \newcommand{\problemStatement}[1]{
   \textbf{Problem statement:} \textit{#1}
 }
+
+\newcommand{\psContent}{To what extent does a meta-compiler benefit the development of a domain-specific language for game development?}
+
+\newcommand{\rqContentOne}{To what extent can a meta-compiler reduce the amount of code required to create a compiler for a domain-specific language for game development?}
+
+\newcommand{\rqContentTwo}{How much is the performance loss introduced by the meta-compiler with respect to an implementation written in a language compiled with a traditional compiler and is this loss acceptable when considering game development?}
+
+\newcommand{\rqContentThree}{What is the cause of the performance degradation when employing a meta-compiler and how can this be improved?}
 
 \definecolor{scheduleGreen}{RGB}{1,168,1}
 
@@ -59,7 +68,9 @@
 \newcommand{\AlgLet}[2]{\State \textbf{let} #1 \textbf{be} #2}
 
 
-
+\clubpenalty = 10000
+\widowpenalty = 10000
+\displaywidowpenalty = 10000
 
 \makeindex
 \begin{document}
@@ -99,11 +110,12 @@
 
 \chapter{Metacasanova Optimization}
 \label{ch:functors}
-\epigraph{A monad is just a monoid in the category of endofunctors, what's the problem?}{James Iry}
+\epigraph{First you learn the value of abstraction, then you learn the cost of abstraction, then you're ready to engineer.}{Kent Beck}
 \input{Chapters/functors}
 	
 \chapter{Language Design with Functors}
 \label{ch:functor_languages}
+\epigraph{A monad is just a monoid in the category of endofunctors, what's the problem?}{James Iry}
 \input{Chapters/functor_languages}
 
 \chapter{Networking in Casanova}

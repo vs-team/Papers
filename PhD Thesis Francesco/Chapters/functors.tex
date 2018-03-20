@@ -2,7 +2,7 @@ In Chapter \ref{ch:metacasanova} and \ref{ch:languages} we have presented the Me
 
 \section{Language extension idea}
 \label{sec:ch_functors_idea}
-The experimental results from Chapter \ref{ch:languages} showed that the performance of Metacasanova is strongly affected by the dynamic type checks and symbol table access at runtime. This is necessary because Metacasanova generates the code necessary to evaluate the semantics of accessing the value of a variable in the symbol table that mimics the behaviour of rules in natural semantics, but such evaluation is performed at runtime. However the runtime evaluation is only because of the limitations of the language presented so far, as it is not able to build a symbol table while compiling the meta-program. This should not be the case since
+The experimental results from Chapter \ref{ch:languages} showed that the performance of Metacasanova is strongly affected by the dynamic type checks and symbol table access at runtime. This is necessary because Metacasanova generates the code necessary to evaluate the semantics of accessing the value of a variable in the symbol table that mimics the behaviour of rules in natural semantics, but such evaluation is performed at runtime. However the runtime evaluation is necessary only because of the limitations of the language presented so far, as Metacasanova is not able to build a symbol table while compiling the meta-program. This should not be the case since
 
 \begin{enumerate}
 	\item The symbol table of a statically-typed language does not grow at runtime because it is built during the compilation.
@@ -195,7 +195,7 @@ getField name ((fieldName,value) :: t) -> v
 \end{lstlisting}
 
 \noindent
-However the traversal of the tuple would always be the same when looking for a specific field, namely for \texttt{Position} the first Metacasanova rule will always be executed, while for \texttt{Velocity} the first time the second rule will be executed, which in turn recursively evaluates the remaining part of the list. The recursive call will then trigger the first rule at the second step. That being said, since the table does not grow and the access patterns are always the same, we could represent an entity as a nested tuple of pairs, in the fashion of Church encoding \cite{pierce2002types, kleene1935theory}, and inline in the code \texttt{fst PhysicalBodyTable} for \texttt{Position} and \texttt{fst(snd PhysicalBodyTable)} for \texttt{Velocity} whenever we require to access the respective fields, without repeating the same traversal every time. In this way the entity would look like:
+However the traversal of the tuple would always be the same when looking for a specific field, namely for \texttt{Position} the first Metacasanova rule will always be executed, while for \texttt{Velocity} the first time the second rule will be executed, which in turn recursively evaluates the remaining part of the list. The recursive call will then trigger the first rule at the second step. That being said, since the table does not grow and the access patterns are always the same, we could represent an entity as a nested tuple of pairs, in the fashion of Church encoding \cite{kleene1935theory, pierce2002types}, and inline in the code \texttt{fst PhysicalBodyTable} for \texttt{Position} and \texttt{fst(snd PhysicalBodyTable)} for \texttt{Velocity} whenever we require to access the respective fields, without repeating the same traversal every time. In this way the entity would look like:
 
 \begin{lstlisting}
 PhysicalBodyTable = ("Position",(10,10)),(("Velocity",(10,0)),())
@@ -215,7 +215,7 @@ In order to implement the idea about inlining symbol table access and embed the 
 	
 	\begin{itemize}[noitemsep]
 		\item A collection of \textit{objects}.
-		\item A collection of \textit{arrows} or \textit{morphism} between objects. Each morphism starts from a source object and ends into a target object.
+		\item A collection of \textit{arrows} or \textit{morphisms} between objects. Each morphism starts from a source object and ends into a target object.
 		\item For every triplet of objects, there exists a composition operation $\circ$, such that, given the morphisms $f:a \rightarrow b$ and $g:b \rightarrow c$ then $g \circ f: a \rightarrow c$.
 		\item The composition operation is associative, i.e. $f \circ (g \circ h) = (f \circ g) \circ h$.
 		\item For each object $x$ There exists a morphism $1_x: x \rightarrow x$, called \textit{identity}, such that for every morphism $f:a \rightarrow x$ and $g: x \rightarrow b$ we have that $f \circ 1_x = f$ and $g \circ 1_x = g$.
