@@ -270,7 +270,7 @@ In this scenario we have to discuss the atomicity of these transmissions: in the
 
 Casanova allows the programmer to decide whether the transmission should be reliable or not and experiment with the effect of a reliable transmission versus an unreliable one that does not overload the network. For example, the updated list of projectiles, after a collision, is always sent in a reliable way. This is acceptable because collisions are not so frequent. This is not true for the ship position, since movements are very frequent and mostly happen at every frame, thus it is something that is not necessary to be sent reliably at every frame.
 
-\section{Casanova Networking Primitives with Functors}
+\section{Networking Primitives with Functors}
 \label{sec:ch_networking_functor_networking}
 In the Chapter \ref{ch:functor_languages} we described in detail how to implement the logic of the Casanova update traversal with functors in Metacasanova. We also further extended its first implementation with interruptible rules. In this section we show a sketch of how to use functors to implement the networking primitives introduced in Casanova in Section \ref{sec:ch_networking_casanova_networking_primitives}. In what follows we assume that the data transfer primitives are defined in an external library that we assume it is given, since the same applies to the implementation presented in Section \ref{sec:ch_networking_casanova_networking_primitives}, and the send and receive primitives simply generate calls to this library.
 
