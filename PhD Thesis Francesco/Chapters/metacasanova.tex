@@ -1,4 +1,4 @@
-This chapter aims to provide the reader with additional motivation about the advantage of meta-compilers and details about the Metacasanova compiler architecture. We begin by showing that the activity of building a compiler presents recurring patters, in particular during the process of implementing the formalization of the language type system and semantics with the language abstractions provided by a general-purpose programming language. Based on this observations, we proceed to outline the requirements of Metacasanova and give an informal overview about the structure of a meta-program. Moreover, we provide a formalization of its semantics moving on to the explanation of its working principles and the involved compilation stages . We then present in details all the stages of the compilation of a meta-program written in the Metacasanova meta-compiler: (\textit{i}) the Metacasanova grammar and parser focusing also on the subsequent parsing post-processing phase and how the post-processor re-processes the generated AST, (\textit{ii}) the type checking of a meta-program and in what cases it fails, and (\textit{iii}) the code generation into the abstractions of the C\# target code.
+This chapter aims to provide the reader with additional motivation for employing meta-compilers and details of the Metacasanova compiler architecture. We begin by showing that the activity of building a compiler presents recurring patterns, in particular during the process of implementing the formalization of the language type system and semantics with the language abstractions provided by a general-purpose programming language. Based on our observations, we proceed to outline the requirements of Metacasanova and give an informal overview of the structure of a meta-program. Moreover, we provide a formalization of its semantics moving on to the explanation of its working principles and the involved compilation stages . We then present in detail all the stages of the compilation of a meta-program written in the Metacasanova meta-compiler: (\textit{i}) the Metacasanova grammar and parser focusing also on the subsequent parsing post-processing phase and how the post-processor re-processes the generated AST, (\textit{ii}) the type checking of a meta-program and in what cases it fails, and (\textit{iii}) the code generation into the abstractions of the C\# target code.
 
 
 \section{Repetitive steps in compiler development}
@@ -16,7 +16,7 @@ type Statement =
 ... //other statements
 \end{lstlisting}
 
-The type checking of the \texttt{if} statement requires that to check that the condition has type \texttt{bool} and that both code blocks have type \texttt{unit} (or \texttt{void}). The type checking of the \texttt{while-do} is analogous, except only one code block is used. We can then define a function \texttt{eval} that, given the environment (here we call it \textit{symbol table}) and a statement as input, returns the type given by the rule or an error if all type rules for that statement fail to correctly evaluate. For the 
+The type checking of the \texttt{if} statement requires checking the condition has type \texttt{bool} and that both code blocks have type \texttt{unit} (or \texttt{void}). The type checking of the \texttt{while-do} is analogous, except that only one code block is used. We can then define a function \texttt{eval} that, given the environment (here we call it \textit{symbol table}) and a statement as input, returns the type given by the rule or an error if all type rules for that statement fail to correctly evaluate. For the 
 \texttt{if-then-else} the implementation is the following:
 
 \begin{lstlisting}
@@ -161,7 +161,7 @@ public class While : Statement
 \subsubsection{Generalization}
 \label{sec:ch_metacasanova_inference_rule_generalization}
 
-In general, for a node of the abstract syntax tree (AST) $\alpha$ (like \texttt{Statements}) containing syntactical structures $\sigma_{i}$ constructed with a certain amount of arguments of type $\epsilon_{\sigma_{i_1}}, ..., \epsilon_{\sigma_{i_m}}$ (such as the condition or the statement block in a control structure), the general representation of a hard-coded type rule in a language with discriminated unions is obtained by creating a union type $\alpha$ having a case $\sigma_{i}$ with arguments $\epsilon_{\sigma_{i_j}}$ for each syntactical element.
+In general, for a node of the abstract syntax tree (AST) $\alpha$ (like \texttt{Statements}) containing syntactical structures $\sigma_{i}$ constructed with a certain number of arguments of type $\epsilon_{\sigma_{i_1}}, ..., \epsilon_{\sigma_{i_m}}$ (such as the condition or the statement block in a control structure), the general representation of a hard-coded type rule in a language with discriminated unions is obtained by creating a union type $\alpha$ having a case $\sigma_{i}$ with arguments $\epsilon_{\sigma_{i_j}}$ for each syntactical element.
 
 \begin{lstlisting}[mathescape = true]
 type $\alpha$ =
@@ -218,7 +218,7 @@ let rec $\varphi_{\sigma_j}$ $\Gamma$ $\sigma$ =
   ... //other pattern matching expressions for other rules
 \end{lstlisting}
 
-Each evaluation function is recursive because a premise might need to run the same evaluation function (see the example of the statements above). The function contains a pattern matching that selects the correct inference rule to be used for that syntactical structure. For example, in the case of the statements, it will try to match all the possible syntactical structures for the statements and select the correct one for the input; for instance, if we are running the rule for the \texttt{if-then-else} then the pattern matching will select the match case for \texttt{if-then-else}. Note that $\gamma$ will surely be matched by one of the match cases because at this point we have a correctly generated AST after the parsing phase.
+Each evaluation function is recursive because a premise might need to run the same evaluation function (see the example of the statements above). The function contains a pattern matching that selects the correct inference rule to be used for that syntactical structure. For example, in the case of the statements, it will try to match all the possible syntactical structures for the statements and select the correct one for the input; for instance, if we are running the rule for the \texttt{if-then-else} then the pattern matching will select the match case for \texttt{if-then-else}. Note that $\sigma$ will surely be matched by one of the match cases because at this point we have a correctly generated AST after the parsing phase.
 
 Each premise runs the appropriate evaluation function and returns a result. This result is compared with the one expected by the inference rule, and if the comparison fails the function reports a type error. If all comparisons succeed, then the result of the conclusion is returned.
 
@@ -384,7 +384,7 @@ let rec interpretStmt (symbolTable : SymbolTable) (stmt : Statement) : Statement
   ... //other statements semantics
 \end{lstlisting}
 
-As for the type evaluation, we assum that \texttt{interpretExpr} is another function that is able to process expressions and return their value. 
+As for the type evaluation, we assume that \texttt{interpretExpr} is another function that is able to process expressions and return their value. 
 
 The function matches the kind of statement that we want to execute. In the case of a sequence of statements starting with a skip, we simply return the interpretation of the remaining part of the sequence (we indeed skip to the next statement), otherwise we have to run the first statement and then recursively evaluate the sequence formed by the result of the execution of the statement and the rest of the statements. This is needed, for instance, to correctly evaluate the body of a control structure. The body of each match case is responsible of emulating the intended behaviour described in the semantics of the control structure: the \texttt{if} returns the correct block to execute depending on the boolean value of the condition, instead the \texttt{while} returns either its body followed by the same \texttt{while} loop when the condition is \texttt{true}, otherwise \texttt{skip} to jump past the loop.
 
@@ -742,7 +742,7 @@ The parser generates a data structure for a rule containing a representation of 
 
 \subsection{Parser post-processor}
 \label{sec:ch_metacasanova_parser_post-processor}
-The parser post-processor is responsible to integrate in the AST all the information that is not directly available during the parsing phase. It is also responsible for re-arranging the terms appearing in the data and function declarations, and those appearing in function calls. Its main functions are the following: (\textit{i}) insert the namespace and file information in the elements of the AST, (\textit{ii}) rearrange the terms parsed from a declaration in a \textit{symbol declaration} data structure, and (\textit{iii}) parenthesize the function call terms according to their priority and associativity and rearrange them in a prefix notation.
+The parser post-processor is responsible for integrating in the AST all the information that is not directly available during the parsing phase. It is also responsible for re-arranging the terms appearing in the data and function declarations, and those appearing in function calls. Its main functions are the following: (\textit{i}) insert the namespace and file information in the elements of the AST, (\textit{ii}) rearrange the terms parsed from a declaration in a \textit{symbol declaration} data structure, and (\textit{iii}) parenthesize the function call terms according to their priority and associativity and rearrange them in a prefix notation.
 
 The first task is trivial as it requires just to traverse the syntax tree and insert the namespace in all the nodes that should store its value. The process scans the AST starting from the root and recursively adding the namespace and file name into all the nodes that must contain such information until a leaf is reached. Below we explain in detail the other how to accomplish the other two tasks.
 
@@ -774,7 +774,7 @@ For the declaration order we have three options:
 
 Finding the left and right arity of an operator can be done simply by splitting the list of arguments in correspondence of the declaration name and then counting the elements of the two lists obtained by the split.
 
-Finally, the post-processor must build the type of the declaration. Types in Metacasanova are represented in a way similar to typed lambda calculus \cite{barendregt2013lambda, church1940formulation}: if a declaration as type arguments $T_{1}, T_{2}, ..., T_{n}$, then its type representation is given as $T_{1} \rightarrow T_{2} \rightarrow ... \rightarrow T_{n}$. This will allow at a later stage the type checking of partial function applications. The post-processor scans the arguments list and recursively add the element to a data structure representing an \textit{arrow type}. The arrow type contains two elements corresponding to the elements to the left and right of the arrow. It is possible to build a chain of arrow types by recursively adding an arrow type as right argument of another arrow. For instance, to represent the type $A \rightarrow B \rightarrow C$ we use.
+Finally, the post-processor must build the type of the declaration. Types in Metacasanova are represented in a way similar to typed lambda calculus \cite{barendregt2013lambda, church1940formulation}: if a declaration as type arguments $T_{1}, T_{2}, ..., T_{n}$, then its type representation is given as $T_{1} \rightarrow T_{2} \rightarrow ... \rightarrow T_{n}$. This will allow at a later stage the type checking of partial function applications. The post-processor scans the arguments list and recursively adds the element to a data structure representing an \textit{arrow type}. The arrow type contains two elements corresponding to the elements to the left and right of the arrow. It is possible to build a chain of arrow types by recursively adding an arrow type as right argument of another arrow. For instance, to represent the type $A \rightarrow B \rightarrow C$ we use.
 
 \begin{lstlisting}
 Arrow(A,Arrow(B,Arrow(C)))
@@ -834,7 +834,7 @@ In this work we use an AST-transformation technique that changes a function call
 \begin{itemize}[noitemsep]
 	\item A literal.
 	\item An identifier, that can start with an alphabetic character (\textit{simple id}), or a symbol (such as \texttt{\%, \#, \&, @, ...}) followed by a sequence of alphanumeric characters.
-	\item A nested expression, which is any sequence of arguments enclosed between brackets (such as \texttt{(5 +++ x)}).	
+	\item A nested expression, which is any sequence of arguments enclosed between brackets (such as \texttt{(5 + x)}).	
 \end{itemize}
 
 We now give the definition of parenthesization of an argument sequence. In what follows we use the term \textit{symbol} to indicate the name of \textit{functions} or \textit{meta-data} structure used in an argument sequence.
@@ -897,7 +897,7 @@ x -> $ a1 b1 % b2 b3 a2
 \end{lstlisting}
 
 \noindent
-and let us apply the algorithm to it (again using the Priority Table \ref{tab:ch_metacasanova_example_precedence_relation}). The algorithm will test the whole sequence looking for symbols, and of course will find one. We then fall in the second part of the algorithm. The symbol with the lowest priority is \texttt{->}, so the algorithm will recursively parenthesize \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. The left one is a base case of the recursion since the sequence contains only one identifier that is not a symbol, thus its parenthesization is the sequence itself. The right one contains other symbols so we have to recursively apply the algorithm. The operator with the lowest priority is now \texttt{\$}. The symbol is the first element of the sequence, thus the left subsequence obtained by the partitioning phase is empty (and the result of its parenthesization an empty sequence as well). The right subsequence is \texttt{a1 b1 \% b2 b3 a2}. In this sequence there is only one symbol, which is \texttt{\%}, thus the algorithm will try to parenthesize \texttt{a1 b1} and \texttt{b2 b3 a2}. Their parenthesization is trivial and returns the sequences themselves. At this point we have to consider the arity of \texttt{\%}, which accepts one left argument and two right arguments. The algorithm will then enclose between brackets \texttt{b1 \% b2 b3}. The full parenthesization leads then to \texttt{a1 (b1 \% b2 b3) a2}. At this point this result is used to build the parenthesization of \texttt{\$}. This symbol accepts three right arguments (and no left argument), so the parenthesization will be \texttt{(\$ a1 (b1 \% b2 b3) a2) }. Finally we have to use the result to build the parenthesization of \texttt{\%}. This symbol accepts 1 left argument and 1 right argument. The parenthesization of its left subsequence was \texttt{x}, while its right parenthesization is \texttt{(\$ a1 (b1 \% b2 b3) a2) }, thus the final parenthesization will be \texttt{(x -> (\$ a1 (b1 \% b2 b3) a2))}. At this point, the outer parenthesization can be removed for better readability.\\
+and let us apply the algorithm to it (again using the Priority Table \ref{tab:ch_metacasanova_example_precedence_relation}). The algorithm will test the whole sequence looking for symbols, and of course will find one. We then fall in the second part of the algorithm. The symbol with the lowest priority is \texttt{->}, so the algorithm will recursively parenthesize \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. The left one is a base case of the recursion since the sequence contains only one identifier that is not a symbol, thus its parenthesization is the sequence itself. The right one contains other symbols so we have to recursively apply the algorithm. The operator with the lowest priority is now \texttt{\$}. The symbol is the first element of the sequence, thus the left subsequence obtained by the partitioning phase is empty (and the result of its parenthesization an empty sequence as well). The right subsequence is \texttt{a1 b1 \% b2 b3 a2}. In this sequence there is only one symbol, which is \texttt{\%}, thus the algorithm will try to parenthesize \texttt{a1 b1} and \texttt{b2 b3 a2}. Their parenthesization is trivial and returns the sequences themselves. At this point we have to consider the arity of \texttt{\%}, which accepts one left argument and two right arguments. The algorithm will then enclose between brackets \texttt{b1 \% b2 b3}. The full parenthesization leads then to \texttt{a1 (b1 \% b2 b3) a2}. At this point this result is used to build the parenthesization of \texttt{\$}. This symbol accepts three right arguments (and no left argument), so the parenthesization will be \texttt{(\$ a1 (b1 \% b2 b3) a2) }. Finally we have to use the result to build the parenthesization of \texttt{\%}. This symbol accepts one left argument and one right argument. The parenthesization of its left subsequence was \texttt{x}, while its right parenthesization is \texttt{(\$ a1 (b1 \% b2 b3) a2) }, thus the final parenthesization will be \texttt{(x -> (\$ a1 (b1 \% b2 b3) a2))}. At this point, the outer parenthesization can be removed for better readability.\\
 The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_parenthesization}.
 
 \begin{algorithm}
@@ -909,7 +909,7 @@ The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_par
 			\If { $A = \emptyset$ }
 				\State \Return $A$
 			\Else
-				\If {$s \neq \emptyset$}
+				\If {$S \neq \emptyset$}
 					\AlgLet{$s'$} {the symbol with lowest priority in $S$}
 					\AlgLet{$I$} {the set of indices at which $s'$ occurs in $S$.}
 					\State $l \gets \emptyset$
@@ -943,30 +943,38 @@ The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_par
 					\Else
 						\State \Return $largs \; @ \; s' \; @ \; rargs$
 					\EndIf
-				\Else
-					\State $p \gets \emptyset$
-					\ForAll {$a \in A$}
-						\If {$a = \langle e \rangle$}
-							\AlgLet{$S'$}{symbols in $e$}
-							\State $p' \gets$ \Call {parenthesize} {$S'$} {$e$}
-							\If {$p' = \langle e' \rangle$}
-								\State $p \gets p \; @ \; e'$
-							\Else
-								\State $p \gets p \; @ \; \langle p' \rangle$
-							\EndIf
-						\Else
-							\State $p \gets p \; @ \; \lbrace a \rbrace$
-						\EndIf
-					\EndFor
-				\EndIf
-			\EndIf		
-		\EndFunction
+        \algstore{par}
 	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\begin{algorithmic}
+  \small
+  \algrestore{par}
+  	\Else
+  					\State $p \gets \emptyset$
+  					\ForAll {$a \in A$}
+  						\If {$a = \langle e \rangle$}
+  							\AlgLet{$S'$}{symbols in $e$}
+  							\State $p' \gets$ \Call {parenthesize} {$S'$} {$e$}
+  							\If {$p' = \langle e' \rangle$}
+  								\State $p \gets p \; @ \; e'$
+  							\Else
+  								\State $p \gets p \; @ \; \langle p' \rangle$
+  							\EndIf
+  						\Else
+  							\State $p \gets p \; @ \; \lbrace a \rbrace$
+  						\EndIf
+  					\EndFor
+  				\EndIf
+  			\EndIf		
+  		\EndFunction
+  \end{algorithmic}
 \end{algorithm}
 
 \section{Type checking}
 \label{sec:ch_metacasanova_type_checking}
-The type checker of Metacasanova is responsible of two tasks: (\textit{i}) checking that the declarations are correctly formed and (\textit{ii}) checking that the premises and conclusions of rules respect the meta-types defined in the declarations. We will now proceed to explain in detail how the two processes are implemented in the metacompiler.
+The type checker of Metacasanova is responsible for two tasks: (\textit{i}) checking that the declarations are correctly formed and (\textit{ii}) checking that the premises and conclusions of rules respect the meta-types defined in the declarations. We will now proceed to explain in detail how the two processes are implemented in the metacompiler.
 
 \subsection{Checking declarations}
 \label{subsec:ch_metacasanova_checking_declarations}
@@ -984,7 +992,7 @@ Checking declarations requires to check the consistency of \textit{meta-type dec
 	\item \textit{Arrow:} An arrow type has the form \texttt{T1 -> T2 -> ... -> Tn} and is used to represent the type of the arguments used when calling a function or when constructing a meta-data. For example the function declaration \texttt{Func Num -> "+" -> Num : Num} has the \textit{Arrow} type \texttt{Num -> Num}. Note that the symbol declaration, for convenience, stores two different type declarations: the arguments types separated from the function returned type or the meta-data type and a \textit{full type} that combines the type of the arguments and the returned type or data type into a single arrow. For example, for the function above, its full type would be \texttt{Num -> Num -> Num}.
 \end{itemize}
 
-The algorithm to check the type declarations behaves differently depending on the form of the type declaration. For \textit{Zero}, \textit{External}, or \textit{Unsafe} type declarations the check always succeeds. For \textit{Arrow} the algorithm recursively check the left and right part of the arrow. In the case of an \textit{Argument} we have two sub-cases: (\textit{i}) the argument is an identifier with no generic arguments, or (\textit{ii}) the argument is an identifier followed by a number of generic arguments. The first case is simple, as it is enough to check whether the type is defined in the symbol table or not. If the type cannot be found in the symbol table then it is undefined and an error is returned. In the case of a type with generic arguments we must check that the number of provided generics matches the number required for the generic type; then we must check if the provided generic arguments have a correct form. A generic argument can be an identifier or again a type accepting other generic arguments. This is the case, for instance, of a type declaration such as \texttt{Tuple[List[int],Tuple[a,List[float]]]}. In the case of a simple generic identifier we must only check that the generic identifier is in the scope of the declaration. For instance the declaration
+The algorithm to check the type declarations behaves differently depending on the form of the type declaration. For \textit{Zero}, \textit{External}, or \textit{Unsafe} type declarations the check always succeeds. For \textit{Arrow} the algorithm recursively checks the left and right part of the arrow. In the case of an \textit{Argument} we have two sub-cases: (\textit{i}) the argument is an identifier with no generic arguments, or (\textit{ii}) the argument is an identifier followed by a number of generic arguments. The first case is simple, as it is enough to check whether the type is defined in the symbol table or not. If the type cannot be found in the symbol table then it is undefined and an error is returned. In the case of a type with generic arguments we must check that the number of provided generics matches the number required for the generic type; then we must check if the provided generic arguments have a correct form. A generic argument can be an identifier or again a type accepting other generic arguments. This is the case, for instance, of a type declaration such as \texttt{Tuple[List[int],Tuple[a,List[float]]]}. In the case of a simple generic identifier we must only check that the generic identifier is in the scope of the declaration. For instance the declaration
 
 \begin{lstlisting}
 Func[a,b] "foo" -> a -> b : b
@@ -1101,8 +1109,8 @@ In case (\textit{iii}) the test succeeds if one of the types (either the provide
 
 \subparagraph{Testing type compatibility}
 Compatibility might succeed in only two cases: (\textit{i}) when testing two Argument Types, and when testing two Arrow Types; in all other cases the test fails immediately. In what follows we write $t_1 \equiv t_2$ to say that $t_1$ is compatible with $t_2$.\\\\
-In case \textit{i} we have to check if the provided type is paired with the expected type in a subtype map stored in the symbol table. If the lookup in the map is unsuccessful then an error is returned.\\\\
-In case \textit{ii} again we consider $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$. This time we check if $t_1 \equiv t_2$ and then we recursively check the equivalence of $t_2 \rightarrow ... \rightarrow t_n$ with $u_m \rightarrow ... \rightarrow u_m$. Again, the equivalence test fails if $n \neq m$ because we will end up comparing an Argument Type with an Arrow Type.
+In case (\textit{i}) we have to check if the provided type is paired with the expected type in a subtype map stored in the symbol table. If the lookup in the map is unsuccessful then an error is returned.\\\\
+In case (\textit{ii}) again we consider $T ::= t_1 \rightarrow t_2 \rightarrow ... \rightarrow t_n$ and $U ::= u_1 \rightarrow u_2 \rightarrow ... \rightarrow u_m$. This time we check if $t_1 \equiv t_2$ and then we recursively check the equivalence of $t_2 \rightarrow ... \rightarrow t_n$ with $u_m \rightarrow ... \rightarrow u_m$. Again, the equivalence test fails if $n \neq m$ because we will end up comparing an Argument Type with an Arrow Type.
 
 \section{Code generation}
 \label{sec:ch_metacasanova_code_generation}
@@ -1193,7 +1201,7 @@ public class eval
 
 \subsubsection{Rule execution}
 
-The class defines a method \texttt{Run} that performs the actual code execution. The meta-compiler retrieves all the rules whose conclusion contains a call to the current function, which define all the possible ways the function can be evaluated with. It then creates a \texttt{switch} structure where each \texttt{case} represents each rule that might execute that function. The result of the rule is also initialized here (the \texttt{struct} will contain a default value and the boolean flag will be set to \texttt{false}). Each \texttt{case} defines a set of local variables, that are the variables used within the scope of that rule.
+The class defines a method \texttt{Run} that performs the actual code execution. The meta-compiler retrieves all the rules whose conclusion contains a call to the current function, which define all the possible ways the function can be evaluated. It then creates a \texttt{switch} structure where each \texttt{case} represents each rule that might execute that function. The result of the rule is also initialized here (the \texttt{struct} will contain a default value and the boolean flag will be set to \texttt{false}). Each \texttt{case} defines a set of local variables, that are the variables used within the scope of that rule.
 
 \subsubsection{Local variables definitions and pattern matching of the conclusion}
 

@@ -1,13 +1,13 @@
-In this chapter we show how to implement languages in Metacasanova. The first language that we implement is a small imperative language called C-{}-. Although tiny, this language contains many common features typical of imperative languages such as control structures, program states, variable scoping, and type annotations. We then proceed to re-implement the semantics of Casanova, a DSL for game development, in Metacasanova, work shown also in \cite{DiGiacomo2017}. Finally, we evaluate the length of the language implementation in Metacasanova against a hard-coded implementation of the same language in a general-purpose programming language, and the runtime performance of programs written in the meta-compiled version against Python.
+In this chapter we show how to implement languages in Metacasanova. The first language that we implement is a small imperative language called C-{}-. Although tiny, this language contains many common features typical of imperative languages such as control structures, program states, variable scoping, and type annotations. We then proceed to re-implement the semantics of Casanova, a DSL for game development, in Metacasanova, similar to the work shown also in \cite{DiGiacomo2017}. Finally, we evaluate the length of the language implementation in Metacasanova against a hard-coded implementation of the same language in a general-purpose programming language, and the runtime performance of programs written in the meta-compiled version against Python.
 
 \section{The C-{}- language}
 In this section we present the implementation of a small imperative language called C-{}-. Note that, although the name might suggest this, we do not claim any resemblance with the C programming language, as it lacks several features such as pointer arithmetic, arrays, and functions.
 
-C-{}- allows the use of four built-in values: integer, strings, boolean values, and floating-point numbers in double precision. The language provides three kinds of control structures: if-then-else, while-do, and for loops with the same semantics of usual imperative languages. The language supports variable scoping and shadowing
+C-{}- allows the use of four built-in values: integers, strings, boolean values, and floating-point numbers in double precision. The language provides three kinds of control structures: if-then-else, while-do, and for loops with the same semantics as usual for imperative languages. The language supports variable scoping and shadowing.
 
 The memory is represented using a dictionary that pairs variable names with their value. In what follows we omit the details of the lookup of entries in the dictionary for brevity. Suffice to say that the meta-program makes use of the \texttt{ImmutableDictionary} data structure available in .NET. Also note that C-{}- defines scopes for variables, so that if a variable is declared inside the scope of a code block in a control structure, that is usable only within the scope itself.
 
-The core of the meta-program is made of the evaluation of both expressions and statements. We proceed below to present the details of both kinds of evaluation.
+The core of the meta-program is made of the evaluation of both expressions and statements. We proceed below to present the details of both kinds of evaluations.
 
 \subsection{Expression Semantics}
 \label{subsec:ch_mcnv_languages_expression_semantics}
@@ -57,7 +57,7 @@ Data "[]" -> TableList
 \end{lstlisting}
 
 \noindent
-We can finally proceed to define a meta-data structure to represent the operations for expressions. First we define the arithmetic operators in the language:
+We can now proceed to define a meta-data structure to represent the operations for expressions. First we define the arithmetic operators in the language:
 
 \begin{lstlisting}
 Data Expr -> "+" -> Expr : Expr
@@ -108,7 +108,7 @@ evalExpr tables ($s v) -> ($s v)
 evalExpr tables ($b v) -> ($b v)
 \end{lstlisting}
 
-Evaluating variables is more complex: we have to look at the table currently in the head of the list of tables (which is the one relative to the current scope). If we do not find the required variable we have to recursively look it up in the tail of the list, since we could have an arbitrary amount of nested scopes. When the variable is found we return its value. This behaviour is implemented by the following code:
+Evaluating variables is more complex: we have to look at the table currently in the head of the list of tables (which is the one relative to the current scope). If we do not find the required variable we have to recursively look it up in the tail of the list, since we could have an arbitrary number of nested scopes. When the variable is found we return its value. This behaviour is implemented by the following code:
 
 \begin{lstlisting}
 symbols contains ($name) -> Yes
@@ -216,7 +216,7 @@ Analogously, variable assignment follows the C convention and uses the \texttt{=
 Id -> "=" -> Expr : Stmt
 \end{lstlisting}
 
-The control structure if-then-else does not follow the standard C representation, rather we use the keywords \texttt{then} and \texttt{else} to delimit its code blocks. Note that nothing would prevent to implement the conventional C syntax, but we prefer this ``lightweight'' representation. The keywords \texttt{then} and \texttt{else} are meta-data structures that take no arguments and do not have any functional utility other than syntactical mark-ups.
+The control structure if-then-else does not follow the standard C representation, rather we use the keywords \texttt{then} and \texttt{else} to delimit its code blocks. Note that nothing prevents us from implementing the conventional C syntax, but we prefer this ``lightweight'' representation. The keywords \texttt{then} and \texttt{else} are meta-data structures that take no arguments and do not have any functional utility other than syntactical mark-ups.
 
 \begin{lstlisting}
 Data "then" : Then
@@ -759,7 +759,7 @@ In this section we have presented a small imperative language called C-{}- that 
 In the previous section we have shown how to implement a small imperative language using Metacasanova. In this section we show the implementation in Metacasanova of Casanova, a Domain-Specific Language for game development. We first give an informal explanation about how the language works and then we show an implementation of the language semantics.
 
 \subsection{The structure of a Casanova program}
-In this section we give an informal overview of a program in Casanova, leaving aside for brevity many of the details about the language itself, which can be found in \cite{abbadi2015casanova, abbadi2015high, abbadi2014resource, abbadithesis2017}.
+In this section we give an informal overview of a program in Casanova, leaving aside for brevity many of the details about the language itself, which can be found in \cite{ abbadi2014resource, abbadithesis2017, abbadi2015casanova, abbadi2015high}.
 
 A program in Casanova is structured as a tree of \textit{entities} that represent the dynamic elements of a game, where the root entity is special and called \texttt{world}. For instance, the following code snippet shows an entity depicting a movable character:
 
@@ -836,7 +836,7 @@ Func "tick" -> List[Rule] -> List[Rule] ->
 \noindent
 Note that in the implementation we use a generic meta-data structure \texttt{List} instantiated with the meta-type \texttt{Rule}. A \texttt{rule} is a meta-data structure containing a list of strings representing the domain, a sequence of statements representing the rule body, a second sequence of statement representing the continuation (i.e. the statements to be evaluated in the next frame), a symbol table of local variables, and the frame time difference.
 
-As stated above, the \texttt{tick} function stops when all the rules have been evaluated, thus when both lists of rules are empty. In this case we return the unchanged state of the program:
+As stated above, the \texttt{tick} function stops when all the rules have been evaluated, thus when both lists of rules are empty. In this case we return the unchanged state of the program:\newpage
 
 \begin{lstlisting}
 --------------------------------------------
@@ -987,7 +987,7 @@ evalRule (rule dom z nop newLocals dt) newFields newGlobals -> res
 evalRule (rule dom b k locals dt) fields globals  -> res
 \end{lstlisting}
 
-A schematic representation of the interaction between \texttt{tick} and \texttt{evalStatement} can be seen in Figure \ref{fig:ch_mcnv_languages_rule_update}.
+A schematic representation of the interaction between \texttt{tick} and\\ \texttt{evalStatement} can be seen in Figure \ref{fig:ch_mcnv_languages_rule_update}.
 
 \begin{figure}
 	\centering
@@ -1135,10 +1135,10 @@ Note that, for simplicity, we do not have code block scoping like in C-{}-. This
 
 \section{Evaluation}
 \label{sec:ch_mcnv_languages_evaluation}
-In this section we compare the runtime performance of a program written for C-{}- and Casanova implemented in Metacasanova with their equivalent implementation in Python. Moreover, we evaluate the length of the language definition in Metacasanova with respect to their hard-coded implementation. We begin by describing the experimental set-up, we proceed by explaining how we analyse the results, and then we discuss them
+In this section we compare the runtime performance of a program written for C-{}- and Casanova implemented in Metacasanova with their equivalent implementation in Python. Moreover, we evaluate the length of the language definition in Metacasanova with respect to their hard-coded implementation. In total we ran one test for several executions of a program written in C-{}- against the same implementation in Python, and five tests for a program in the meta-compiled version of Casanova against the Python implementation by varying the entity number. The details of the setup are described below.
 
 \subsection{Experimental Set-up}
-We evaluated C-{}- and the meta-compiled Casanova runtime performance against an equivalent implementation of equivalent programs in Python. C-{}- was tested running a program to compute the factorial, while we implemented a program in Metacasanova where some entities patrol an area according to pre-defined checkpoints. In the case of Casanova, this language was chosen based on its use in game development: Python has been used extensively in several games such as Civlization IV \cite{CIV4} or World in Conflict \cite{WIC} because of the native support for coroutines that allow to implement a behaviour similar to that of Casanova rules. In the case of C-{}-, we still use Python because, as we discuss further ahead, the behaviour of this language is much more similar to that of a dynamic language (the name was chosen mainly because of a lack of creativity from the author than because of its similarity with C). As for the code length, we compare the length of the semantics definition of C-{}- with a hard-coded implementation, while we compare the definition of Casanova in Metacasanova with respect to its hard-coded compiler written in F\#.
+We evaluated C-{}- and the meta-compiled Casanova runtime performance against an equivalent implementation of equivalent programs in Python. C-{}- was tested running a program to compute the factorial, while we implemented a program in Metacasanova where some entities patrol an area according to pre-defined checkpoints. In the case of Casanova, this language was chosen based on its use in game development: Python has been used extensively in several games such as Civlization IV \cite{CIV4} and World in Conflict \cite{WIC} because of the native support for coroutines that allow to implement a behaviour similar to that of Casanova rules. In the case of C-{}-, we still use Python because, as we discuss further ahead, the behaviour of this language is much more similar to that of a dynamic language (the name was chosen mainly because of a lack of creativity from the author than because of its similarity with C). As for the code length, we compare the length of the semantics definition of C-{}- with a hard-coded implementation, while we compare the definition of Casanova in Metacasanova with respect to its hard-coded compiler written in F\#.
 
 For Casanova we use a program where a Casanova entity patrols a set of checkpoints. When the entity reaches the position of a checkpoint it will move to the next one. The same code has been re-implemented in Python using coroutines to simulate the interruption mechanism of rule statements that is built-in in Casanova. The code generated by the version of Casanova implemented in Metacasanova was imported in a C\# program for Monogame but tested in isolation to actually measure only the running time of the logic, which would otherwise be influenced by the rendering time and the overhead of Monogame itself. We run the Casanova program and the Python version with a variable number of entities (that will be updated) ranging from 100 to 250. For each execution we measure the time taken to update them all for each frame, and we average this time on the number of total frames. As for the code length of the language definition, we measure the length of the language specification in Metacasanova and we compare it with the relative parts of code in the hard-coded version of the compiler.
 
@@ -1169,7 +1169,7 @@ The performance results are shown in Table \ref{tab:ch_mcnv_casanova_evaluation}
 	\centering
 	\begin{tabular}{|c|c|c|}
 		\hline
-		\multicolumn{3}{|c|}{\textbf{Casanova 2.5}} \\
+		\multicolumn{3}{|c|}{\textbf{Meta-compiled Casanova}} \\
 		\hline
 		Entity \# & Average update time (s) & Frame rate \\
 		\hline
@@ -1206,7 +1206,7 @@ The performance results are shown in Table \ref{tab:ch_mcnv_casanova_evaluation}
 	\centering
 	\begin{tabular}{|c|c|}
 		\hline
-		\multicolumn{2}{|c|}{\textbf{Casanova 2.5 with Metacasanova}} \\
+		\multicolumn{2}{|c|}{\textbf{Meta-compiled Casanova}} \\
 		\hline
 		Module & Code lines \\
 		\hline
@@ -1304,7 +1304,7 @@ The same applies to type checking: in Section \ref{subsec:ch_mcnv_languages_type
 
 This issue is caused by the fact that, in the current state of Metacasanova, the meta-type system is unaware of the type system of the language that is being implemented in the meta-compiler. This means that, as it is, the meta-language is unable to define a statically-typed language. This is not a problem limited to Metacasanova but to all meta-compilers having a meta-type system that does not allow embedding of the object language type system. 
 
-The same applies for the lookup: the access to symbol tables needs not to be dynamic because the symbol table does not grow when the program runs, thus the access to a specific variable could be directly inlined in the code. For example, if we want to access variable \texttt{x}, which is the third entry of the symbol table, we will always perform the same lookup. Thus, this lookup could be simply inlined as an access to the third element of the symbol table. An analogous situation happens for Casanova entities: their structure does not change at runtime, so if we access, for instance, a field \texttt{Velocity} of an entity and that is the third one, then we always perform a lookup on the third element of the symbol table, and this can be inlined directly as well.
+The same applies for the lookup: the access to symbol tables needs not to be dynamic because the symbol table does not grow when the program runs, thus the access to a specific variable could be directly inlined in the code. For example, if we want to access variable \texttt{x}, which is the third entry of the symbol table, we will always perform the same lookup. Thus, this lookup could be simply inlined as an access to the third element of the symbol table. An analogous situation happens for Casanova entities: their structure does not change at runtime, so if we access, for instance, a field of an entity and that is the third one, then we always perform a lookup on the third element of the symbol table, and this can be inlined directly as well.
 
 \section{Summary}
 In this chapter we showed two examples of how to use Metacasanova to implement programming languages. We started by showing how to implement a small imperative language called C-{}-. We showed an implementation of its semantics and then of its type system. Later we re-implemented the Casanova language, a DSL for game development. We showed how to implement the semantics of interruptible code, which in Casanova had been implemented with state machines, by using continuation-passing style. Metacasanova implementation of Casanova results to be 5 times shorter than that of the hard-coded compiler for Casanova written in F\#. In the case of C-{}- the gap in terms of lines of code is even larger, being the code for its semantics 11 times shorter than a hard-coded implementation. However, the code performance drops dramatically: testing the meta-compiled version of Casanova against Python results in its code being 3 times slower (although on the same order of magnitude), while the C-{}- code is even 50 times slower. The cause of this is that, even thought these languages could be statically-typed, the rule evaluation performs the lookup of variables and types at runtime. This cannot be changed with the Metacasanova language abstractions presented so far because the meta-type system of Metacasanova is unaware of the types of the embedded language (i.e. the language that is being implemented in Metacasanova). In the next chapter we will show a language extension for Metacasanova that relies on \textit{Functors} to embed the type system of languages implemented in Metacasanova in its type system, and to inline the access to variables at compile time.
