@@ -937,7 +937,7 @@ Note that rewrite rules support conditionals, i.e. in the rule above we are able
 
 Stratego compiler is a self-hosting compiler, meaning that the Stratego meta-language is defined in the meta-language itself. A first version of Stratego was written in SML, which was then re-used to compile a further iteration written in Stratego. Stratego compiles programs to C, where the code generation transformations were expressed in Stratego itself.
 
-\section{Rascal}
+\subsubsection{Rascal}
 Rascal \cite{bos2011rascal, klint2009rascal} is a meta-language born with the main goal of simplifying the task of implementing soure-code analysis and transformation tools. It has also been used to develop domain-specific languages as show in \cite{BASTEN20157}. It features a static type system that integrates both the analysis and transformation domain and where nodes of the AST are fully typed. The type system of Rascal is quite rich: it features functions as first-class values \cite{scott2009programming} in both defined and anonymous forms. It supports parametric polymorphism, algebraic data types, and several built-in data structures such as sets, lists, and relationships.
 
 As said above, AST nodes are typed as well, and can be implemented through algebraic data types. For example, we could define a statement as follows:
