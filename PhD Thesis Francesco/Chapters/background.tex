@@ -937,5 +937,33 @@ Note that rewrite rules support conditionals, i.e. in the rule above we are able
 
 Stratego compiler is a self-hosting compiler, meaning that the Stratego meta-language is defined in the meta-language itself. A first version of Stratego was written in SML, which was then re-used to compile a further iteration written in Stratego. Stratego compiles programs to C, where the code generation transformations were expressed in Stratego itself.
 
+\section{Rascal}
+Rascal \cite{bos2011rascal, klint2009rascal} is a meta-language born with the main goal of simplifying the task of implementing soure-code analysis and transformation tools. It has also been used to develop domain-specific languages as show in \cite{BASTEN20157}. It features a static type system that integrates both the analysis and transformation domain and where nodes of the AST are fully typed. The type system of Rascal is quite rich: it features functions as first-class values \cite{scott2009programming} in both defined and anonymous forms. It supports parametric polymorphism, algebraic data types, and several built-in data structures such as sets, lists, and relationships.
+
+As said above, AST nodes are typed as well, and can be implemented through algebraic data types. For example, we could define a statement as follows:
+
+\begin{lstlisting}
+data Statement =
+| Assignment(Id name, Expr expression)
+| If(Expr condition, list [Statement] _then, 
+    list [Statement] _else)
+| While (Expr condition, list [Statement] body)
+\end{lstlisting}
+
+\noindent
+Notice that it is possible to give names to the single components of algebraic data types.
+In Rascal it is possible to define the syntax of the language in the meta-language itself. The syntax is defined by grammar productions that are identified by the keyword \texttt{syntax}. The main difference with traditional parser generators, such as \texttt{Yacc}, is that, in each production we add constructor names to algebraic data types to link the syntax definition to the corresponding node in the AST that will be generated. For instance, the production for the example above can be defined as follows:
+
+\begin{lstlisting}
+syntax Statement =
+| Assignment: Id var ":=" Expression expression
+| If: "if" Expression condition "then" 
+    {Statement ";"}* _then  "else" {Statement ";"}* _else "end"
+| While: "while" Expression condition "do" {Statement ";"}* "end"
+\end{lstlisting}
+
+\noindent
+In Rascal it is possible to generate the target code by writing functions that use string templates to format the target code for a high-level programming language, as shown in \cite{BASTEN20157}. This phase might be preceded by a code transformation step. Rascal library allows also to compile and run Java byte code directly from Rascal itself. 
+
 \section{Summary}
 In this chapter we presented the fundamental topics necessary to understand this thesis work. We started by defining the general architecture of a compiler and then we proceeded to show how to implement its single components. We explained how to use regular expressions to define the syntactical elements of a language and how to build a lexer for them. W explained how grammars are described and how to implement a Parser with different techniques (Parser generators based on LR(k) grammars and Monadic Parsers). We explained how to define a type system for a language and how to express its operational semantics. We concluded by presenting three examples of existing meta-compilers. In the next chapter we present the detailed architecture of Metacasanova, a meta-compiler based on operational semantics, that is able to generate .NET code. This meta-compiler shares some similarities with RML, which was presented in this section, but has different additional features, such as multiple inheritance, custom operator notation and ariety, and higher-kinded modules and functors in its language extension presented in Chapter \ref{ch:functors}.
