@@ -1,4 +1,4 @@
-In Chapter \ref{ch:metacasanova} and \ref{ch:languages} we have presented the Metacasanova metacompiler and its meta-language and shown how to implement with it a small imperative language, C-{}-, and a DSL for game development, Casanova. The performance analysis showed that, although the development effort for the language compilers was greatly reduced by using Metacasanova, this has come at the cost of performance. The performance decay is due to the fact that the meta-type system of Metacasanova is unaware of the type system of C-{}- or Casanova. This requires all the type checking and access to data structures to be performed at runtime, thus making a statically-typed language exhibit the behaviour and performance of dynamically typed languages. In this Chapter we propose a language extension \cite{DiGiacomo2017SLE} for Metacasanova that is designed to overcome the problem of performance decay and dynamic checks. In this context we use the term \textit{embedded language} to refer to a language that is being implemented in Metacasanova and \textit{embedded program} for a program implemented in an embedded language.
+In Chapter \ref{ch:metacasanova} and \ref{ch:languages} we have presented the Metacasanova metacompiler and its meta-language and shown how to implement with it a small imperative language, C-{}-, and a DSL for game development, Casanova. The performance analysis showed that, although the development effort for the language compilers was greatly reduced by using Metacasanova, this has come at the cost of performance. The performance decay is due to the fact that the meta-type system of Metacasanova is unaware of the type system of C-{}- or Casanova. This requires all the type checking and access to data structures to be performed at runtime, thus making a statically-typed language exhibit the behaviour and performance of dynamically typed languages. In this chapter we propose a language extension \cite{DiGiacomo2017SLE} for Metacasanova that is designed to overcome the problem of performance decay and dynamic checks. In this context we use the term \textit{embedded language} to refer to a language that is being implemented in Metacasanova and \textit{embedded program} for a program implemented in an embedded language.
 
 \section{Language extension idea}
 \label{sec:ch_functors_idea}
@@ -145,7 +145,6 @@ The Metacasanova semantics rule that evaluates the first Casanova rule will eval
 	\caption{Memory access in the second rule of the Physical Body. We assume \texttt{Position.X = 501}}
 \end{table}
 
-\noindent
 As for the second rule, assuming that \texttt{Position.Y > 500f}, the rule will access \texttt{Position} three times: (\textit{i}) to evaluate the expression in the conditional, (\textit{ii}) to read \texttt{Position.Y} when instantiating a new vector, and (\textit{iii}) to write the new vector in \texttt{Position}. This situation is shown in Table
 
 It should now appear clear that every time we need to read or write \texttt{Position} we access the first element of the table, while for \texttt{Velocity} we always access the second. In the following snippet we provide an alternative version of the code for the Casanova rules above that shows what really happens in Casanova embedded in Metacasanova :
@@ -171,7 +170,7 @@ rule Position = "(10,10)"
 \end{lstlisting}
 
 \noindent
-what would happen in embedded Casanova is that the type checker evaluates the type of the expression in the rule body, obtaining \texttt{string}. This type is then compared with that of \texttt{Position}, which is \texttt{Vector2}, and at this point an error would be reported. Again, this would require at runtime to access the first element of a symbol table containing type information about the entity fields. Note that all these lookups are not array accesses but rather dictionary accesses.
+What would happen in embedded Casanova is that the type checker evaluates the type of the expression in the rule body, obtaining \texttt{string}. This type is then compared with that of \texttt{Position}, which is \texttt{Vector2}, and at this point an error would be reported. Again, this would require at runtime to access the first element of a symbol table containing type information about the entity fields. Note that all these lookups are not array accesses but rather dictionary accesses.
 
 \subsection{Inlining the entity fields}
 \label{subsec:ch_functors_inlining}
@@ -408,7 +407,7 @@ r := velocity
 \end{lstlisting}
 
 \noindent
-Now in the definition of the \texttt{RecordField} module again the functor\\ \texttt{RecordType} returns \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus\\ \texttt{RecordType} for the field \texttt{Position} will be instantiated as
+Now in the definition of the \texttt{RecordField} module again the functor\\ \texttt{RecordType} returns \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus \texttt{RecordType} for the field \texttt{Position} will be instantiated as
 
 \begin{lstlisting}
 -----------------------
@@ -438,7 +437,7 @@ body := Record {
 \end{lstlisting}
 
 \noindent
-which is returned by the functor \texttt{PhysicalBodyType}. In order to build an instance of the physical body, we define a function that returns a value of type \texttt{PhysicalBodyType} (which in turn is simply\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]}):
+which is returned by the functor \texttt{PhysicalBodyType}. In order to build an instance of the physical body, we define a function that returns a value of type \texttt{PhysicalBodyType}. which in turn is simply \texttt{Tuple[Vector2,\\Tuple[Vector2,unit]}):
 
 \begin{lstlisting}
 Func "PhysicalBody" : PhysicalBodyType.RecordType
@@ -873,7 +872,7 @@ In Table \ref{tab:ch_functors_results}, we can see that the optimization using F
 Figure \ref{fig:ch_functors_chart} shows a chart of the overall performance of the two techniques (the data points are taken from Table \ref{tab:ch_functors_results}). The horizontal axis contains the number of fields per record, while the vertical axis contains the number of records that are being updated. We can see that the performance of the dynamic table degrades considerably when increasing the number of fields, and that the higher the number of records is, the steeper the curve is. On the other hand, the performance of the implementation with functors is almost constant, regardless of the number of fields or records that are being updated. Moreover, note that the performance of the dynamic table is improved by the fact that we are using a dictionary implemented in .NET. If the symbol table were represented as a meta-data structure in the language, the performance would be even worse, since it would have to be encoded as a list of pairs with the field name and its value, and its manipulation would be affected by the evaluation rules that should implement this behaviour. Furthermore, the dynamic lookup should be done also to ensure that the types of the record fields are used consistently (which is not accounted for here, for example to prevent that a record is constructed with incompatible values for its fields), while this check is done at compile time with functors, thus drastically improving the performance.
 
 \subsubsection{Dynamic Table implementation Choice}
-After both these considerations and those presented in Chapter \ref{sec:ch_mcnv_languages_evaluation} a legitimate doubt could be about the choice of the implementation of the dynamic tables. We mentioned multiple times that we chose to use a tree-based implementation of the dictionary, but a valid objection could be that one could use a HashTable whose complexity is $O(1)$. This assumption cannot be applied to this case for the following reasons:
+After both these considerations and those presented in Chapter \ref{sec:ch_mcnv_languages_evaluation} a legitimate doubt could be uttered about the choice of the implementation of the dynamic tables. We mentioned multiple times that we chose to use a tree-based implementation of the dictionary, but a valid objection could be that one could use a HashTable whose complexity is $O(1)$. This assumption cannot be applied to this case for the following reasons:
 
 \begin{itemize}
 \item The hash table access operations have a complexity of $O(1)$ when the number of entries stored in it is very big. Indeed the definition of big-oh states that $f(n) = O(g(n))$ if
