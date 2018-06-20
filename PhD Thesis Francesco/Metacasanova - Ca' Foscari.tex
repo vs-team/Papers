@@ -1,0 +1,151 @@
+\documentclass[9pt,a5paper,openright]{extbook}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{epigraph}
+\usepackage{comment}
+\usepackage{mathpartir}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{pdfpages}
+\usepackage{colortbl}
+\usepackage[chapter]{algorithm}
+\usepackage{algpseudocode}
+\usepackage{algorithmicx}
+\usepackage{float}
+\usepackage{rotating}
+\usepackage{balance}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage[top=2cm,bottom=1.5cm,left=2cm,right=2.5cm]{geometry}
+\usepackage[pdfa]{hyperref}
+\author{Francesco Di Giacomo}
+\title{Metacasanova: a High-performance Meta-compiler for Domain-specific Languages}
+\date { }
+
+\newcommand{\tu}{\textunderscore}
+\newcounter{rqCounter}
+\setcounter{rqCounter}{1}
+
+\newcommand{\researchQuestion}[1]{
+  \textbf{Research question \therqCounter:} \textit{#1}
+  \setcounter{rqCounter}{\therqCounter + 1}
+}
+
+\newcommand{\problemStatement}[1]{
+  \textbf{Problem statement:} \textit{#1}
+}
+
+\newcommand{\psContent}{To what extent does a meta-compiler benefit the development of a domain-specific language for game development?}
+
+\newcommand{\rqContentOne}{To what extent can a meta-compiler reduce the amount of code required to create a compiler for a domain-specific language for game development?}
+
+\newcommand{\rqContentTwo}{How much is the performance loss introduced by the meta-compiler with respect to an implementation written in a language compiled with a traditional compiler and is this loss acceptable when considering game development?}
+
+\newcommand{\rqContentThree}{What is the cause of the performance degradation when employing a meta-compiler and how can this be improved?}
+
+\definecolor{scheduleGreen}{RGB}{1,168,1}
+
+\lstset
+{
+	frame = single,
+	breaklines = true,
+	showstringspaces = false,
+	basicstyle = \ttfamily\small,	
+	tabsize=2,
+	captionpos=b
+}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+
+\newcommand{\AlgError}[1]{\State $\text{\textbf{error:} #1}$}
+\newcommand{\AlgLet}[2]{\State \textbf{let} #1 \textbf{be} #2}
+
+\hyphenation{ca-sa-no-va}
+\hyphenation{me-ta-ca-sa-no-va}
+\hyphenation{re-quire}
+
+\clubpenalty = 10000
+\widowpenalty = 10000
+\displaywidowpenalty = 10000
+
+\makeindex
+\begin{document}
+\cleardoublepage\includepdf{Extra/cover_venice.pdf}
+\thispagestyle{empty}
+\frontmatter
+\pagenumbering{gobble} %remove numbering
+\maketitle
+%\thispagestyle{empty}
+\input{Front/abstract}
+\newpage
+\input{Front/publications}
+\newpage
+%\thispagestyle{empty}
+\tableofcontents
+
+\mainmatter
+\pagenumbering{arabic}
+\chapter{Introduction}
+\label{ch:introduction}
+\epigraph{About the use of language: it is impossible to sharpen a pencil with a blunt axe. It is equally vain to try to do it with ten blunt axes instead.}{Edsger Dijkstra}
+\input{Chapters/introduction}
+	
+
+\chapter{Background}
+\label{ch:background}
+\epigraph{Trying to outsmart a compiler defeats much of the purpose of using one.}{Kernighan and Plauger - \textit{The Elements of Programming Style}.}
+\input{Chapters/background}
+	
+\chapter{Metacasanova}
+\label{ch:metacasanova}
+\epigraph{Typing is no substitute for thinking}{Dartmouth Basic manual, 1964}
+\input{Chapters/metacasanova}		
+
+\chapter{Language Design in Metacasanova}
+\label{ch:languages}
+\epigraph{A language that doesn't affect the way you think about programming is not worth knowing.}{Alan J. Perlis}
+\input{Chapters/mcnv_languages}
+
+\chapter{Metacasanova Optimization}
+\label{ch:functors}
+\epigraph{First you learn the value of abstraction, then you learn the cost of abstraction, then you're ready to engineer.}{Kent Beck}
+\input{Chapters/functors}
+	
+\chapter{Language Design with Functors}
+\label{ch:functor_languages}
+\epigraph{A monad is just a monoid in the category of endofunctors, what's the problem?}{James Iry}
+\input{Chapters/functor_languages}
+
+\chapter{Networking in Casanova}
+\label{ch:networking}
+\epigraph{The Internet is not just one thing, it's a collection of things - of numerous communications networks that all speak the same digital language.}{Jim Clark}
+\input{Chapters/networking}
+
+\chapter{Discussion and Conclusion}
+\label{ch:discussion}
+\input{Chapters/conclusion}
+
+\appendix
+\chapter{List Operations with Templates}
+\label{app:template}
+\input{Chapters/appendix_template}
+
+\chapter{Metacasanova Grammar in BNF}
+\label{app:metacasanova_grammar}
+\input{Chapters/appendix_grammar}
+
+\backmatter
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\includepdf[pages = -]{Front/abstract_italian}
+
+\end{document}
