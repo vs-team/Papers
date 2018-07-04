@@ -17,6 +17,7 @@
 \usepackage{colortbl}
 \usepackage[chapter]{algorithm}
 \usepackage{algpseudocode}
+\usepackage{titling}
 \usepackage{algorithmicx}
 \usepackage{float}
 \usepackage{rotating}
@@ -77,12 +78,13 @@
 
 \makeindex
 \begin{document}
-\cleardoublepage\includepdf{Extra/cover_venice.pdf}
+%\cleardoublepage\includepdf{Extra/cover_venice.pdf}
 \thispagestyle{empty}
 \frontmatter
 \pagenumbering{gobble} %remove numbering
 \maketitle
 %\thispagestyle{empty}
+\input{Front/proefschrift}
 \input{Front/abstract}
 \newpage
 \input{Front/publications}
