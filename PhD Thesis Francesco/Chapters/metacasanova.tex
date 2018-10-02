@@ -454,9 +454,10 @@ We can see that these specifications are compatible with the definition of meta-
 \subsection{Program structure}
 \label{subsec:ch_metacasanova_program_structure}
 In this section we give an informal idea of how a Metacasanova program is organized. A program in meta-casanova contains the language definition and the rules to evaluate its semantics and/or type system. Further ahead this idea is expanded with additional details when we present the implementation details of the parser.  \\\\
-A Metacasanova program is mainly organized in three parts:
+A Metacasanova program is organized in four parts:
 
 \begin{enumerate}
+  \item \textit{Includes:} in this part it is possible to include other modules written in Metacasanova and .NET libraries that can be used in the current meta-program.
 	\item \textit{Data and function declarations:} in this part it is possible to specify data structures, that define the syntactic constructs of the language, and functions used to evaluate terms of the language through rules.
 	\item \textit{Subtype declarations:} in this part it is possible to specify sub-typing by stating that a type $T_1$ is a subtype of another type $T_2$.
 	\item \textit{Rule definitions:} in this part the programmer defines the type or semantics rules necessary to describe the type system or behaviour of the abstractions of the programming language.
