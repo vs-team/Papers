@@ -1,0 +1,28 @@
+\addcontentsline{toc}{chapter}{\vspace{4pt}TiCC Dissertation Series}
+
+
+%\rhead[SIKS Dissertation Series]{}
+%\lhead[]{SIKS Dissertation Series}
+
+%\setstretch{1}
+\newcommand{\Ticcitem}[3]{\item\footnotesize{ #1 \textit{#2} #3}}%
+\newcounter{Ticccounter}%
+\newenvironment{Ticclist}[1]{%
+	\setcounter{Ticccounter}{0}%
+	\vspace{2mm}\noindent{\small\textbf{#1}}\vspace{2mm}% hrule  {2mm}
+	\begin{list}{\footnotesize\arabic{Ticccounter}}%
+  	{   \usecounter{Ticccounter}%
+		\setlength{\topsep}{0pt}%5pt}%
+		\setlength{\partopsep}{0pt}%
+		\setlength{\listparindent}{0pt}%
+		\setlength{\labelsep}{5pt}%
+		\setlength{\itemsep}{-3pt}%
+%		\setlength{\itemsep}{-\parskip}%-2.5pt}%
+		\setlength{\labelwidth}{10pt}%15pt}%
+		\setlength{\itemindent}{0pt}%
+		\setlength{\leftmargin}{8pt}}} %15pt}}%  was 20
+{%
+    \end{list}%
+}%
+
+\input{Extra/Ticc-list}

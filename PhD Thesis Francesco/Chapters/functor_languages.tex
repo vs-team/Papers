@@ -465,7 +465,8 @@ update entity dt -> (v',k')
 The \texttt{tick} function takes a record instance as input, a list of statements, and \texttt{dt} and returns the pair of value and continuation produced by the evaluation of the rule body. The function calls \texttt{eval\tu s} that is similar to the homonym function presented in Section \ref{subsec:ch_mcnv_languages_rule_evaluation}, with the difference that it now returns a pair of value field and list of statements compatible with the required result.
 
 \begin{lstlisting}
-Func "tick" -> r.RecordType -> List[stmt] -> float : Tuple[r.RecordType,List[stmt]]
+Func "tick" -> r.RecordType -> List[stmt] -> float : 
+  Tuple[r.RecordType,List[stmt]]
 Func "eval_s" -> r.RecordType -> stmt -> float : Tuple[r.RecordType,stmt]
 
 

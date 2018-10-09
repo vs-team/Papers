@@ -1,4 +1,4 @@
-\documentclass[9pt,a5paper,openright]{extbook}
+\documentclass[9pt,b5paper,openright]{extbook}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage{amsthm}
@@ -23,7 +23,7 @@
 \usepackage{rotating}
 \usepackage{balance}
 \usepackage[font=small,labelfont=bf]{caption}
-\usepackage[top=2cm,bottom=1.5cm,left=2cm,right=2.5cm]{geometry}
+%\usepackage[top=2cm,bottom=1.5cm,left=2cm,right=2.5cm]{geometry}
 \usepackage[pdfa]{hyperref}
 \author{Francesco Di Giacomo}
 \title{Metacasanova: a High-performance Meta-compiler for Domain-specific Languages}
@@ -71,6 +71,7 @@
 \hyphenation{ca-sa-no-va}
 \hyphenation{me-ta-ca-sa-no-va}
 \hyphenation{re-quire}
+\hyphenation{Til-burg}
 
 \clubpenalty = 10000
 \widowpenalty = 10000
@@ -82,8 +83,9 @@
 \thispagestyle{empty}
 \frontmatter
 \pagenumbering{gobble} %remove numbering
-\maketitle
+%\maketitle
 %\thispagestyle{empty}
+\input{Front/title}
 \input{Front/proefschrift}
 \input{Front/abstract}
 \newpage
@@ -147,5 +149,9 @@
 
 \bibliographystyle{plain}
 \bibliography{references}
+
+\chapter*{TiCC Dissertation Series}
+\phantomsection
+\input{Extra/Ticc}
 
 \end{document}
