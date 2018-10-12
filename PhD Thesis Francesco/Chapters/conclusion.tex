@@ -18,7 +18,6 @@ The second research question reads:\\\\
 \researchQuestion{\rqContentTwo}\\\\
 
 The answer to this research question can also be found in Chapter \ref{ch:languages}. In Section  \ref{sec:ch_mcnv_languages_evaluation} and \ref{subsec:code_generation_discussion} we compared the running time of a sample written in Casanova implemented in Metacasanova with respect to the same sample implemented in Python, which is a programming language used to script the game logic in several games. The running time of Casanova results to be 3 times slower than the same implementation in Python in a simulation with 1000 entities. This performance loss does not make this version of Casanova suitable for game development as such number of entities can normally be present during the execution of a game. Usually a target value for the frame rate of a game is in the order of 60 frames/second, while the simulation in Casanova runs at roughly 28 frames/second. To this we add the fact that we are running the game logic separately from the rendering phase, which introduces additional overhead. The same simulation in Python runs at about 70 frames/second. At this point we can observe that Metacasanova is suitable for the fast prototyping of a domain-specific language for game development (because of the code length reduction) but not for its use.
-\newpage
 
 \subsection{Optimization}
 \label{subsec:ch_conclusion_rq3}

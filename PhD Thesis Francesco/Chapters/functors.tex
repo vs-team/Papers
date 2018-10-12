@@ -342,9 +342,9 @@ Consider now the physical body representation given above. We show how to use th
 Functor "PhysicalBodyType" : Record
 \end{lstlisting}
 
-The final representation of the type that should be returned by\\ \texttt{PhysicalBodyType} is \texttt{Tuple[Vector2,Tuple[Vector2,unit]]} because the field\\ \texttt{Position} and \texttt{Velocity} have type \texttt{Vector2}. Note that \texttt{Vector2} can be trivially implemented in Metacasanova as a tuple containing two floating point values. Here we use this type assuming that has already been defined above. The same applies to \texttt{unit}, which can be defined as a meta-data with no arguments.
+The final representation of the type that should be returned by \texttt{PhysicalBodyType} is \texttt{Tuple[Vector2,Tuple[Vector2,unit]]} because the field \texttt{Position} and \texttt{Velocity} have type \texttt{Vector2}. Note that \texttt{Vector2} can be trivially implemented in Metacasanova as a tuple containing two floating point values. Here we use this type assuming that has already been defined above. The same applies to \texttt{unit}, which can be defined as a meta-data with no arguments.
 
-The rule to evaluate \texttt{PhysicalBodyType} will call in its premises\\ \texttt{EmptyRecord} and \texttt{RecordField} to generate the type of the tuple appropriately:
+The rule to evaluate \texttt{PhysicalBodyType} will call in its premises \texttt{EmptyRecord} and \texttt{RecordField} to generate the type of the tuple appropriately:
 
 \begin{lstlisting}
 EmptyRecord => empty
@@ -362,7 +362,7 @@ r := empty := EmptyRecord
 \end{lstlisting}
 
 \noindent
-Thus \texttt{r.RecordType} uses the functor \texttt{RecordType} in the instance of\\ \texttt{EmptyRecord} which returns the type \texttt{unit} (the call can be seen as\\ \texttt{empty.RecordType}). Thus \texttt{r.RecordType} can be replaced with \texttt{unit}, thus leading to \texttt{Tuple[Vector2, unit]}. Thus the rule for the functor \texttt{RecordType} generated in the module returned by the second premise will be:
+Thus \texttt{r.RecordType} uses the functor \texttt{RecordType} in the instance of \texttt{EmptyRecord} which returns the type \texttt{unit} (the call can be seen as \texttt{empty.RecordType}). Thus \texttt{r.RecordType} can be replaced with \texttt{unit}, thus leading to \texttt{Tuple[Vector2, unit]}. Thus the rule for the functor \texttt{RecordType} generated in the module returned by the second premise will be:
 
 \begin{lstlisting}
 -----------------------
@@ -407,7 +407,7 @@ r := velocity
 \end{lstlisting}
 
 \noindent
-Now in the definition of the \texttt{RecordField} module again the functor\\ \texttt{RecordType} returns \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus \texttt{RecordType} for the field \texttt{Position} will be instantiated as
+Now in the definition of the \texttt{RecordField} module again the functor \texttt{RecordType} returns\\ \texttt{Tuple[type,r.RecordType]}. Now \texttt{r.RecordType} can be rewritten as \texttt{velocity.RecordType} that returns (see the instantiation of \texttt{velocity} above) \texttt{Tuple[Vector2,unit]}. Thus \texttt{RecordType} for the field \texttt{Position} will be instantiated as
 
 \begin{lstlisting}
 -----------------------
@@ -437,7 +437,7 @@ body := Record {
 \end{lstlisting}
 
 \noindent
-which is returned by the functor \texttt{PhysicalBodyType}. In order to build an instance of the physical body, we define a function that returns a value of type \texttt{PhysicalBodyType}. which in turn is simply \texttt{Tuple[Vector2,\\Tuple[Vector2,unit]}):
+which is returned by the functor \texttt{PhysicalBodyType}. In order to build an instance of the physical body, we define a function that returns a value of type \texttt{PhysicalBodyType}. which in turn is simply \texttt{Tuple[Vector2,Tuple[Vector2,unit]}):
 
 \begin{lstlisting}
 Func "PhysicalBody" : PhysicalBodyType.RecordType
@@ -568,7 +568,7 @@ r := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
 \end{lstlisting}
 
 \noindent
-In this module instance the functor \texttt{GetType} returns \texttt{type :=  Vector2} and \texttt{get} returns the first element of the record tuple. At this point, the third premise will call \texttt{get} from this module instance by passing the record tuple\\ \texttt{((10.0,10.0),((10.0,0.0),()))}, which in turn returns correctly \texttt{(10.0,10.0)}.
+In this module instance the functor \texttt{GetType} returns \texttt{type :=  Vector2} and \texttt{get} returns the first element of the record tuple. At this point, the third premise will call \texttt{get} from this module instance by passing the record tuple \texttt{((10.0,10.0),((10.0,0.0),()))}, which in turn returns correctly \texttt{(10.0,10.0)}.
 
 Now let us assume that we want to retrieve the value of "Velocity" instead. We define an analogous function \texttt{getVel} as follows
 
@@ -687,7 +687,7 @@ SetField fieldName (RecordField name type r) => Setter fieldName thisRecord {
 \end{lstlisting}
 
 \noindent
-The functor \texttt{SetAnotherField} is an auxiliary functor that recursively calls\\ \texttt{SetField} with the remaining part of the record. Eventually \texttt{SetField} will trigger the rule in Listing \ref{lst:ch_functors_setter1} when the correct field is encountered. This auxiliary functor is then used in \texttt{SetType} to retrieve the correct type of the record field and in the function \texttt{set} to call the correct \texttt{set} function for the field. The \texttt{set} function in the setter generated by \texttt{SetAnotherField} returns a modified version of the record that is replaced in the tuple.
+The functor \texttt{SetAnotherField} is an auxiliary functor that recursively calls \texttt{SetField} with the remaining part of the record. Eventually \texttt{SetField} will trigger the rule in Listing \ref{lst:ch_functors_setter1} when the correct field is encountered. This auxiliary functor is then used in \texttt{SetType} to retrieve the correct type of the record field and in the function \texttt{set} to call the correct \texttt{set} function for the field. The \texttt{set} function in the setter generated by \texttt{SetAnotherField} returns a modified version of the record that is replaced in the tuple.
 
 Let us now consider again the physical body and assume that we want to define a setter for \texttt{Position}. Again we define a function \texttt{setPos} for the field:
 
@@ -702,7 +702,7 @@ setPos v -> body'
 \end{lstlisting}
 
 \noindent
-Again we are using the functor \texttt{PhysicalBodyType} and the function\\ \texttt{PhysicalBody} defined in Section \ref{sec:ch_functors_record_implementation}. The first premise of this rule will call \texttt{SetField} with
+Again we are using the functor \texttt{PhysicalBodyType} and the function \texttt{PhysicalBody} defined in Section \ref{sec:ch_functors_record_implementation}. The first premise of this rule will call \texttt{SetField} with
 
 \begin{lstlisting}
 fieldName := "Position"
@@ -720,7 +720,7 @@ r := RecordField "Position" Vector2 (RecordField "Velocity" Vector2 EmptyRecord)
 \end{lstlisting}
 
 \noindent
-In this module instance \texttt{r.RecordType} will be\\ \texttt{Tuple[Vector2,Tuple[Vector2,unit]]} and \texttt{SetType} returns \texttt{Vector2}. The whole instance will look like
+In this module instance \texttt{r.RecordType} will be \texttt{Tuple[Vector2,Tuple[Vector2,unit]]} and \texttt{SetType} returns \texttt{Vector2}. The whole instance will look like
 
 \begin{lstlisting}
 Func "set" -> Tuple[Vector2,Tuple[Vector2,unit]] -> Vector2 : Tuple[Vector2,Tupe[Vector2,unit]]

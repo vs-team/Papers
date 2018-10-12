@@ -488,7 +488,7 @@ type Parser<'a, 'ctxt> = { Parse : List<char> -> 'ctxt -> Position -> Either<'a 
 static member Make(p:List<char> -> 'ctxt -> Position -> Either<'a * List<char> * 'ctxt * Position, Error>) : Parser<'a,'ctxt> = { Parse = p }
 \end{lstlisting}
 
-The \textit{return} operation should take as input a generic value of type \texttt{'a} and return a \texttt{Parser<'a,'ctxt>}. The return simply creates the parser function for the given input:
+The \textit{return} operation should take as input a generic value of type \texttt{'a} and return a\\ \texttt{Parser<'a,'ctxt>}. The return simply creates the parser function for the given input:
 
 \begin{lstlisting}
 member this.Return(x:'a) : Parser<'a,'ctxt> =

@@ -152,7 +152,7 @@ UpdateList updater => ElementUpdater List[elementType] {
 \end{lstlisting}
 
 \noindent
-The updater for tuples is built by defining a functor that takes as input two element updaters, one for the current element of the tuple, and one for the second one. Note that it is possible to recursively provide a tuple updater as a second updater to support the update of tuples containing more than two elements. For example, the updater for \texttt{Tuple[PhysicalBody,Tuple[PhysicalBody,PhysicalBody]]} would require the passing of an entity updater and recursively a tuple updater. The declaration of this fuctor is thus:
+The updater for tuples is built by defining a functor that takes as input two element updaters, one for the current element of the tuple, and one for the second one. Note that it is possible to recursively provide a tuple updater as a second updater to support the update of tuples containing more than two elements. For example, the updater for \texttt{Tuple[PhysicalBody,\\Tuple[PhysicalBody,PhysicalBody]]} would require the passing of an entity updater and recursively a tuple updater. The declaration of this fuctor is thus:
 
 \begin{lstlisting}
 Functor "UpdateTuple" => ElementUpdater => ElementUpdater : ElementUpdater
@@ -310,7 +310,7 @@ nextType := nextUpdater.GetType = float
 \end{lstlisting}
 
 \noindent
-Thus \texttt{ElementUpdater} will be called with \texttt{elementType := \\Tuple[float,float]}. This module instance will then contain the following functor rule and function declaration:
+Thus \texttt{ElementUpdater} will be called with \texttt{elementType := Tuple[float,float]}. This module instance will then contain the following functor rule and function declaration:
 
 \begin{lstlisting}
 Func "update" -> Tuple[float,float] -> float : Tuple[float,float]

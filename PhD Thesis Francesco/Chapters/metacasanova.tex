@@ -853,6 +853,7 @@ x -> ($ a1 (b1 % b2 b3) a2)
 \end{lstlisting}
 
 \begin{table}
+  \centering
 	\begin{tabular}{|c|c|c|c|c|}
 		\hline
 		\textbf{Symbol} & \textbf{Priority} & \textbf{Left arity} & \textbf{Right arity} & \textbf{Associativity} \\
@@ -886,9 +887,9 @@ x -> $ a1 b1 % b2 b3 a2
 The algorithm will select the symbol \texttt{->} as a separator, as it is the symbol with the lowest priority (there is only one occurrence, thus we neglect the part that selects the appropriate occurrence). It will then recursively parenthesize the sequences \texttt{x} and \texttt{\$ a1 b1 \% b2 b3 a2}. At this point we have two parenthesizations of the left and right part: $\lbrace l_1, l_2, ..., l_n \rbrace$ and $\lbrace r_1, r_2, ..., r_m \rbrace$ respectively for the left and right sequence. Assuming that the left arity of the current symbol is $a_l$ and the right one is $a_r$, then the parenthesization of the current operator will contain the elements $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$ and $\lbrace r_1, ..., r_{a_r} \rbrace$. Assuming that the current symbol is $\sigma$, we now consider three cases:
 
 \begin{enumerate}
-	\item The symbol uses a prefix notation: in this case the parenthesization will not contain any elements from $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$, thus the final parenthesization will be $\lbrace l_1, l_2, ..., l_n \; (\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1}, ..., r_{m} \rbrace$.
+	\item The symbol uses a prefix notation: in this case the parenthesization will not contain any elements from $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$, thus the final parenthesization will be $$\lbrace l_1, l_2, ..., l_n \; (\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1}, ..., r_{m} \rbrace$$.
 	\item The symbol uses an infix notation: in this case the parenthesization will contain elements from both $\lbrace l_{n - a_l + 1}, ..., l_{n} \rbrace$ and $\lbrace r_1, ..., r_{a_r} \rbrace$. The final parenthesization will be $$l_1, ...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma, r_1, ..., r_{a_r}) \; r_{a_r + 1} ,..., r_{m}$$
-	\item The symbol uses a suffix notation: in this case the parenthesization will not contain any elements from $\lbrace r_1, ..., r_{a_r} \rbrace$ and the final parenthesization will be $l_1,...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma) \; r_{1},...,r_{m}$.
+	\item The symbol uses a suffix notation: in this case the parenthesization will not contain any elements from $\lbrace r_1, ..., r_{a_r} \rbrace$ and the final parenthesization will be $$l_1,...,l_{n - a_l} \; (l_{n - a_l + 1}, ..., l_{n},\sigma) \; r_{1},...,r_{m}$$.
 \end{enumerate}
 
 In order to clarify this process, let us consider again the argument sequence
@@ -944,33 +945,25 @@ The details of the algorithm are shown in Algorithm \ref{alg:ch_metacasanova_par
 					\Else
 						\State \Return $largs \; @ \; s' \; @ \; rargs$
 					\EndIf
-        \algstore{par}
+       	\Else
+         					\State $p \gets \emptyset$
+         					\ForAll {$a \in A$}
+         						\If {$a = \langle e \rangle$}
+         							\AlgLet{$S'$}{symbols in $e$}
+         							\State $p' \gets$ \Call {parenthesize} {$S'$} {$e$}
+         							\If {$p' = \langle e' \rangle$}
+         								\State $p \gets p \; @ \; e'$
+         							\Else
+         								\State $p \gets p \; @ \; \langle p' \rangle$
+         							\EndIf
+         						\Else
+         							\State $p \gets p \; @ \; \lbrace a \rbrace$
+         						\EndIf
+         					\EndFor
+         				\EndIf
+         			\EndIf		
+         		\EndFunction
 	\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}
-\begin{algorithmic}
-  \small
-  \algrestore{par}
-  	\Else
-  					\State $p \gets \emptyset$
-  					\ForAll {$a \in A$}
-  						\If {$a = \langle e \rangle$}
-  							\AlgLet{$S'$}{symbols in $e$}
-  							\State $p' \gets$ \Call {parenthesize} {$S'$} {$e$}
-  							\If {$p' = \langle e' \rangle$}
-  								\State $p \gets p \; @ \; e'$
-  							\Else
-  								\State $p \gets p \; @ \; \langle p' \rangle$
-  							\EndIf
-  						\Else
-  							\State $p \gets p \; @ \; \lbrace a \rbrace$
-  						\EndIf
-  					\EndFor
-  				\EndIf
-  			\EndIf		
-  		\EndFunction
-  \end{algorithmic}
 \end{algorithm}
 
 \section{Type checking}
